@@ -18,56 +18,6 @@ body,
   user-select: none;
   overflow: hidden;
 }
-<<<<<<< HEAD
-
-body {
-  position: fixed;
-  overflow: hidden;
-  overscroll-behavior-y: none;
-  font-family: -apple-system, BlinkMacSystemFont, avenir next, avenir, helvetica neue, helvetica, ubuntu, roboto, noto, segoe ui, arial, sans-serif;
-  font-size: 40px;
-}
-
-.flex {
-  display: flex;
-}
-
-.fixed {
-  position: fixed;
-}
-
-.relative {
-  position: relative;
-}
-
-.absolute {
-  position: absolute;
-}
-
-.centered {
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.cursor {
-  color: white;
-}
-
-.texture-selector {
-  transform: scale(5);
-}
-
-.texture-selector img.active {
-  border: 2px solid red;
-}
-
-.menu {
-  top: 0px;
-  left: 10px;
-}
-||||||| 500b21d
-=======
 
 html,
 body,
@@ -89,5 +39,4 @@ body,
 canvas {
   width: 100%;
   height: 100%;
-} 
->>>>>>> 23e7a82ab41169a78bbd1c421e28e0b849aa4e5d
+}
