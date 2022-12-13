@@ -21,5 +21,8 @@
   "homepage": "https://github.com/PuppetAJ/ReactMC#readme",
   "devDependencies": {
     "concurrently": "^7.6.0"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.46.3"
   }
 }
