@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const ThoughtList = ({ thoughts, title }) => {
     if (!thoughts.length) {
-        return <h3>No Thoughts Yet</h3>;
+        return <h3>No Posts Yet</h3>;
     }
 
     return (
