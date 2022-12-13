@@ -1,5 +1,5 @@
 // Imports
-const { gql } = require('apollo-server-express');
+const { gql } = require('apollo-server-express')
 
 // Initialize type definitions
 const typeDefs = gql`
@@ -7,7 +7,6 @@ const typeDefs = gql`
     _id: ID
     username: String
     email: String
-    savedWorlds: [String]
   }
   
   type Auth {
@@ -17,6 +16,8 @@ const typeDefs = gql`
 
   type Query {
     me: User
+    users: [User]
+    user(username: String!): User
   }
 
   type Mutation {
@@ -26,4 +27,4 @@ const typeDefs = gql`
 `;
 
 // Export type definitions
-module.exports = typeDefs;
+module.exports = typeDefs
