@@ -1,63 +1,118 @@
-// Imports
-const { User } = require('../models');
-const { AuthenticationError } = require('apollo-server-express');
-const { signToken } = require('../utils/auth');
+const { AuthenticationError } = require('apollo-server-express')
+const { User, Thought } = require('../models')
+const { signToken } = require('../utils/auth')
 
-
-// Eventually we want to have worlds be managed by only logged in users
-// they will be stored on our DB
-
-// Declare resolvers
 const resolvers = {
-  // Query resolvers
-  Query: {
-    me: async (parent, args, context) => {
-      // If user is logged in then find the user using the id of the JWT
-      if (context.user) {
-        const userData = await User.findOne({ _id: context.user._id })
-        .select('-__v -password')
-        .populate('savedWorlds')
-      
-        return userData;
-      }
+    Query: {
 
-      // Otherwise send an authentication error
-      throw new AuthenticationError('Not logged in');
-    }
-  },
-  // Mutation resolvers
-  Mutation: {
-    login: async (parent, { email, password }) => {
-      // Login using args
-      const user = await User.findOne({ email });
+        thoughts: async (parent, { username }) => {
+            const params = username ? { username } : {}
+            return Thought.find(params).sort({ createdAt: -1 })
+        },
 
-      // If no user data is returned, send an authentication error
-      if (!user) {
-        throw new AuthenticationError('Incorrect credentials');
-      }
+        thought: async (parent, { _id }) => {
+            return Thought.findOne({ _id })
+        },
 
-      // Check for correct password
-      const correctPw = await user.isCorrectPassword(password);
+        users: async () => {
+            return User.find()
+                .select('-__v -password')
+                .populate('friends')
+                .populate('thoughts')
+        },
 
-      // If incorrect password send authentication error
-      if (!correctPw) {
-        throw new AuthenticationError('Incorrect credentials');
-      }
+        user: async (parent, { username }) => {
+            return User.findOne({ username })
+                .select('-__v -password')
+                .populate('friends')
+                .populate('thoughts')
+        },
 
-      // Sign token and return it
-      const token = signToken(user);
-      return { token, user };
+        me: async (parent, args, context) => {
+            if (context.user) {
+                const userData = await User.findOne({})
+                    .select('-__v -password')
+                    .populate('thoughts')
+                    .populate('friends')
+
+                return userData
+            }
+
+            throw new AuthenticationError('Not logged in')
+        }
     },
-    addUser: async (parent, args) => {
-      // Create user with arguments
-      const user = await User.create(args);
-      // Create token with user data
-      const token = signToken(user);
-      // Return data
-      return { token, user };
-    }
-  }
-};
 
-// Export resolvers
-module.exports = resolvers;
+    Mutation: {
+
+        addUser: async (parent, args) => {
+            const user = await User.create(args)
+            const token = signToken(user)
+
+            return { token, user }
+        },
+
+        login: async (parent, { email, password }) => {
+            const user = await User.findOne({ email })
+
+            if(!user) {
+                throw new AuthenticationError('Incorrect credentials')
+            }
+
+            const correctPw = await user.isCorrectPassword(password)
+
+            if (!correctPw) {
+                throw new AuthenticationError('Incorrect credentials')
+            }
+
+            const token = signToken(user)
+            console.log('Login successful')
+            return { token, user }
+        },
+
+        addThought: async (parent, args, context) => {
+            if (context.user) {
+                const thought = await Thought.create({ ...args, username: context.user.username })
+
+                await User.findByIdAndUpdate(
+                    { _id: context.user._id },
+                    { $push: { thoughts: thought._id } },
+                    { new: true }
+                )
+
+                return thought
+            }
+
+            throw new AuthenticationError('You need to be loggen in')
+        },
+
+        addReaction: async (parent, { thoughtId, reactionBody }, context) => {
+            if (context.user) {
+                const updatedThought = await Thought.findOneAndUpdate(
+                    { _id: thoughtId },
+                    { $push: { reactions: { reactionBody, username: context.user.username } } },
+                    { new: true, runValidators: true }
+                )
+
+                return updatedThought
+            }
+
+            throw new AuthenticationError('You need to be logged in')
+        },
+
+        addFriend: async (parent, { friendId }, context) => {
+            if (context.user) {
+                const updatedUser = await User.findOneAndUpdate(
+                    { _id: context.user._id },
+                    { $addToSet: { friends: friendId } },
+                    { new: true }
+                ).populate('friends')
+
+                return updatedUser
+            }
+
+            throw new AuthenticationError('You meed to be logged in')
+        }
+    }
+}
+
+module.exports = resolvers
