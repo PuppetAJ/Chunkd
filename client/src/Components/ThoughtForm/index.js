@@ -63,7 +63,7 @@ const ThoughtForm = ()=> {
     };
 
 
-
+    //returning JSX
     return (
         <div>
             <p className= {`m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
