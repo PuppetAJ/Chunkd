@@ -11,7 +11,7 @@ const ReactionForm = ({ thoughtId }) => {
     const handleChange = event => {
         if (event.target.value.length <= 280) {
             setBody(event.target.value);
-            setCharacterCount(event.target.value.lenght);
+            setCharacterCount(event.target.value.length);
         }
     };
 
