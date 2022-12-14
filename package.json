@@ -21,13 +21,5 @@
   "homepage": "https://github.com/PuppetAJ/ReactMC#readme",
   "devDependencies": {
     "concurrently": "^7.6.0"
-  },
-  "dependencies": {
-    "@chakra-ui/react": "^2.4.3",
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
-    "@react-three/drei": "^9.46.3",
-    "framer-motion": "^7.9.1",
-    "react-icons": "^4.7.1"
   }
 }
