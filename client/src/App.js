@@ -1,4 +1,5 @@
 import React from "react";
+import { ChakraProvider } from '@chakra-ui/react'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import {
 	ApolloProvider,
@@ -16,6 +17,7 @@ import Profile from './Pages/Profile'
 import Signup from './Pages/Signup'
 import Home from './Pages/Home'
 // import Editor from "./Pages/Editor";
+
 
 const httpLink = createHttpLink({
 	uri: "/graphql",
@@ -39,6 +41,8 @@ const client = new ApolloClient({
 // Add catch route all later
 function App() {
 	return (
+    //Chakra Provider 
+    <ChakraProvider>
 		<ApolloProvider client={client}>
       <Router>
         <div className='flex-column justify-flex-start min-100-vh'>
@@ -75,6 +79,7 @@ function App() {
         </div>
       </Router>
     </ApolloProvider>
+    </ChakraProvider>
 	);
 }
 
