@@ -5,9 +5,6 @@ import Auth from "../utils/auth";
 import FriendList from "../Components/FriendList";
 import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
-// import FriendList from "../components/FriendList";
-// import ThoughtList from "../components/ThoughtList";
-// import ThoughtForm from "../components/ThoughtForm";
 
 const Home = () => {
 	const { loading, data } = useQuery(QUERY_THOUGHTS);
@@ -33,7 +30,7 @@ const Home = () => {
 					) : (
 						<ThoughtList
 							thoughts={thoughts}
-							title='Some Feed for Thought(s)...'
+							title='This is the homepage'
 						/>
 					)}
 				</div>

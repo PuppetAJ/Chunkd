@@ -1,9 +1,9 @@
 import React from 'react';
 import { Navigate, useParams } from 'react-router-dom'
 import Auth from '../utils/auth'
-import ThoughtList from '../components/ThoughtList'
-import FriendList from '../components/FriendList';
-import ThoughtForm from '../components/ThoughtForm'
+import ThoughtList from '../Components/ThoughtList'
+import FriendList from '../Components/FriendList'
+import ThoughtForm from '../Components/ThoughtForm'
 import { useQuery, useMutation } from '@apollo/client'
 import { QUERY_USER, QUERY_ME } from '../utils/queries'
 import { ADD_FRIEND } from '../utils/mutations'
