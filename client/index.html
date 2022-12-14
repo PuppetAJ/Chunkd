@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chakra "Layout"</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
+</head>
+<body>
+
+    <div id="mainWrapper" class="mt-4 mr-6 ml-6">
+
+        <section class="mb-6">
+
+            <nav class="navbar" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <a class="navbar-item" href="https://github.com/PuppetAJ/ReactMC">
+                        <img src="https://cdn-icons-png.flaticon.com/512/149/149769.png" width="100" height="100">
+                    </a>
+
+                    <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMenu">
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                    </a>
+                </div>
+                <div id="navbarMenu" class="navbar-menu">
+                    <div class="navbar-start">
+                        <div class="navbar-item">
+                            <div class="buttons are-medium">
+                                <a class="button is-light">
+                                    Home
+                                </a>
+                            </div>
+                        </div>
+                        <div class="navbar-item">
+                            <div class="buttons are-medium">
+                                <a class="button is-light">
+                                    My Profile
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="navbar-end">
+                        <div class="navbar-item">
+                            <div class="buttons">
+                                <a class="button is-primary">
+                                    <Strong>Log In</Strong>
+                                </a>
+                                <a class="button is-light">
+                                    Sign Up
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <section class="section" id="mainContent">
+
+                <div id="searchBar" class="container mb-6">
+                    <div class="field is grouped is-grouped-multiline">
+                        <div class="field has-addons is-justify-content-center">
+                            <div class="control is-expanded">
+                            <input class="input" type="text" placeholder="Search for what you are looking for!">
+                            </div>
+                            <div class="control">
+                                <button type="submit" class="button is-primary">Search</button>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal is-justify-content-center">
+                            <p class="control is-flex-grow-1">
+                                <a class="button is-fullwidth">
+                                    Minecraft
+                                </a>
+                            </p>
+                            <p class="control is-flex-grow-1">
+                                <a class="button is-fullwidth">
+                                    Forums
+                                </a>
+                            </p>
+                            <p class="control is-flex-grow-1">
+                                <a class="button is-fullwidth">
+                                    Skins
+                                </a>
+                            </p>
+                            <p class="control is-flex-grow-1">
+                                <a class="button is-fullwidth">
+                                    Texturepacks
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>

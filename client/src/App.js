@@ -9,6 +9,7 @@ import {
 import { setContext } from "@apollo/client/link/context";
 import Home from "./Pages/Home";
 import Editor from "./Pages/Editor";
+import { ChakraProvider } from '@chakra-ui/react';
 
 const httpLink = createHttpLink({
 	uri: "/graphql",
@@ -34,10 +35,12 @@ function App() {
 	return (
 		<ApolloProvider client={client}>
 			<Router>
+			<ChakraProvider>
 				<Routes>
 					<Route path='/' element={<Home />} />
 					<Route path='/editor' element={<Editor />} />
 				</Routes>
+			</ChakraProvider>
 			</Router>
 		</ApolloProvider>
 	);
