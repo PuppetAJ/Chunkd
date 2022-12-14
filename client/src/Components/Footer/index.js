@@ -7,13 +7,6 @@ const Footer = () => {
 
   //Return JSX
   return (
-  //   <footer className="w-100 mt-auto bg-secondary p-4">
-  //     <div className="container">
-  //       &copy;{new Date().getFullYear()} Team NotHavinIt
-  //     </div>
-  //   </footer>
-  // );
-
 
 
   <Container
@@ -39,7 +32,7 @@ const Footer = () => {
           aria-label="LinkedIn"
           icon={<FaLinkedin fontSize="1.25rem" />}
         />
-        <IconButton as="a" href="#" aria-label="GitHub" icon={<FaGithub fontSize="1.25rem" />} />
+        <IconButton as="a" href="https://github.com/PuppetAJ/ReactMC" aria-label="GitHub" icon={<FaGithub fontSize="1.25rem" />} />
         <IconButton
           as="a"
           href="#"
@@ -49,7 +42,7 @@ const Footer = () => {
       </ButtonGroup>
     </Stack>
     <Text fontSize="sm" color="subtle">
-      &copy; {new Date().getFullYear()} Chakra UI Pro, Inc. All rights reserved.
+      &copy; {new Date().getFullYear()} Team NotHavinIt.
     </Text>
   </Stack>
 </Container>
