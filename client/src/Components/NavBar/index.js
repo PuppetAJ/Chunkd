@@ -1,33 +1,43 @@
 
 // Imports
 import React from 'react';
+import {Link} from 'react-router-dom';
+
 
 
 // Component initialization
-function NavBar(props) {
+function NavBar () {
 
-  // Deconstruct props
-  const {navSelect} = props;
+ // set modal display state
+//  const [showModal, setShowModal] = useState(false);
 
   // JSX
   return (
     <div className='nav-wrapper'>
       {/* Nav list */}
       <ul>
-        <li>
-          <a name='editor' onClick = {navSelect} className='active' href="#editor">Editor</a>
-        </li>
-        <li>
-          <a name='forum' onClick = {navSelect} href="#home">Forum</a>
-        </li>
-        <li>
-          <a name='profile' onClick = {navSelect} href="#profile">Profile</a>
-        </li>
-        <li>
-          <a name='login' onClick = {navSelect} href="#login">Login</a>
-        </li>
+        
+          <Link as={Link} to='/Editor'>
+                    Editor
+                  </Link>
+       
+    
+          <Link as={Link} to='/Home'>
+                    Forum
+                  </Link>
+       
+        
+          <Link as={Link} to='/Profile'>
+                    Profile
+                  </Link>
+      <Link as={Link} to='/Login'>
+                    Login
+                  </Link>
+      
       </ul>
     </div>
+
+    
   )
 };
 

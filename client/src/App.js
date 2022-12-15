@@ -17,7 +17,7 @@ import Profile from './Pages/Profile'
 import Signup from './Pages/Signup'
 import Home from './Pages/Home'
 import Editor from "./Pages/Editor";
-// import NavBar from "./components/NavBar";
+import NavBar from "./Components/NavBar";
 
 
 const httpLink = createHttpLink({
@@ -49,7 +49,7 @@ function App() {
         <div className='flex-column justify-flex-start min-100-vh'>
           <Header />
           <div className='container'>
-            {/* <NavBar/> */}
+          <NavBar/>
             <Routes>
               <Route
                 path='/'
