@@ -23,26 +23,26 @@ const Footer = () => {
     }}
   >
   
-    <Stack justify="space-between" direction="row" align="center">
+    <Stack justify="center" direction="row" align="center">
       
       <ButtonGroup variant="ghost">
-        <IconButton
+        {/* <IconButton
           as="a"
           href="#"
           aria-label="LinkedIn"
           icon={<FaLinkedin fontSize="1.25rem" />}
-        />
+        /> */}
         <IconButton as="a" href="https://github.com/PuppetAJ/ReactMC"
          aria-label="GitHub" 
          target="_blank"
          rel="noreferer"
          icon={<FaGithub fontSize="1.25rem" />} />
-        <IconButton
+        {/* <IconButton
           as="a"
           href="#"
           aria-label="Twitter"
           icon={<FaTwitter fontSize="1.25rem" />}
-        />
+        /> */}
       </ButtonGroup>
     </Stack>
     <Text fontSize="sm" color="subtle" align="center">

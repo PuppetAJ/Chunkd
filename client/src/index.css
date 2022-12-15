@@ -35,6 +35,8 @@ canvas {
 
 .footer-container {
   width: 100%;
+  flex-direction: column;
+  flex: 1;  
   position: fixed;
   bottom: 0;
 }
