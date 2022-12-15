@@ -41,9 +41,8 @@ const Login = (props) => {
 
 	//Returning JSX
 	return (
-		<main className="flex-row justify-center mb-4">
-			<Link href="http://fonts.cdnfonts.com/css/minecraftia" rel="stylesheet" />
-			<div className="col-12 col-md-6">
+		<main className="flex-row justify-center mb-4 container">
+			<div className="col-12 col-md-6 menu-options">
 				<div className="card">
 					<h4 className="card-header">Login</h4>
 					<div className="card-body">
@@ -66,7 +65,7 @@ const Login = (props) => {
 								value={formState.password}
 								onChange={handleChange}
 							/>
-							<button className="btn d-block w-100" type="submit">
+							<button className="btn-minecraft d-block w-100" type="submit">
 								Submit
 							</button>
 						</form>
@@ -74,7 +73,19 @@ const Login = (props) => {
 						{error && <div>Login failed</div>}
 					</div>
 				</div>
+				{/* <Link
+					href="http://fonts.cdnfonts.com/css/minecraftia"
+					rel="stylesheet"
+				/> */}
 			</div>
+
+			{/* <div className="container">
+				<div className="menu-options">
+					<button className="btn-minecraft">Signup</button>
+					<button className="btn-minecraft">Login</button>
+				</div>
+			</div> */}
+
 		</main>
 	);
 };
