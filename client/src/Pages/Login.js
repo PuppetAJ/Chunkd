@@ -41,7 +41,7 @@ const Login = (props) => {
 
 	//Returning JSX
 	return (
-		<main className="flex-row justify-center mb-4 container">
+		<main id="login" className="flex-row justify-center mb-4 container">
 			<div className="col-12 col-md-6 menu-options">
 				<div className="card">
 					<h4 className="card-header">Login</h4>

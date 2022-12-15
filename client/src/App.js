@@ -1,5 +1,5 @@
 import React from "react";
-import { ChakraProvider } from '@chakra-ui/react'
+import { ChakraProvider} from '@chakra-ui/react'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import {
 	ApolloProvider,
@@ -17,6 +17,7 @@ import Profile from './Pages/Profile'
 import Signup from './Pages/Signup'
 import Home from './Pages/Home'
 import Editor from "./Pages/Editor";
+// import NavBar from "./components/NavBar";
 
 
 const httpLink = createHttpLink({
@@ -48,6 +49,7 @@ function App() {
         <div className='flex-column justify-flex-start min-100-vh'>
           <Header />
           <div className='container'>
+            {/* <NavBar/> */}
             <Routes>
               <Route
                 path='/'
@@ -81,6 +83,7 @@ function App() {
           </div>
           <Footer />
         </div>
+        
       </Router>
     </ApolloProvider>
     </ChakraProvider>
