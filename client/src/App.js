@@ -16,7 +16,7 @@ import SingleThought from './Pages/SingleThought'
 import Profile from './Pages/Profile'
 import Signup from './Pages/Signup'
 import Home from './Pages/Home'
-// import Editor from "./Pages/Editor";
+import Editor from "./Pages/Editor";
 
 
 const httpLink = createHttpLink({
@@ -52,6 +52,10 @@ function App() {
               <Route
                 path='/'
                 element={<Home/>}
+              />
+              <Route
+                path='/editor'
+                element={<Editor/>}
               />
               <Route
                 path='/login'
