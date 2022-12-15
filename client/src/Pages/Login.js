@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { LOGIN_USER } from "../utils/mutations";
-// import "http://fonts.cdnfonts.com/css/minecraftia";
+import { Link } from "@chakra-ui/react";
 import Auth from "../utils/auth";
-import { Link } from "react-router-dom";
 
 const Login = (props) => {
 	const [formState, setFormState] = useState({ email: "", password: "" });
@@ -86,6 +85,7 @@ const Login = (props) => {
 					<button className="btn-minecraft">Login</button>
 				</div>
 			</div> */}
+
 		</main>
 	);
 };
