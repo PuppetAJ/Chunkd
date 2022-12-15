@@ -6,6 +6,7 @@
 }
 
 
+/* Global Styling */
 html,
 body,
 #root {
@@ -31,29 +32,10 @@ canvas {
   height: 100%;
 }
 
-/* FOOTER STYLING */
-
-.footer-container {
-  width: 100%;
-  flex-direction: column;
-  flex: 1;  
-  position: fixed;
-  bottom: 0;
-}
-
-/* * {
-  font-family: 'Minecraftia', sans-serif;
-} */
-
-/* body {
-  background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2);
-  background-size: cover;
-  overflow: hidden;
-} */
-
+/* Main Container Styling */
 .container {
-  /* height: 100vh; */
-  /* width: 100%; */
+  height: 100vh;
+  width: auto;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -87,6 +69,7 @@ canvas {
   width: 100%;
   padding: .5rem 0;
   margin-bottom: .75rem;
+  margin-inline-end: 2rem;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   font-size: 1rem;
   letter-spacing: .025em;
@@ -103,4 +86,15 @@ canvas {
 .btn-minecraft:focus {
   color: rgb(246, 246, 44);
   outline: none;
+}
+
+
+/* FOOTER STYLING */
+
+.footer-container {
+  width: 100%;
+  flex-direction: column;
+  flex: 1;  
+  position: fixed;
+  bottom: 0;
 }

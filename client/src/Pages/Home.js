@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@apollo/client";
 import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries";
@@ -16,10 +17,13 @@ const Home = () => {
 
 	const loggedIn = Auth.loggedIn();
 
+
+	//---** RENAME THIS TO FORUM.JS to be the 'FORUM PAGE' **-- //
 	return (
-		<main>
+		<main id="home">
 			<div className='flex-row justify-space-between'>
 				{loggedIn && (
+					// ** FORM FOR NEW POST/THOUGHT ** //
 					<div className='col-12 mb-3'>
 						<ThoughtForm />
 					</div>
@@ -28,9 +32,10 @@ const Home = () => {
 					{loading ? (
 						<div>Loading...</div>
 					) : (
+						// ** THIS IS THE LIST OF POSTS/BUILDS ** //
 						<ThoughtList
 							thoughts={thoughts}
-							title='This is the homepage'
+							title='Explore Recent Builds'
 						/>
 					)}
 				</div>

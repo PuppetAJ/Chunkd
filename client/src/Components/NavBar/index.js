@@ -15,16 +15,16 @@ function NavBar(props) {
       {/* Nav list */}
       <ul>
         <li>
-          <a name='builder' onClick = {navSelect} className='active' href="#Builder">Builder</a>
+          <a name='editor' onClick = {navSelect} className='active' href="#editor">Editor</a>
         </li>
         <li>
-          <a name='forum' onClick = {navSelect} href="#Forum">Forum</a>
+          <a name='forum' onClick = {navSelect} href="#home">Forum</a>
         </li>
         <li>
-          <a name='profile' onClick = {navSelect} href="#Profile">Profile</a>
+          <a name='profile' onClick = {navSelect} href="#profile">Profile</a>
         </li>
         <li>
-          <a name='login' onClick = {navSelect} href="#Login">Login</a>
+          <a name='login' onClick = {navSelect} href="#login">Login</a>
         </li>
       </ul>
     </div>
