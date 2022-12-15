@@ -1,5 +1,10 @@
 /* @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap'); */
 
+/* Import Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
   /* font-family: 'Minecraftia', sans-serif; */
@@ -14,7 +19,7 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  background-color: lightblue;
+  /* background-color: lightblue; */
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
@@ -36,7 +41,7 @@ canvas {
 .container {
   height: 100vh;
   width: auto;
-  display: flex;
+  display: flex; 
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -67,7 +72,7 @@ canvas {
   background: #727272;
   color: rgb(247, 247, 247);
   width: 100%;
-  padding: .5rem 0;
+  padding: .75rem .75rem;
   margin-bottom: .75rem;
   margin-inline-end: 2rem;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
@@ -88,13 +93,14 @@ canvas {
   outline: none;
 }
 
-
 /* FOOTER STYLING */
 
-.footer-container {
-  width: 100%;
-  flex-direction: column;
-  flex: 1;  
+.footer {
+  /* width: 100%; */
   position: fixed;
   bottom: 0;
+  /* display: flex; */
 }
+
+
+

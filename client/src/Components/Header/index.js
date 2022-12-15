@@ -28,8 +28,10 @@ const Header = () => {
 					) : (
 						<>
 						{/* Padding for these buttons needs to be changed These are buttons that display on landing page */}
+						<div className="justify-content-center">
 							<Link to='/login' className="btn-minecraft" >Login</Link>
-							<Link to='/signup' className-="btn-minecraft">Signup</Link>
+							<Link to='/signup' className="btn-minecraft">Signup</Link>
+							</div>
 						</>
 					)}
 				</nav>

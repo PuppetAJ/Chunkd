@@ -17,20 +17,20 @@ function NavBar () {
       {/* Nav list */}
       <ul>
         
-          <Link as={Link} to='/Editor'>
+          <Link as={Link} className="p-2 duration-300 hover:scale-105" to='/Editor'>
                     Editor
                   </Link>
        
     
-          <Link as={Link} to='/Home'>
+          <Link as={Link} className="p-2 duration-300 hover:scale-105" to='/Home'>
                     Forum
                   </Link>
        
         
-          <Link as={Link} to='/Profile'>
+          <Link as={Link} className="p-2 duration-300 hover:scale-105" to='/Profile'>
                     Profile
                   </Link>
-      <Link as={Link} to='/Login'>
+      <Link as={Link}  className="p-2 duration-300 hover:scale-105" to='/Login'>
                     Login
                   </Link>
       
