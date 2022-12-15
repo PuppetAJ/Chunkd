@@ -20,7 +20,7 @@ const Home = () => {
 
 	//---** RENAME THIS TO FORUM.JS to be the 'FORUM PAGE' **-- //
 	return (
-		<main id="home">
+		<main>
 			<div className='flex-row justify-space-between'>
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT ** //
