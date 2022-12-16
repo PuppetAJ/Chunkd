@@ -104,6 +104,9 @@ canvas {
   width: auto;
   /* position: absolute; */
   bottom: 0;
+  background-image: url('./assets/background.svg');
+  background-color: rgb(34, 34, 34);
+  color: rgb(247, 247, 247);
 }
 
 .nav-wrapper {
