@@ -2,7 +2,7 @@
 
 /* Import Tailwind CSS */
 @tailwind base;
-@tailwind components;
+/* @tailwind components; */
 @tailwind utilities;
 
 * {
@@ -73,7 +73,6 @@ canvas {
   color: rgb(247, 247, 247);
   /* width: 100%; */
   padding: .75rem .75rem;
-  margin-bottom: .75rem;
   /* margin-inline-end: 2rem; */
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   font-size: 1rem;

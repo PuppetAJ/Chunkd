@@ -38,7 +38,7 @@ const Signup = () => {
 	};
 
 	return (
-	<main id="login" className="flex-row justify-center mb-4 container">
+	<main id="login" className="flex-row justify-content-center mb-4 container">
 			
 
 			<div className="px-6 py-3 rounded border w-64">
