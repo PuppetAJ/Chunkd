@@ -7,17 +7,16 @@ import {
 	createHttpLink,
 } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
-import Header from './Components/Header'
-import Footer from './Components/Footer'
-import Login from './Pages/Login'
-import NoMatch from './Pages/NoMatch'
-import SingleThought from './Pages/SingleThought'
-import Profile from './Pages/Profile'
-import Signup from './Pages/Signup'
-import Home from './Pages/Home'
+import Header from "./Components/Header";
+import Footer from "./Components/Footer";
+import Login from "./Pages/Login";
+import NoMatch from "./Pages/NoMatch";
+import SingleThought from "./Pages/SingleThought";
+import Profile from "./Pages/Profile";
+import Signup from "./Pages/Signup";
+import Home from "./Pages/Home";
 import Editor from "./Pages/Editor";
 import NavBar from "./Components/NavBar";
-
 
 const httpLink = createHttpLink({
 	uri: "/graphql",
@@ -41,50 +40,29 @@ const client = new ApolloClient({
 // Add catch route all later
 function App() {
 	return (
-   
 		<ApolloProvider client={client}>
-      <Router>
-        <div className='flex-column justify-flex-start min-100-vh'>
-          <Header />
-          <div className='container'>
-          <NavBar/>
-            <Routes>
-              <Route
-                path='/'
-                element={<Home/>}
-              />
-              <Route
-                path='/editor'
-                element={<Editor/>}
-              />
-              <Route
-                path='/login'
-                element={<Login/>}
-              />
-              <Route
-                path='/signup'
-                element={<Signup/>}
-              />
-              <Route path='/profile'>
-                <Route path=":username" element={<Profile />}/>
-                <Route path="" element={<Profile />}/>
-              </Route>
-              <Route
-                path='/thought/:id'
-                element={<SingleThought/>}
-              />
-              <Route
-                path='*'
-                element={<NoMatch/>}
-              />
-            </Routes>
-          </div>
-          <Footer/>
-        </div>
-        
-      </Router>
-    </ApolloProvider>
-
+			<Router>
+				<div className='flex-column justify-flex-start min-100-vh'>
+					<Header />
+					<div>
+						<NavBar />
+						<Routes>
+							<Route path='/' element={<Home />} />
+							<Route path='/editor' element={<Editor />} />
+							<Route path='/login' element={<Login />} />
+							<Route path='/signup' element={<Signup />} />
+							<Route path='/profile'>
+								<Route path=":username" element={<Profile />} />
+								<Route path="" element={<Profile />} />
+							</Route>
+							<Route path='/thought/:id' element={<SingleThought />} />
+							<Route path='*' element={<NoMatch />} />
+						</Routes>
+					</div>
+					<Footer />
+				</div>
+			</Router>
+		</ApolloProvider>
 	);
 }
 
