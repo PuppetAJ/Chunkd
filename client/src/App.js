@@ -39,52 +39,31 @@ const client = new ApolloClient({
 
 // Add catch route all later
 // https://reactrouter.com/en/main/hooks/use-location
-// USE LOCATION ^^ 
+// USE LOCATION ^^
 function App() {
 	return (
 		<ApolloProvider client={client}>
-      <Router>
-        {/* <div className='flex-column justify-flex-start min-100-vh'> */}
-          <Header />
+			<Router>
+				{/* <div className='flex-column justify-flex-start min-100-vh'> */}
+				<Header />
 
-            <Routes>
-              <Route
-                path='/'
-                element={<Home/>}
-              />
-              <Route
-                path='/editor'
-                element={<Editor/>}
-              />
-              <Route
-                path='/login'
-                element={<Login/>}
-              />
-              <Route
-                path='/signup'
-                element={<Signup/>}
-              />
-              <Route path='/profile'>
-                <Route path=":username" element={<Profile />}/>
-                <Route path="" element={<Profile />}/>
-              </Route>
-              <Route
-                path='/thought/:id'
-                element={<SingleThought/>}
-              />
-              <Route
-                path='*'
-                element={<NoMatch/>}
-              />
-            </Routes>
+				<Routes>
+					<Route path='/' element={<Home />} />
+					<Route path='/editor' element={<Editor />} />
+					<Route path='/login' element={<Login />} />
+					<Route path='/signup' element={<Signup />} />
+					<Route path='/profile'>
+						<Route path=":username" element={<Profile />} />
+						<Route path="" element={<Profile />} />
+					</Route>
+					<Route path='/thought/:id' element={<SingleThought />} />
+					<Route path='*' element={<NoMatch />} />
+				</Routes>
 
-         
-          {/* <Footer/> */}
-        </div>
-        
-
-      </Router>
-    </ApolloProvider>
+				{/* <Footer/> */}
+				{/* </div> */}
+			</Router>
+		</ApolloProvider>
 	);
 }
 
