@@ -8,7 +8,7 @@ import {
 } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import Header from './Components/Header'
-// import Footer from './Components/Footer'
+import Footer from './Components/Footer'
 import Login from './Pages/Login'
 import NoMatch from './Pages/NoMatch'
 import SingleThought from './Pages/SingleThought'
@@ -44,9 +44,9 @@ function App() {
    
 		<ApolloProvider client={client}>
       <Router>
-        <div className='flex-column justify-content-center min-100-vh'>
+        <div className='flex-column justify-flex-start min-100-vh'>
           <Header />
-        
+          
           <NavBar/>
             <Routes>
               <Route
@@ -78,8 +78,7 @@ function App() {
                 element={<NoMatch/>}
               />
             </Routes>
-
-       
+         
           {/* <Footer/> */}
         </div>
         
