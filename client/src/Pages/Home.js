@@ -6,6 +6,7 @@ import Auth from "../utils/auth";
 import FriendList from "../Components/FriendList";
 import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
+import Footer from '../Components/Footer';
 
 const Home = () => {
 	const { loading, data } = useQuery(QUERY_THOUGHTS);
@@ -49,6 +50,7 @@ const Home = () => {
 					</div>
 				) : null}
 			</div>
+			<Footer/>
 		</main>
 	);
 };

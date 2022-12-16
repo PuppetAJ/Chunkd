@@ -7,6 +7,8 @@ import ThoughtForm from '../Components/ThoughtForm'
 import { useQuery, useMutation } from '@apollo/client'
 import { QUERY_USER, QUERY_ME } from '../utils/queries'
 import { ADD_FRIEND } from '../utils/mutations'
+import Footer from '../Components/Footer';
+
 
 const Profile = () => {
 
@@ -73,6 +75,7 @@ const Profile = () => {
         </div>
       </div>
     <div className='mb-3'>{!userParam && <ThoughtForm/>}</div>
+    <Footer/>
     </div>
   );
 };

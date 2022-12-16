@@ -2,7 +2,7 @@
 
 /* Import Tailwind CSS */
 @tailwind base;
-@tailwind components;
+/* @tailwind components; */
 @tailwind utilities;
 
 * {
@@ -27,7 +27,7 @@ body,
   -ms-user-select: none;
   user-select: none;
   overflow: hidden;
-  background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2);
+  /* background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2); */
   background-size: cover;
   /* overflow: hidden; */
 }
@@ -49,18 +49,18 @@ canvas {
 
 .menu {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 33.3%;
+  width: 33.3%; */
   margin-top: 2rem;
   margin-bottom: 1.25rem;
 }
 
 .menu-options {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  /* justify-content: space-between;
+  align-items: center; */
   width: 33.3%;
 }
 
@@ -71,10 +71,10 @@ canvas {
 .btn-minecraft {
   background: #727272;
   color: rgb(247, 247, 247);
-  width: 100%;
+  /* width: 100%; */
   padding: .75rem .75rem;
   margin-bottom: .75rem;
-  margin-inline-end: 2rem;
+  /* margin-inline-end: 2rem; */
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   font-size: 1rem;
   letter-spacing: .025em;
@@ -96,10 +96,9 @@ canvas {
 /* FOOTER STYLING */
 
 .footer {
-  /* width: 100%; */
-  position: fixed;
+  width: auto;
+  /* position: fixed; */
   bottom: 0;
-  /* display: flex; */
 }
 
 
