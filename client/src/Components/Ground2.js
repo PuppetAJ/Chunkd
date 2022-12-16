@@ -40,7 +40,7 @@ export function Ground2() {
       <RigidBody position={[x,y,z]} key={i} type="fixed" colliders="cuboid">
         <mesh position={[0, 0, 0]} receiveShadow castShadow>
           <Edges />
-          <meshBasicMaterial color={0x00ff00}/>
+          <meshBasicMaterial color={0x5F3509}/>
           <boxGeometry args={[1,1,1]}/>
         </mesh>
       </RigidBody>
