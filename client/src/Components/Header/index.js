@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
 import Logo from "../../assets/home-logo.jpg";
 
+
 const Header = () => {
 	const logout = (event) => {
 		event.preventDefault();
@@ -13,6 +14,8 @@ const Header = () => {
 
 		// this needs to be re-styled to show login/signup form //
 		<header >
+
+	
 			<div>
 				<Link to='/'>
 					{/* <h1>website</h1> */}
@@ -50,7 +53,7 @@ const Header = () => {
 						</>
 					) : (
 						<>
-						{/* Padding for these buttons needs to be changed These are buttons that display on landing page */}
+						
 						<div className="justify-content-center">
 							<Link to='/login' className="btn-minecraft rounded mr-7 relative -bottom-60" >Login</Link>
 							<Link to='/signup' className="btn-minecraft rounded ml-7 relative -bottom-60">Signup</Link>
