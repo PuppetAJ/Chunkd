@@ -37,8 +37,8 @@ const handleFormSubmit = async (event) => {
 
   return (
 
-    <div className="flex-column m-auto">
-      <p className={`text-xs text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
+    <div className="flex-col m-auto">
+      <p className={`text-sm text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
         Character Count: {characterCount}/280
         {error && <span className="ml-2">Something went wrong...</span>}
       </p>

@@ -7,19 +7,19 @@ const ThoughtList = ({ thoughts, title }) => {
 	}
 
 	return (
-		<div className=" items-center justify-content-center w-[680px] rounded-xl group sm:flex space-x-6 bg-white bg-opacity-50 shadow-xl hover:rounded-2xl">
-			<div className="sm:w-8/12 pl-0 p-5">
+		<div className="m-auto items-center justify-center w-[680px] rounded-xl group sm:flex space-x-6 bg-white bg-opacity-50 shadow-xl hover:rounded-2xl">
+			<div className="sm:w-8/12 pl-0 p-5 justify-center">
 				<div className="space-y-2">
 				<div className="space-y-4">
-					<h3 className="text-md font-semibold text-cyan-900 text-justify">
+					<h3 className="text-md font-bold text-gray-500 text-center">
 						{title}
 						</h3>
 				</div>
-				<div className="flex items-center space-x-4 justify-between">
+				<div className="flex-col items-center p-4 justify-between">
 					{thoughts &&
 						thoughts.map((thought) => (
 							
-							<div key={thought._id} className="flex gap-3 space-y-1">
+							<div key={thought._id} className="gap-3 space-y-1">
 								
 								<p className="flex items-center space-x-4 justify-between">
 									<Link

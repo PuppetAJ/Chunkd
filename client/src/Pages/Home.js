@@ -22,7 +22,7 @@ const Home = () => {
 	//---** RENAME THIS TO FORUM.JS to be the 'FORUM PAGE' **-- //
 	return (
 		<main>
-			<div className='flex-row justify-space-between'>
+			<div className='flex-row justify-between'>
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT ** //
 					<div className='col-12 mb-3'>

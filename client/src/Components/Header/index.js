@@ -53,7 +53,7 @@ const Header = () => {
 						</>
 					) : (
 						<>
-						{/* Padding for these buttons needs to be changed These are buttons that display on landing page */}
+						
 						<div className="justify-content-center">
 							<Link to='/login' className="btn-minecraft rounded mr-7 relative -bottom-60" >Login</Link>
 							<Link to='/signup' className="btn-minecraft rounded ml-7 relative -bottom-60">Signup</Link>

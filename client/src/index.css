@@ -10,6 +10,12 @@
   /* font-family: 'Minecraftia', sans-serif; */
 }
 
+@font-face {
+  font-family: Minecraft;
+  src: url(/src//assets/mc-font.otf);
+  font-display: swap;
+}
+
 
 /* Global Styling */
 html,
@@ -19,7 +25,7 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  /* background-color: lightblue; */
+  font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;
