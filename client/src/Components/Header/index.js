@@ -21,29 +21,29 @@ const Header = () => {
 				<nav className='text-center'>
 					{Auth.loggedIn() ? (
 						<>
-                            <div className='nav-wrapper flex place-content-between p-3 content-center border-b border-solid border-gray-800'>
+                            <div className='nav-wrapper flex place-content-between p-1 content-center border-b border-solid border-gray-800'>
                                 {/* Nav list */}
                                 <ul className='flex'>
 
-                                    <a href="/"><img src={Logo} className="w-20"></img>
+                                    <a href="/"><img src={Logo} alt="Company Logo" className="w-16 mt-1 border-2 border-black rounded"></img>
                                             </a>
 
-                                    <Link as={Link} className="m-2 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Editor'>
+                                    <Link as={Link} className="m-3 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Editor'>
                                                 Editor
                                             </Link>
                                 
                                 
-                                    <Link as={Link} className="m-2 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Home'>
+                                    <Link as={Link} className="m-3 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Home'>
                                                 Forum
                                             </Link>
                                 
                                     
-                                    <Link as={Link} className="m-2 w-32 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Profile'>
+                                    <Link as={Link} className="m-3 w-32 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Profile'>
                                                 My Profile
                                             </Link>
                                 
                                 </ul>
-							    <a className="m-2 btn-minecraft rounded p-2 w-24" href='/' onClick={logout}>
+							    <a className="m-3 btn-minecraft rounded p-2 w-24" href='/' onClick={logout}>
 								Logout
 							    </a>
                             </div>
