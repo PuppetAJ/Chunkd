@@ -49,9 +49,9 @@ const Profile = () => {
   }
 
   return (
-    <div>
-      <div className=''>
-        <h2 className=''>
+    <div className="flex flex-col grow items-center border-x-2 border-gray-800">
+      <div className="flex-row mb-3">
+        <h2 className="bg-dark text-secondary p-3 display-inline-block">
           Viewing {userParam ? `${user.username}'s` : 'your'} profile.
         </h2>
         {userParam && (
@@ -74,8 +74,7 @@ const Profile = () => {
           />
         </div>
       </div>
-    <div className=''>{!userParam && <ThoughtForm/>}</div>
-    <Footer/>
+    <div className='mb-3'>{!userParam && <ThoughtForm/>}</div>
     </div>
   );
 };

@@ -43,7 +43,7 @@ const Login = (props) => {
 
 	//Returning JSX
 	return (
-		<main id="login" className="flex-row justify-content-center mb-4 container">
+		<main id="login" className="flex-row grow justify-content-center mb-4 container">
 			
 
     <div className="px-6 py-3 rounded w-64">
@@ -94,7 +94,6 @@ const Login = (props) => {
 		
     </div>
 	
-	<Footer/>
 		</main>
 	);
 };

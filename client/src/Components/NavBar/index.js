@@ -14,7 +14,7 @@ function NavBar () {
   return (
     <div className='nav-wrapper'>
       {/* Nav list */}
-      <ul>
+      <ul className="">
         
           <Link as={Link} className="p-2 duration-300 hover:scale-105" to='/Editor'>
                     Editor
@@ -27,11 +27,7 @@ function NavBar () {
        
         
           <Link as={Link} className="p-2 duration-300 hover:scale-105" to='/Profile'>
-                    Profile
-                  </Link>
-
-          <Link as={Link}  className="p-2 duration-300 hover:scale-105" to='/Login'>
-                    Login
+                    My Profile
                   </Link>
       
       </ul>

@@ -4,32 +4,27 @@ import { RigidBody } from "@react-three/rapier";
 import create from "zustand";
 import dirt from "../assets/dirt.jpg";
 
-// This is a super naive implementation and wouldn't allow for more than a few thousand boxes.
-// In order to make this scale this has to be one instanced mesh, then it could easily be
-// hundreds of thousands.
-
-// const useCubeStore = create((set) => ({
-//   cubes: [],
-//   addCube: (x, y, z) => set((state) => ({ cubes: [...state.cubes, [x, y, z]] })),
-// }))
 const useCubeStore = create((set) => ({
 	cubes: [],
 	addCube: (x, y, z) =>
 		set((state) => ({ cubes: [...state.cubes, [x, y, z]] })),
-	removeCube: (index) =>
-		set((state) => {
-			const newCubes = [...state.cubes];
-			newCubes.splice(index, 1);
-			return { cubes: newCubes };
-		}),
 }));
+// const useCubeStore = create((set) => ({
+// 	cubes: [],
+// 	addCube: (x, y, z) =>
+// 		set((state) => ({ cubes: [...state.cubes, [x, y, z]] })),
+// 	removeCube: (remove) =>
+// 		set((state) => {
+// 			const newCubes = [...state.cubes];
+// 			newCubes.splice(remove, 1);
+// 			return { cubes: newCubes };
+// 		}),
+// }));
 console.log(useCubeStore);
 
 export const Cubes = () => {
 	const cubes = useCubeStore((state) => state.cubes);
-	return cubes.map((coords, index) => (
-		<Cube key={index} position={coords} index={index} />
-	));
+	return cubes.map((coords, index) => <Cube key={index} position={coords} />);
 };
 
 export function Cube(props) {
@@ -61,6 +56,7 @@ export function Cube(props) {
 	return (
 		<RigidBody {...props} type="fixed" colliders="cuboid" ref={ref}>
 			<mesh
+				onPointerDown={console.log}
 				receiveShadow
 				castShadow
 				onPointerMove={onMove}
