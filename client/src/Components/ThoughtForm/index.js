@@ -75,7 +75,7 @@ const ThoughtForm = ()=> {
                 {error && <span className= 'ml-2'>Something went wrong..</span>}
             </p>
 
-                <button className='btn-minecraft col-12 col-md-3' type= 'submit'>Submit</button>
+                <button className='btn-minecraft rounded col-12 col-md-3' type= 'submit'>Submit</button>
 
             </form>
         </div>

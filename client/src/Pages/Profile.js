@@ -49,7 +49,7 @@ const Profile = () => {
   }
 
   return (
-    <div>
+    <div className="flex flex-col grow items-center border-x-2 border-gray-800">
       <div className="flex-row mb-3">
         <h2 className="bg-dark text-secondary p-3 display-inline-block">
           Viewing {userParam ? `${user.username}'s` : 'your'} profile.
@@ -75,7 +75,6 @@ const Profile = () => {
         </div>
       </div>
     <div className='mb-3'>{!userParam && <ThoughtForm/>}</div>
-    <Footer/>
     </div>
   );
 };
