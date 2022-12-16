@@ -67,10 +67,10 @@ const ThoughtForm = ()=> {
     return (
         <div>
           
-            <form className= 'flex-row justify-center justify-space-between-md align-stretch' onSubmit={handleFormSubmit}>
+            <form className= 'flex-row justify-center justify-space-between-md ' onSubmit={handleFormSubmit}>
                 <textarea placeholder= "Share something new!"  value={thoughtText} className= 'bg-white border-2 border-gray-300 shadow-lg px-3 py-2 rounded-lg focus:outline-none focus:border-gray-500 col-12 col-md-9' onChange={handleChange}> </textarea>
 
-                <p className= {` text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
+                <p className= {`text-xs text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
                 Character Count: {characterCount}/280
                 {error && <span className= 'ml-2'>Something went wrong..</span>}
             </p>
