@@ -7,7 +7,7 @@ import ThoughtForm from '../Components/ThoughtForm'
 import { useQuery, useMutation } from '@apollo/client'
 import { QUERY_USER, QUERY_ME } from '../utils/queries'
 import { ADD_FRIEND } from '../utils/mutations'
-import Footer from '../Components/Footer';
+// import Footer from '../Components/Footer';
 
 
 const Profile = () => {
@@ -49,7 +49,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="flex flex-col grow items-center border-x-2 border-gray-800">
+    <div className="flex flex-col grow items-center border-x-2 mx- border-gray-800">
       <div className="flex-row mb-3">
         <h2 className="bg-dark text-secondary p-3 display-inline-block">
           Viewing {userParam ? `${user.username}'s` : 'your'} profile.
