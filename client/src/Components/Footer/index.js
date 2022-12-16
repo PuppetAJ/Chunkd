@@ -8,14 +8,15 @@ import { FaGithub} from 'react-icons/fa';
    return (
 
 <footer className="footer footer-center w-full p-4 text-gray-800 ">
-      <div className="text-center">
-      <a className='duration-300 hover:scale-105' href="https://github.com/PuppetAJ/ReactMC">
-            <FaGithub size= {48}/>
+      <div className="align-items-center">
+      <a className="duration-300 hover:scale-105" href="https://github.com/PuppetAJ/ReactMC">
+            <FaGithub size= {32}/>
           </a>
-        <p>
+          </div>
+        <p className="text-center">
         &copy; {new Date().getFullYear()} Team NotHavinIt.
         </p>
-      </div>
+     
     </footer>
 
     )

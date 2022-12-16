@@ -30,7 +30,8 @@ function NavBar () {
           <Link as={Link} className="p-2 duration-300 hover:scale-105" to='/Profile'>
                     Profile
                   </Link>
-      <Link as={Link}  className="p-2 duration-300 hover:scale-105" to='/Login'>
+
+          <Link as={Link}  className="p-2 duration-300 hover:scale-105" to='/Login'>
                     Login
                   </Link>
       
