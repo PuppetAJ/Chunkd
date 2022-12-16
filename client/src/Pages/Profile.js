@@ -50,23 +50,23 @@ const Profile = () => {
 
   return (
     <div>
-      <div className="flex-row mb-3">
-        <h2 className="bg-dark text-secondary p-3 display-inline-block">
+      <div className=''>
+        <h2 className=''>
           Viewing {userParam ? `${user.username}'s` : 'your'} profile.
         </h2>
         {userParam && (
-          <button className='btn ml-auto' onClick={handleClick}>
+          <button className='' onClick={handleClick}>
             Add friend
           </button>
         )}
       </div>
 
-      <div className="flex-row justify-space-between mb-3">
-        <div className="col-12 mb-3 col-lg-8">
+      <div className=''>
+        <div className=''>
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
         </div>
 
-        <div className="col-12 col-lg-3 mb-3">
+        <div className=''>
           <FriendList
             username={user.username}
             friendCount={user.friendCount}
@@ -74,7 +74,7 @@ const Profile = () => {
           />
         </div>
       </div>
-    <div className='mb-3'>{!userParam && <ThoughtForm/>}</div>
+    <div className=''>{!userParam && <ThoughtForm/>}</div>
     <Footer/>
     </div>
   );

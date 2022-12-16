@@ -1,4 +1,3 @@
-
 // Imports
 import React from 'react';
 import {Link} from 'react-router-dom';
@@ -8,7 +7,7 @@ import {Link} from 'react-router-dom';
 // Component initialization
 function NavBar () {
 
- // set modal display state
+// set modal display state
 //  const [showModal, setShowModal] = useState(false);
 
   // JSX
