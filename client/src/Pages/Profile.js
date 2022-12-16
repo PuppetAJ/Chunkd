@@ -7,6 +7,8 @@ import ThoughtForm from '../Components/ThoughtForm'
 import { useQuery, useMutation } from '@apollo/client'
 import { QUERY_USER, QUERY_ME } from '../utils/queries'
 import { ADD_FRIEND } from '../utils/mutations'
+import Footer from '../Components/Footer';
+
 
 const Profile = () => {
 
@@ -41,7 +43,7 @@ const Profile = () => {
   if (!user?.username) {
     return (
       <h4>
-        You need to be logged in to see this page. Use the navigation links above to sign up or log in!
+        You need to be logged in to see this page. Please log in or sign up!
       </h4>
     )
   }
@@ -73,6 +75,7 @@ const Profile = () => {
         </div>
       </div>
     <div className='mb-3'>{!userParam && <ThoughtForm/>}</div>
+    <Footer/>
     </div>
   );
 };

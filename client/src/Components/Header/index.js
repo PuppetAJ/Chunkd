@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
+import Logo from "../../assets/home-logo.jpg";
 
 const Header = () => {
 	const logout = (event) => {
@@ -9,24 +10,51 @@ const Header = () => {
 	};
 
 	return (
-		<header className="bg-secondary mb-4 py-2 flex-row align-center">
-			<div className="container flex-row justify-space-between-lg justify-center align-center">
+
+		// this needs to be re-styled to show login/signup form //
+		<header >
+			<div>
 				<Link to='/'>
-					<h1>Website</h1>
+					{/* <h1>website</h1> */}
 				</Link>
 
 				<nav className='text-center'>
 					{Auth.loggedIn() ? (
 						<>
-							<Link to='/profile'>Me</Link>
-							<a href='/' onClick={logout}>
+                            <div className='nav-wrapper flex place-content-between p-3 content-center border-b border-solid border-gray-800'>
+                                {/* Nav list */}
+                                <ul className='flex'>
+
+                                    <a href="/"><img src={Logo} className="w-20"></img>
+                                            </a>
+
+                                    <Link as={Link} className="m-2 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Editor'>
+                                                Editor
+                                            </Link>
+                                
+                                
+                                    <Link as={Link} className="m-2 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Home'>
+                                                Forum
+                                            </Link>
+                                
+                                    
+                                    <Link as={Link} className="m-2 w-32 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Profile'>
+                                                My Profile
+                                            </Link>
+                                
+                                </ul>
+							    <a className="m-2 btn-minecraft rounded p-2 w-24" href='/' onClick={logout}>
 								Logout
-							</a>
+							    </a>
+                            </div>
 						</>
 					) : (
 						<>
-							<Link to='/login'>Login</Link>
-							<Link to='/signup'>Signup</Link>
+						{/* Padding for these buttons needs to be changed These are buttons that display on landing page */}
+						<div className="justify-content-center">
+							<Link to='/login' className="btn-minecraft rounded mr-7 relative -bottom-60" >Login</Link>
+							<Link to='/signup' className="btn-minecraft rounded ml-7 relative -bottom-60">Signup</Link>
+							</div>
 						</>
 					)}
 				</nav>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect, useRef, useCallbac, Fragment }from 'react';
 import * as THREE from 'three';
@@ -7,7 +8,28 @@ import { useTexture, Edges, Instances, Instance, Merged, Box, Sphere } from "@re
 import create from "zustand"
 import grass from "../assets/grass.png"
 
-export function Ground2() {
+export function Ground2(props) {
+	const texture = useTexture(grass);
+	const [blocks, setBlocks] = useState([]);
+	// const ref = useRef();
+	useEffect(() => {
+		// console.log(Noise);
+		const noise = new Noise(Math.random());
+		let blockStore = [];
+		let xOff = 0;
+		let zOff = 0;
+		let inc = 0.05;
+		let amplitude = 30;
+		for (let x = 0; x < 40; x++) {
+			xOff = 0;
+			for (let z = 0; z < 40; z++) {
+				let y = Math.round((noise.perlin2(xOff, zOff) * amplitude) / 5) + 2;
+				blockStore.push([x, y, z]);
+				xOff = xOff + inc;
+			}
+			zOff = zOff + inc;
+		}
+
 
   // Notes: Instanced mesh seems like the best approach for now
   // - I'm sure there's a way to cull unseen faces in between blocks but at the moment there isn't enough time to research that solution with instances
@@ -81,3 +103,4 @@ export function Ground2() {
     </Instances>
   )
 }
+
