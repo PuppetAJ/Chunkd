@@ -43,19 +43,14 @@ const Login = (props) => {
 
 	//Returning JSX
 	return (
-		<main id="login" className="flex-row justify-center mb-4 container">
+		<main id="login" className="flex-row grow justify-content-center mb-4 container">
 			
 
-    <div className="px-6 py-3 rounded border w-64">
+    <div className="px-6 py-3 rounded w-64">
         <div className="flex flex-col items-center justify-center mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <h2 class="text-2xl font-bold">Login</h2>
         </div>
 		<form onSubmit={handleFormSubmit}>
             <div className="flex flex-col my-2">
-                <label className="text-xs text-gray-400">Email</label>
 				{error &&  <div className="text-xs text-red-400 flex justify-between items-center"><span>
                     <b>Error: </b>
                    Email or Password do not match !
@@ -68,7 +63,7 @@ const Login = (props) => {
                 </div>}
 
 				<input
-								className="border rounded px-3 py-1 mt-2"
+								className="border rounded px-3 py-1 btn-minecraft"
 								placeholder="Your email"
 								name="email"
 								type="email"
@@ -78,11 +73,10 @@ const Login = (props) => {
 							/>
                
             </div>
-            <div className="flex flex-col my-2">
-                <label className="text-xs text-gray-400">Password</label>
+            <div className="flex flex-col items-center justify-center my-3">
 				<input
-								className="border rounded px-3 py-1 mt-2"
-								placeholder="******"
+								className="border rounded px-3 py-1 btn-minecraft"
+								placeholder="Password"
 								name="password"
 								type="password"
 								id="password"
@@ -91,7 +85,7 @@ const Login = (props) => {
 							/>
             </div>
             <div className="flex flex-col items-center justify-center my-3">
-                <button className="btn-minecraft my-3 w-full">
+                <button className="btn-minecraft my-3 w-full border rounded">
                     Submit
                 </button>
                
@@ -100,7 +94,6 @@ const Login = (props) => {
 		
     </div>
 	
-	<Footer/>
 		</main>
 	);
 };

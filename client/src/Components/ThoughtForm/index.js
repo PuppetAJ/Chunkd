@@ -66,13 +66,18 @@ const ThoughtForm = ()=> {
     //returning JSX
     return (
         <div>
-            <p className= {`m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
+          
+            <form className= 'py-4 m-6 flex-row justify-center' onSubmit={handleFormSubmit}>
+                <textarea placeholder= "Share something new!"  value={thoughtText} className= 'bg-white border-2 border-gray-300 shadow-lg px-3 py-2 rounded-lg focus:outline-none focus:border-gray-500 col-12 col-md-9' onChange={handleChange}> </textarea>
+
+                <p className= {`text-lg text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
                 Character Count: {characterCount}/280
                 {error && <span className= 'ml-2'>Something went wrong..</span>}
             </p>
-            <form className= 'flex-row justify-center justify-space-between-md align-stretch' onSubmit={handleFormSubmit}>
-                <textarea placeholder= "Here's a new thought..."  value={thoughtText} className= 'form-input col-12 col-md-9' onChange={handleChange}></textarea>
-                <button className='btn col-12 col-md-3' type= 'submit'>Submit</button>
+
+
+                <button className='btn-minecraft m-auto' type= 'submit'>Submit</button>
+
 
             </form>
         </div>
@@ -80,3 +85,4 @@ const ThoughtForm = ()=> {
 };
 
 export default ThoughtForm;
+

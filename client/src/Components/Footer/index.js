@@ -7,7 +7,7 @@ import { FaGithub} from 'react-icons/fa';
   //Return JSX
    return (
 
-<footer className="footer footer-center w-full p-4 text-gray-800 ">
+<footer className="footer footer-center w-full p-4 text-gray-800">
       <div className="align-items-center">
       <a className="duration-300 hover:scale-105" href="https://github.com/PuppetAJ/ReactMC">
             <FaGithub size= {32}/>
