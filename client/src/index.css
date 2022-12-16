@@ -25,6 +25,7 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
+
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -32,11 +33,17 @@ body,
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  overflow: hidden;
   /* background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2); */
   background-size: cover;
   /* overflow: hidden; */
   background-color: #5f7761;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  justify-items: stretch;
+  justify-content:space-between;
 }
 
 canvas {
@@ -103,12 +110,13 @@ canvas {
 
 .footer {
   width: auto;
-  /* position: fixed; */
+  /* position: absolute; */
   bottom: 0;
 }
 
 .nav-wrapper {
-  background-color: rgb(43, 92, 43);
+  background-image: url('./assets/background.svg');
+  background-color: rgb(34, 34, 34);
 }
 
 

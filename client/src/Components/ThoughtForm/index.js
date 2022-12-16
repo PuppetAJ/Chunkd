@@ -75,7 +75,9 @@ const ThoughtForm = ()=> {
                 {error && <span className= 'ml-2'>Something went wrong..</span>}
             </p>
 
+
                 <button className='btn-minecraft m-auto' type= 'submit'>Submit</button>
+
 
             </form>
         </div>
