@@ -1,5 +1,6 @@
 import React from 'react';
 
+// ** CATCH PAGE FOR INVALID QUERY ** //
 const NoMatch = () => {
   return (
     <div>
