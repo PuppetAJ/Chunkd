@@ -38,13 +38,15 @@ const client = new ApolloClient({
 });
 
 // Add catch route all later
+// https://reactrouter.com/en/main/hooks/use-location
+// USE LOCATION ^^ 
 function App() {
 	return (
 		<ApolloProvider client={client}>
       <Router>
-        <div className='flex-column justify-flex-start min-100-vh'>
+        {/* <div className='flex-column justify-flex-start min-100-vh'> */}
           <Header />
-          
+
             <Routes>
               <Route
                 path='/'
@@ -75,10 +77,12 @@ function App() {
                 element={<NoMatch/>}
               />
             </Routes>
+
          
           {/* <Footer/> */}
         </div>
         
+
       </Router>
     </ApolloProvider>
 	);

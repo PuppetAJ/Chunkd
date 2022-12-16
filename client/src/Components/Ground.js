@@ -12,7 +12,9 @@ export function Ground(props) {
         <planeGeometry args={[100, 100]} />
         <meshStandardMaterial map={texture} map-repeat={[240, 240]} color="green" />
       </mesh>
-      <CuboidCollider args={[100, 2, 100]} position={[0, -2, 0]} />
+
+      <CuboidCollider args={[100, 1, 100]} position={[0, -1, 0]} />
+
     </RigidBody>
   )
 }

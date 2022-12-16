@@ -18,12 +18,14 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
   const rapier = useRapier()
   const { camera } = useThree()
   const [, get] = useKeyboardControls()
-  console.log(camera);
+  // console.log(camera);
   useFrame((state) => {
     const { forward, backward, left, right, jump } = get()
     const velocity = ref.current.linvel()
     // update camera
-    camera.position.set(...ref.current.translation())
+    const {x, y, z} = ref.current.translation();
+    camera.position.set(...[x, y+0.8, z])
+    // camera.position.set(...ref.current.translation());
     // update axe
     axe.current.children[0].rotation.x = lerp(axe.current.children[0].rotation.x, Math.sin((velocity.length() > 1) * state.clock.elapsedTime * 10) / 6, 0.1)
     axe.current.rotation.copy(camera.rotation)
@@ -36,30 +38,24 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
     // looking down or up causes you to stop moving
     // https://threejs.org/docs/#api/en/cameras/Camera
     // console.log(camera.rotation);
-    const {_x, _y, _z} = camera.rotation;
+    // const {_x, _y, _z} = camera.rotation;
     // console.log(camera.rotation);
-    const cameraRot = new THREE.Euler(_x, _y, _z);
+    // const cameraRot = new THREE.Euler(_x, _y, _z);
 
     // console.log(_x, _y, _z);
     // console.log(frontVector);
-    direction.subVectors(frontVector, sideVector).normalize().multiplyScalar(SPEED)
-    .applyEuler(camera.rotation);
-    // console.log(direction);
-    // console.log(direction.z);
-    // console.log(direction.x);
-    // console.log(direction.z);
-    // console.log(direction.z);
+    direction.subVectors(frontVector, sideVector).normalize().multiplyScalar(SPEED).applyEuler(camera.rotation);
     ref.current.setLinvel({ x: direction.x, y: velocity.y, z: direction.z })
     // jumping
     const world = rapier.world.raw()
     const ray = world.castRay(new RAPIER.Ray(ref.current.translation(), { x: 0, y: -1, z: 0 }))
-    const grounded = ray && ray.collider && Math.abs(ray.toi) <= 1.75
-    if (jump && grounded) ref.current.setLinvel({ x: 0, y: 7.5, z: 0 })
+    const grounded = ray && ray.collider && Math.abs(ray.toi) <= 1
+    if (jump && grounded) ref.current.setLinvel({ x: 0, y: 8, z: 0 })
   })
   return (
     <>
-      <RigidBody ref={ref} colliders={false} mass={1} type="dynamic" position={[0, 10, 0]} enabledRotations={[false, false, false]}>
-        <CapsuleCollider args={[0.75, 0.5]} />
+      <RigidBody ref={ref} colliders={false} mass={1} type="dynamic" position={[20, 20, 20]} enabledRotations={[false, false, false]}>
+        <CapsuleCollider args={[0.3, 0.3]} />
       </RigidBody>
       <group ref={axe} onPointerMissed={(e) => (axe.current.children[0].rotation.x = -0.5)}>
         <Axe position={[0.3, -0.35, 0.5]} />
