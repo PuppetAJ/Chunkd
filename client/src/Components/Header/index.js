@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
 
+
 const Header = () => {
 	const logout = (event) => {
 		event.preventDefault();
@@ -12,6 +13,8 @@ const Header = () => {
 
 		// this needs to be re-styled to show login/signup form //
 		<header >
+
+	
 			<div>
 				<Link to='/'>
 					{/* <h1>website</h1> */}
