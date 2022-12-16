@@ -20,5 +20,3 @@ export default function Axe(props) {
     </group>
   )
 }
-
-useGLTF.preload("/axe.glb")

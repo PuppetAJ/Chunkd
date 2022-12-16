@@ -30,6 +30,7 @@ body,
   /* background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2); */
   background-size: cover;
   /* overflow: hidden; */
+  background-color: #5f7761;
 }
 
 canvas {
@@ -100,5 +101,8 @@ canvas {
   bottom: 0;
 }
 
+.nav-wrapper {
+  background-color: rgb(43, 92, 43);
+}
 
 

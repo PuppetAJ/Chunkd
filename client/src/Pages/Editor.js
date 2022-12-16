@@ -1,6 +1,7 @@
 import React, { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
+	Stats,
 	Sky,
 	Stars,
 	softShadows,
@@ -17,8 +18,9 @@ import { Ground } from "../Components/Ground";
 import { Player } from "../Components/Player";
 import { Ground2 } from "../Components/Ground2";
 
-softShadows();
 export default function Editor() {
+	softShadows();
+
 	const [dpr, setDpr] = useState(1.5);
 	return (
 		<KeyboardControls
@@ -67,6 +69,7 @@ export default function Editor() {
 				</Physics>
 				<PointerLockControls />
 				{/* </PerformanceMonitor> */}
+				<Stats />
 			</Canvas>
 			{/* </Suspense> */}
 			<Loader initialState={(active) => active} />
