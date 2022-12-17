@@ -71,12 +71,11 @@ const ThoughtForm = ()=> {
                 <textarea placeholder= "Share something new!"  value={thoughtText} className= 'bg-white border-2 border-gray-300 shadow-lg px-3 py-2 rounded-lg focus:outline-none focus:border-gray-500 col-12 col-md-9' onChange={handleChange}> </textarea>
 
                 <p className= {`text-lg text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
-                Character Count: {characterCount}/280
                 {error && <span className= 'ml-2'>Something went wrong..</span>}
             </p>
 
 
-                <button className='btn-minecraft m-auto' type= 'submit'>Submit</button>
+                <button className='btn-minecraft m-auto rounded' type= 'submit'>Submit</button>
 
 
             </form>
