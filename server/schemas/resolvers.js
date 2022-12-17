@@ -4,6 +4,7 @@ const { signToken } = require("../utils/auth");
 
 // Resolvers
 const resolvers = {
+
 	Query: {
 		thoughts: async (parent, { username }) => {
 			const params = username ? { username } : {};
@@ -122,3 +123,4 @@ const resolvers = {
 };
 
 module.exports = resolvers;
+
