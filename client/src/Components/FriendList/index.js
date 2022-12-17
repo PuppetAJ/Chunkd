@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 const FriendList = ({friendCount, username, friends}) => {
 
     if (!friends || !friends.length) {
-        return <p className= 'bg-dark text-light p-3'>{username}, start networking!</p>;
+        return <p className= 'bg-dark text-light p-3'>{username}, you haven't added any friends yet.</p>;
     }
 
     return (

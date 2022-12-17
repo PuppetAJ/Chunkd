@@ -6,7 +6,7 @@ import Auth from "../utils/auth";
 import FriendList from "../Components/FriendList";
 import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
-import Footer from '../Components/Footer';
+// import Footer from '../Components/Footer';
 
 const Home = () => {
 	const { loading, data } = useQuery(QUERY_THOUGHTS);
@@ -27,30 +27,32 @@ const Home = () => {
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT ** //
-					<div className='col-12 mb-3'>
-						<ThoughtForm />
-					</div>
+					<>
+						<div className='col-12 mb-3'>
+							<ThoughtForm />
+						</div>
+						<div className={`col-12 mb-3 ${loggedIn && "col-lg-8"}`}>
+							{loading ? (
+								<div>Loading...</div>
+							) : (
+								// ** THIS IS THE LIST OF POSTS/BUILDS ** //
+								<ThoughtList
+									thoughts={thoughts}
+									title='Explore Recent Builds'
+								/>
+							)}
+						</div>
+						{loggedIn && userData ? (
+							<div className='col-12 col-lg-3 mb-3'>
+								<FriendList
+									username={userData.me.username}
+									friendCount={userData.me.friendCount}
+									friends={userData.me.friends}
+								/>
+							</div>
+						) : null}
+					</>
 				)}
-				<div className={`col-12 mb-3 ${loggedIn && "col-lg-8"}`}>
-					{loading ? (
-						<div>Loading...</div>
-					) : (
-						// ** THIS IS THE LIST OF POSTS/BUILDS ** //
-						<ThoughtList
-							thoughts={thoughts}
-							title='Explore Recent Builds'
-						/>
-					)}
-				</div>
-				{loggedIn && userData ? (
-					<div className='col-12 col-lg-3 mb-3'>
-						<FriendList
-							username={userData.me.username}
-							friendCount={userData.me.friendCount}
-							friends={userData.me.friends}
-						/>
-					</div>
-				) : null}
 			</div>
 		</main>
 	);

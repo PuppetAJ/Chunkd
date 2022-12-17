@@ -23,7 +23,7 @@ const Profile = () => {
   const user = data?.me || data?.user || {};
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to='/proile'/>
+    return <Navigate to='/profile' />
   }
 
   if (loading) {
@@ -74,7 +74,7 @@ const Profile = () => {
           />
         </div>
       </div>
-    <div className='mb-3'>{!userParam && <ThoughtForm/>}</div>
+      <div className='mb-3'>{!userParam && <ThoughtForm />}</div>
     </div>
   );
 };

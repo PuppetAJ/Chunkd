@@ -35,9 +35,9 @@ export function Ground2(props) {
 		let zOff = 0;
 		let inc = 0.05;
 		let amplitude = 35;
-		for (let x = 0; x < 32; x++) {
+		for (let x = 0; x < 48; x++) {
 			xOff = 0;
-			for (let z = 0; z < 32; z++) {
+			for (let z = 0; z < 48; z++) {
 				let y = Math.round((noise.perlin2(xOff, zOff) * amplitude) / 5) + 2;
 				blockStore.push([x, y, z]);
 				// Only create hollow shell to improve preformance, calc perimeter
