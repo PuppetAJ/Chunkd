@@ -23,7 +23,7 @@ const Profile = () => {
   const user = data?.me || data?.user || {};
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to='/proile'/>
+    return <Navigate to='/profile:username' />
   }
 
   if (loading) {
@@ -55,18 +55,18 @@ const Profile = () => {
           Viewing {userParam ? `${user.username}'s` : 'your'} profile.
         </h2>
         {userParam && (
-          <button className='btn ml-auto' onClick={handleClick}>
+          <button className='' onClick={handleClick}>
             Add friend
           </button>
         )}
       </div>
 
-      <div className="flex-row justify-space-between mb-3">
-        <div className="col-12 mb-3 col-lg-8">
+      <div className=''>
+        <div className=''>
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
         </div>
 
-        <div className="col-12 col-lg-3 mb-3">
+        <div className=''>
           <FriendList
             username={user.username}
             friendCount={user.friendCount}
@@ -74,7 +74,7 @@ const Profile = () => {
           />
         </div>
       </div>
-    <div className='mb-3'>{!userParam && <ThoughtForm/>}</div>
+      <div className='mb-3'>{!userParam && <ThoughtForm />}</div>
     </div>
   );
 };

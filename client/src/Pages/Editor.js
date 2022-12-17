@@ -18,10 +18,41 @@ import { Ground } from "../Components/Ground";
 import { Player } from "../Components/Player";
 import { Ground2 } from "../Components/Ground2";
 
+import { useQuery, useMutation } from '@apollo/client'
+import { QUERY_USER, QUERY_ME } from '../utils/queries'
+import { Navigate, useParams } from 'react-router-dom'
+import Auth from '../utils/auth'
+
 export default function Editor() {
-	softShadows();
 
 	const [dpr, setDpr] = useState(1.5);
+
+	const { username: userParam } = useParams();
+
+	const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
+	  variables: { username: userParam }
+	});
+  
+	const user = data?.me || data?.user || {};
+  
+	if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
+	  return <Navigate to='/Editor' />
+	}
+  
+	if (loading) {
+	  return <div>Loading...</div>;
+	}
+
+	if (!user?.username) {
+		return (
+		  <h4>
+			You need to be logged in to see this page. Please log in or sign up!
+		  </h4>
+		)
+	}
+
+	softShadows();
+
 	return (
 		<KeyboardControls
 			map={[

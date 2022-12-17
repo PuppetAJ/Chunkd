@@ -3,7 +3,7 @@ import { useMutation } from "@apollo/client";
 import { LOGIN_USER } from "../utils/mutations";
 
 import Auth from "../utils/auth";
-import Footer from "../Components/Footer";
+// import Footer from "../Components/Footer";
 
 
 const Login = (props) => {
@@ -44,6 +44,7 @@ const Login = (props) => {
 	//Returning JSX
 	return (
 		<main id="login" className="flex-row grow justify-content-center mb-4 container">
+
 			
 
     <div className="px-6 py-3 rounded w-64">
