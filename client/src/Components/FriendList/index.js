@@ -4,11 +4,8 @@ import {Link} from 'react-router-dom';
 const FriendList = ({friendCount, username, friends}) => {
 
     if (!friends || !friends.length) {
-        return (
-            <div>
-                <p className= 'text-center text-xl bg-white bg-opacity-50'>{username}, you haven't added any friends yet.</p>;
-            </div>
-    )}
+        return <p className= 'text-center text-xl bg-white bg-opacity-50 rounded-lg p-2 mt-2'>{username}, you haven't added any friends yet.</p>;
+    }
 
     return (
         <div>
