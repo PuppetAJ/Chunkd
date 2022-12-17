@@ -1,11 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
-<<<<<<< Updated upstream
-=======
 
 
->>>>>>> Stashed changes
 
 const Header = () => {
 	const logout = (event) => {
@@ -31,11 +28,8 @@ const Header = () => {
                                 {/* Nav list */}
                                 <ul className='flex'>
 
-<<<<<<< Updated upstream
-=======
                                 
 
->>>>>>> Stashed changes
                                     <Link as={Link} className="m-3 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105" to='/Editor'>
                                                 Editor
                                             </Link>
@@ -59,15 +53,9 @@ const Header = () => {
 					) : (
 						<>
 						
-<<<<<<< Updated upstream
-						<div className="justify-content-center">
-							<Link to='/login' className="btn-minecraft rounded mr-7 -bottom-60" >Login</Link>
-							<Link to='/signup' className="btn-minecraft rounded ml-7 -bottom-60">Signup</Link>
-=======
 						<div className="justify-center">
 							<Link to='/login' className="btn-minecraft rounded mr-7 -bottom-60" >Login</Link>
 							<Link to='/signup' className="btn-minecraft rounded ml-7  -bottom-60">Signup</Link>
->>>>>>> Stashed changes
 							</div>
 						</>
 					)}
