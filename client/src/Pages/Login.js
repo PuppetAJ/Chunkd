@@ -73,7 +73,7 @@ const Login = (props) => {
 							/>
                
             </div>
-            <div className="flex flex-col items-center justify-center my-3">
+            <div className="flex flex-col my-3">
 				<input
 								className="border rounded px-3 py-1 btn-minecraft"
 								placeholder="Password"
