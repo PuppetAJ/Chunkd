@@ -28,7 +28,7 @@ const Home = () => {
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT ** //
 					<>
-						<div className='col-12 mb-3'>
+						<div className='container mx-auto'>
 							<ThoughtForm />
 						</div>
 						<div className={`col-12 mb-3 ${loggedIn && "col-lg-8"}`}>
