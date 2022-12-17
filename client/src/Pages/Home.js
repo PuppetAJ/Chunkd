@@ -29,7 +29,7 @@ const Home = () => {
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
 					<div className= 'max-w-screen-lg mx-auto'>
-						<p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p>
+						{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
 						<div className='container mx-auto'>
 							<ThoughtForm />
 						</div>
