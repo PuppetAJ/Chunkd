@@ -51,13 +51,20 @@ canvas {
 
 /* Main Container Styling */
 .container {
-  height: 100vh;
   width: auto;
   display: flex; 
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
+
+.h1,
+.h2, 
+.h3,
+.h4 {
+  font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
+}
+
 
 .menu {
   display: flex;

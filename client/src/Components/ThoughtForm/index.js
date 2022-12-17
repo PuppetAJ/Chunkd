@@ -65,21 +65,24 @@ const ThoughtForm = ()=> {
 
     //returning JSX
     return (
-        <div className="">
-          
-            <form className= 'mx-auto m-6 flex-row' onSubmit={handleFormSubmit}>
-                <textarea placeholder= "Share something new!"  value={thoughtText} className= 'bg-white border-2 border-gray-300 shadow-lg px-3 py-2 rounded-lg focus:outline-none focus:border-gray-500 col-12 col-md-9' onChange={handleChange}> </textarea>
+       
+          <div className='w-full'>
+            
+            <form className='flex flex-col items-center p-2' onSubmit={handleFormSubmit}>
+                <label html4="textarea" className="text-3xl text-white mb-4">Post:</label>
+                <textarea placeholder= "Share something new!"  value={thoughtText} name="textarea" className=' block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500' rows='4' columns='5' onChange={handleChange}> </textarea>
 
                 <p className= {`text-lg text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
                 {error && <span className= 'ml-2'>Something went wrong..</span>}
             </p>
-
-
-                <button className='btn-minecraft m-auto rounded' type= 'submit'>Submit</button>
+        
+           
+                <button className='btn-minecraft m-2' type='submit'>Submit</button>
+             
 
 
             </form>
-        </div>
+            </div>
     );
 };
 
