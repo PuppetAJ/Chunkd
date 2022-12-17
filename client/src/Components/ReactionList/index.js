@@ -1,11 +1,14 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 
+//Import Icons
+import {FaRegComments} from 'react-icons/fa';
+
 const ReactionList = ({ reactions }) => {
     return (
         <div className="mb-3">
             <div className="">
-                <span className="text-light">Reactions</span>
+                <span className="text-light"> < FaRegComments size={18}/> </span>
             </div>
             <div className="">
                 {reactions &&

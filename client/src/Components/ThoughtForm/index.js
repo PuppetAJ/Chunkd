@@ -65,9 +65,9 @@ const ThoughtForm = ()=> {
 
     //returning JSX
     return (
-        <div>
+        <div className="">
           
-            <form className= 'py-4 m-6 flex-row justify-center' onSubmit={handleFormSubmit}>
+            <form className= 'mx-auto m-6 flex-row' onSubmit={handleFormSubmit}>
                 <textarea placeholder= "Share something new!"  value={thoughtText} className= 'bg-white border-2 border-gray-300 shadow-lg px-3 py-2 rounded-lg focus:outline-none focus:border-gray-500 col-12 col-md-9' onChange={handleChange}> </textarea>
 
                 <p className= {`text-lg text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
