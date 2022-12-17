@@ -31,11 +31,7 @@ const resolvers = {
 
         me: async (parent, args, context) => {
             if (context.user) {
-<<<<<<< Updated upstream
                 const userData = await User.findOne({ _id: context.user._id })
-=======
-                const userData = await User.findOne({_id: context.user._id })
->>>>>>> Stashed changes
                     .select('-__v -password')
                     .populate('thoughts')
                     .populate('friends')

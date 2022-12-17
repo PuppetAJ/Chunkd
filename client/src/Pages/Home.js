@@ -23,27 +23,31 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className='flex-row grow justify-between'>
+			<div className='grow justify-center'>
 
 				{loggedIn && (
-					// ** FORM FOR NEW POST/THOUGHT ** //
+					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
-						<div className='col-12 mb-3'>
+					<div className= 'max-w-screen-lg mx-auto'>
+						{/* <p className='text-white text-center'>{`Welcome, ${userData.me.username}`}</p> */}
+						<div className='container mx-auto'>
 							<ThoughtForm />
 						</div>
-						<div className={`col-12 mb-3 ${loggedIn && "col-lg-8"}`}>
+						</div>
+						<div className={` mb-3 ${loggedIn && "lg:grid-col-8"}`}>
 							{loading ? (
 								<div>Loading...</div>
 							) : (
 								// ** THIS IS THE LIST OF POSTS/BUILDS ** //
-								<ThoughtList
+								<ThoughtList 
 									thoughts={thoughts}
-									title='Explore Recent Builds'
+									title='Explore Recent Builds' 
 								/>
 							)}
 						</div>
+						{/* This changes styling for friend list on Forum Page */}
 						{loggedIn && userData ? (
-							<div className='col-12 col-lg-3 mb-3'>
+							<div className='container mx-auto mb-3'>
 								<FriendList
 									username={userData.me.username}
 									friendCount={userData.me.friendCount}
