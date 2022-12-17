@@ -16,7 +16,7 @@ import Profile from "./Pages/Profile";
 import Signup from "./Pages/Signup";
 import Home from "./Pages/Home";
 import Editor from "./Pages/Editor";
-import NavBar from "./Components/NavBar";
+// import NavBar from "./Components/NavBar";
 
 const httpLink = createHttpLink({
 	uri: "/graphql",

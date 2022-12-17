@@ -23,7 +23,11 @@ const Profile = () => {
   const user = data?.me || data?.user || {};
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
+<<<<<<< Updated upstream
     return <Navigate to='/profile:username' />
+=======
+    return <Navigate to="/profile:username"/>
+>>>>>>> Stashed changes
   }
 
   if (loading) {
@@ -49,7 +53,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="flex flex-col grow items-center border-x-2 mx- border-gray-800">
+    <div className="flex flex-col grow items-center border-x-2 max-w-mx-auto border-gray-800">
       <div className="flex-row mb-3">
         <h2 className="bg-dark text-secondary p-3 display-inline-block">
           Viewing {userParam ? `${user.username}'s` : 'your'} profile.
@@ -61,12 +65,21 @@ const Profile = () => {
         )}
       </div>
 
+<<<<<<< Updated upstream
       <div className=''>
         <div className=''>
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
         </div>
 
         <div className=''>
+=======
+      <div className="flex-row justify-between mb-3">
+        <div className="col-12 mb-3 col-lg-8">
+          <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
+        </div>
+
+        <div className="flex-col col-12 col-lg-3 mb-3">
+>>>>>>> Stashed changes
           <FriendList
             username={user.username}
             friendCount={user.friendCount}

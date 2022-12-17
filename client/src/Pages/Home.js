@@ -23,7 +23,7 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className='flex-row grow justify-space-between'>
+			<div className='flex-row grow justify-between'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT ** //
