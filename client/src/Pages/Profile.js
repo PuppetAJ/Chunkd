@@ -23,11 +23,7 @@ const Profile = () => {
   const user = data?.me || data?.user || {};
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-<<<<<<< Updated upstream
-    return <Navigate to='/profile:username' />
-=======
     return <Navigate to="/profile:username"/>
->>>>>>> Stashed changes
   }
 
   if (loading) {
@@ -65,21 +61,12 @@ const Profile = () => {
         )}
       </div>
 
-<<<<<<< Updated upstream
-      <div className=''>
-        <div className=''>
-          <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
-        </div>
-
-        <div className=''>
-=======
       <div className="flex-row justify-between mb-3">
         <div className="col-12 mb-3 col-lg-8">
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
         </div>
 
         <div className="flex-col col-12 col-lg-3 mb-3">
->>>>>>> Stashed changes
           <FriendList
             username={user.username}
             friendCount={user.friendCount}
