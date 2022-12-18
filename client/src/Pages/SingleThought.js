@@ -21,24 +21,24 @@ const SingleThought = props => {
   }
 
   return (
-    <div className="p-4 items-center justify-center w-[680px] rounded-xl group sm:flex space-x-6 bg-white bg-opacity-50 shadow-xl hover:rounded-2xl">
+    <div className="grow border-x-2 max-w-screen-lg mx-auto border-gray-800 bg-white items-center justify-center w-[680px] rounded-xl group sm:flex space-x-6 text-gray-300 bg-opacity-50 shadow-xl hover:rounded-2xl">
 
       <div className="sm:w-8/12 pl-0 p-5">
-        <h4 className="text-lg font-bold text-gray-800 text-justify">
+        <h4 className="text-lg font-bold text-gray-300 bg-gray-700 bg-opacity-40 text-center">
           <span className="text-light">
             {thought.username}
           </span>{' '}
         </h4>
 
 
-        <div className="text-md">
+        <div className="text-md my-2 pl-2 p-2">
           <p>{thought.thoughtText}</p>
         </div>
 
 
         <div className="text-grey-400 flex flex-row space-x-1  my-4">
           <svg stroke="currentColor" fill="none" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <p class="text-xs">{thought.createdAt}</p>
+          <p className="text-xs">{thought.createdAt}</p>
         </div>
 
 

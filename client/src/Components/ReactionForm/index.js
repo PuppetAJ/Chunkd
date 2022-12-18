@@ -37,20 +37,20 @@ const handleFormSubmit = async (event) => {
 
   return (
 
-    <div className="flex-col m-auto">
-      <p className={`text-sm text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
+    <div className='w-full bg-white shadow-xl rounded-lg my-3 duration:300 hover:scale-105'>
+      <p className={`text-sm dark:placeholder-gray-400 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
         Character Count: {characterCount}/280
         {error && <span className="ml-2">Something went wrong...</span>}
       </p>
-      <form className="flex-row justify-center justify-space-between-md align-stretch" onSubmit={handleFormSubmit}>
+      <form className="flex flex-col items-center justify-between-md" onSubmit={handleFormSubmit}>
        
         <textarea
-          placeholder="What do you think?" value={reactionBody}
-          className="form-input flex w-auto" onChange={handleChange}
+          placeholder="What do you think?" value={reactionBody} row="5"
+          className="flex mx-auto w-full  dark:bg-gray-700 my-2" onChange={handleChange}
         ></textarea>
        
 
-        <button className="btn-minecraft" type="submit">
+        <button className="justify-center btn-minecraft w-1/4 duration-300 hover:scale-105" type="submit">
           Submit
         </button>
       </form>
