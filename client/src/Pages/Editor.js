@@ -1,6 +1,5 @@
 import React, { Suspense, useState } from "react";
-import { Canvas, useLoader } from "@react-three/fiber";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { Canvas, useThree } from "@react-three/fiber";
 import {
 	Stats,
 	Sky,
@@ -11,7 +10,9 @@ import {
 	Loader,
 	Preload,
 	BakeShadows,
+	PerformanceMonitor,
 } from "@react-three/drei";
+import { useControls, button, folder } from "leva";
 import { Physics } from "@react-three/rapier";
 import { Cube, Cubes } from "../Components/Cube";
 import { Ground } from "../Components/Ground";
@@ -24,6 +25,23 @@ import { Navigate, useParams } from "react-router-dom";
 import Auth from "../utils/auth";
 
 export default function Editor() {
+	// const gl = useThree((state) => state.gl);
+	// useControls({
+	// 	screenshot: button(() => {
+	// 		const link = document.createElement("a");
+	// 		link.setAttribute("download", "canvas.png");
+	// 		link.setAttribute(
+	// 			"href",
+	// 			gl.domElement
+	// 				.toDataURL("image/png")
+	// 				.replace("image/png", "image/octet-stream"),
+	// 		);
+	// 		link.click();
+	// 	}),
+	// });
+
+	const [dpr, setDpr] = useState(1.5);
+
 	const { username: userParam } = useParams();
 
 	const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
@@ -67,6 +85,7 @@ export default function Editor() {
 					onDecline={() => setDpr(1)}
 				> */}
 				<Preload all />
+				<Scene />
 				<BakeShadows />
 				<Sky
 					elevation={0.6}
@@ -97,10 +116,51 @@ export default function Editor() {
 				</Physics>
 				<PointerLockControls />
 				{/* </PerformanceMonitor> */}
+				{/* </Scene> */}
 				<Stats />
 			</Canvas>
 			{/* </Suspense> */}
 			<Loader initialState={(active) => active} />
 		</KeyboardControls>
+	);
+}
+
+function Scene() {
+	const gl = useThree((state) => state.gl);
+	useControls({
+		screenshot: button(() => {
+			const link = document.createElement("a");
+			link.setAttribute("download", "Saved.png");
+			link.setAttribute(
+				"href",
+				gl.domElement
+					.toDataURL("image/png")
+					.replace("image/png", "image/octet-stream"),
+			);
+			link.click();
+		}),
+	});
+	return (
+		<>
+			{/* <Dragon position={[0, -0.5, -0.5]} rotation={[0, 0.5, 0]} /> */}
+			{/* <Duck rotation={[0, 0.5, 0]} scale={0.8} position={[-1.6, -0.5, 1]} /> */}
+			{/* <Ruby scale={0.8} rotation={[-0.2, -0.1, -0.55]} position={[1, -0.05, 1]} /> */}
+			{/* <Backdrop
+				receiveShadow
+				scale={[15, 8, 5]}
+				floor={1.5}
+				position={[0, -0.5, -4]}
+			> */}
+			{/* <meshPhysicalMaterial metalness={0} roughness={0.15} color="#101020" /> */}
+			{/* </Backdrop> */}
+			{/* <rectAreaLight
+				args={["white", 20]}
+				width={2}
+				height={2}
+				position={[3, 3, -2]}
+				target={[0, 0, 0]}
+				visible={false}
+			/> */}
+		</>
 	);
 }
