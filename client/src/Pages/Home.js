@@ -23,7 +23,7 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className='grow justify-center'>
+			<div className='grow justify-center w-full'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //

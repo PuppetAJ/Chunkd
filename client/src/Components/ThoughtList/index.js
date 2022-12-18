@@ -25,7 +25,7 @@ const ThoughtList = ({ thoughts, title }) => {
 							
 							<div key={thought._id} className="flex flex-col w-full max-w-screen-lg rounded-xl sm:flex border-b-1 shadow-xl hover:rounded-2xl py- my-3 duration-300 hover:scale-105">
 								
-								<div className="flex items-center p-1 w-auto justify-evenly bg-gray-700 bg-opacity-40 font-bold">
+								<div className="flex items-center p-1 px-4 w-auto justify-between bg-gray-700 bg-opacity-40 font-bold">
 									<Link
 										to={`/profile/${thought.username}`}
 										className='font-bold text-gray-300 hover:underline hover:scale-110'
@@ -47,7 +47,7 @@ const ThoughtList = ({ thoughts, title }) => {
 
 											<div className='flex text-gray-300 mr-6 items-center hover:scale-110'>
 											< FaRegComments size={24}/>    
-										<p className="mx-4">{thought.reactionCount} </p>
+										<p className="mx-3">{thought.reactionCount} </p>
 										</div>
 
 										<button className="btn-minecraft text-xs">Click to {" "}
