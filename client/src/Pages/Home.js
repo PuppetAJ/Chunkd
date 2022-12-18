@@ -29,7 +29,7 @@ const Home = () => {
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
 					<div className= 'max-w-screen-lg mx-auto'>
-						<p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p>
+						{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
 						<div className='container mx-auto'>
 							<ThoughtForm />
 						</div>
@@ -47,7 +47,7 @@ const Home = () => {
 						</div>
 						{/* This changes styling for friend list on Forum Page */}
 						{loggedIn && userData ? (
-							<div className='container mx-auto mb-3'>
+							<div className='max-w-screen-lg mx-auto text-center bg-opacity-40 shadow-xl rounded-lg p-2 my-3'>
 								<FriendList
 									username={userData.me.username}
 									friendCount={userData.me.friendCount}

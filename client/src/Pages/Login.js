@@ -54,7 +54,7 @@ const Login = (props) => {
             <div className="flex flex-col my-2">
 				{error &&  <div className="text-xs text-red-400 flex justify-between items-center"><span>
                     <b>Error: </b>
-                   Email or Password do not match !
+                   Email & Password do not match!
                     </span>
                
                     
