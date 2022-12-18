@@ -38,7 +38,7 @@ const ThoughtList = ({ thoughts, title }) => {
 										 </div>
 								</div>
 
-								<div className="break-all" >
+								<div className="break-all">
 									
 										<p className='text-gray-300 pl-4 p-1 m-2 mb-3' >{thought.thoughtText}</p>
 										
