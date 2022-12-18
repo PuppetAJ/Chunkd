@@ -26,7 +26,7 @@ const Profile = () => {
   const user = data?.me || data?.user || {};
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to="/profile:username"/>
+    return <Navigate to="/profile"/>
   }
 
   if (loading) {
@@ -45,7 +45,7 @@ const Profile = () => {
 
   if (!user?.username) {
     return (
-      <h4>
+      <h4 className="text-gray-300 text-4XL text-center">
         You need to be logged in to see this page. Please log in or sign up!
       </h4>
     )
@@ -56,7 +56,7 @@ const Profile = () => {
     <div className=" grow items-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
       <div className='text-center rounded-lg p-2 mt-2'>
         <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
-           {userParam ? `${user.username}'s` : 'your'} profile.
+           {userParam ? `${user.username}'s` : 'Welcome to Your'} Profile
         </h2>
         {userParam && (
 

@@ -6,7 +6,7 @@ import {FaRegClock, FaRegComments }from 'react-icons/fa'
 
 const ThoughtList = ({ thoughts, title }) => {
 	if (!thoughts.length) {
-		return <h3>No Posts Yet</h3>;
+		return <h3 className="text-gray-300">No Posts Yet</h3>;
 	}
 
 	return (
@@ -38,9 +38,9 @@ const ThoughtList = ({ thoughts, title }) => {
 										 </div>
 								</div>
 
-								<div >
+								<div className="break-all" >
 									
-										<p className='text-gray-300 pl-4 p-1 m-2 mb-3'>{thought.thoughtText}</p>
+										<p className='text-gray-300 pl-4 p-1 m-2 mb-3' >{thought.thoughtText}</p>
 										
 										<Link to={`/thought/${thought._id}`}>
 										<div className='flex px-2 mb-2 items-center w-full justify-center'>
