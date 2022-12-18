@@ -11,7 +11,7 @@ const FriendList = ({friendCount, username, friends}) => {
         <div className="text-white text-xl font-bold">
             <h5> {username}'s {friendCount} {friendCount === 1 ? 'friend' : 'friends'} </h5>
         {friends.map(friend => (
-            <button className= 'w-100 text-gray-400 display-block p-2 duration:300 hover:scale-105 hover:underline' key= {friend._id}>
+            <button className= 'w-100 text-gray-400 display-block p-2 hover:underline' key= {friend._id}>
                 <Link to={`/profile/${friend.username}`}>{friend.username}</Link>
             </button>
         ))}

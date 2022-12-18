@@ -69,7 +69,7 @@ const ThoughtForm = ()=> {
     //returning JSX
     return (
        
-          <div className='w-full bg-opacity-40 shadow-xl rounded-lg mt-2 duration:300 hover:scale-105'>
+          <div className='w-full bg-opacity-40 shadow-xl rounded-lg my-3 duration:300 hover:scale-105'>
             
             <form className='flex flex-col items-center p-2' onSubmit={handleFormSubmit}>
                 <label html4="textarea" className="text-3xl text-white mb-4 flex items-center"><ImPlus size={24}/><p className="flex ml-3">Post:</p></label>
