@@ -83,7 +83,7 @@ const Profile = () => {
         </div>
         <div className= 'max-w-screen-lg mx-auto'>
       </div>
-      <div className='mb-3'>{!userParam && <ThoughtForm />}</div>
+      <div className= 'mb-3'>{!userParam && <ThoughtForm />}</div>
     </div>
     </div>
     </main>
