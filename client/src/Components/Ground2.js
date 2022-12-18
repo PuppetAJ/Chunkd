@@ -14,6 +14,8 @@ import {
 } from "@react-three/drei";
 import create from "zustand";
 import grass from "../assets/grass.png";
+// import { useStore } from "../Hooks/useStore";
+// import { useInterval } from "../Hooks/useInterval";
 
 export function Ground2(props) {
 	// Notes: Instanced mesh seems like the best approach for now
@@ -62,6 +64,19 @@ export function Ground2(props) {
 		setBlocks(blockStore);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	// const [cubes, saveWorld] = useStore((state) => [
+	// 	state.cubes,
+	// 	state.saveWorld,
+	// ]);
+
+	// useInterval(
+	// 	() => {
+	// 		saveWorld(cubes);
+	// 	},
+	// 	// every 10 seconds
+	// 	10000,
+	// );
 
 	console.log(blocks.length);
 	return (

@@ -10,7 +10,6 @@ import {
 	Loader,
 	Preload,
 	BakeShadows,
-	PerformanceMonitor,
 } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
 import { Cube, Cubes } from "../Components/Cube";
@@ -18,37 +17,34 @@ import { Ground } from "../Components/Ground";
 import { Player } from "../Components/Player";
 import { Ground2 } from "../Components/Ground2";
 
-import { useQuery, useMutation } from '@apollo/client'
-import { QUERY_USER, QUERY_ME } from '../utils/queries'
-import { Navigate, useParams } from 'react-router-dom'
-import Auth from '../utils/auth'
+import { useQuery, useMutation } from "@apollo/client";
+import { QUERY_USER, QUERY_ME } from "../utils/queries";
+import { Navigate, useParams } from "react-router-dom";
+import Auth from "../utils/auth";
 
 export default function Editor() {
-
-	const [dpr, setDpr] = useState(1.5);
-
 	const { username: userParam } = useParams();
 
 	const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
-	  variables: { username: userParam }
+		variables: { username: userParam },
 	});
-  
+
 	const user = data?.me || data?.user || {};
-  
+
 	if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-	  return <Navigate to='/Editor' />
+		return <Navigate to='/Editor' />;
 	}
-  
+
 	if (loading) {
-	  return <div>Loading...</div>;
+		return <div>Loading...</div>;
 	}
 
 	if (!user?.username) {
 		return (
-		  <h4>
-			You need to be logged in to see this page. Please log in or sign up!
-		  </h4>
-		)
+			<h4>
+				You need to be logged in to see this page. Please log in or sign up!
+			</h4>
+		);
 	}
 
 	softShadows();
@@ -64,7 +60,7 @@ export default function Editor() {
 			]}
 		>
 			{/* <Suspense> */}
-			<Canvas shadows camera={{ fov: 45 }}>
+			<Canvas gl={{ preserveDrawingBuffer: true }} shadows camera={{ fov: 45 }}>
 				{/* <PerformanceMonitor
 					onIncline={() => setDpr(2)}
 					onDecline={() => setDpr(1)}

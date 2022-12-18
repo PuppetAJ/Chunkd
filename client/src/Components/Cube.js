@@ -2,25 +2,33 @@ import { useCallback, useRef, useState } from "react";
 import { useTexture } from "@react-three/drei";
 import { RigidBody } from "@react-three/rapier";
 import create from "zustand";
+import { nanoid } from "nanoid";
 import dirt from "../assets/dirt.jpg";
 
+const getLocalStorage = (key) => JSON.parse(window.localStorage.getItem(key));
+const setLocalStorage = (key, value) =>
+	window.localStorage.setItem(key, JSON.stringify(value));
+
 const useCubeStore = create((set) => ({
-	cubes: [],
+	texture: "dirt",
+	cubes: getLocalStorage("world") || [],
 	addCube: (x, y, z) =>
 		set((state) => ({ cubes: [...state.cubes, [x, y, z]] })),
+	saveWorld: () =>
+		set((state) => {
+			setLocalStorage("world", state.cubes);
+		}),
 }));
-// const useCubeStore = create((set) => ({
-// 	cubes: [],
-// 	addCube: (x, y, z) =>
-// 		set((state) => ({ cubes: [...state.cubes, [x, y, z]] })),
-// 	removeCube: (remove) =>
-// 		set((state) => {
-// 			const newCubes = [...state.cubes];
-// 			newCubes.splice(remove, 1);
-// 			return { cubes: newCubes };
-// 		}),
-// }));
+
 console.log(useCubeStore);
+
+// useInterval(
+// 	() => {
+// 		saveWorld(useCubeStore);
+// 	},
+// 	// every 10 seconds
+// 	10000,
+// );
 
 export const Cubes = () => {
 	const cubes = useCubeStore((state) => state.cubes);
