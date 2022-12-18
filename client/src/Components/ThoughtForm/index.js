@@ -3,6 +3,9 @@ import {useMutation} from '@apollo/client';
 import {ADD_THOUGHT} from '../../utils/mutations';
 import {QUERY_THOUGHTS, QUERY_ME} from '../../utils/queries';
 
+//Import Icons
+import {ImPlus} from 'react-icons/im';
+
 
 const ThoughtForm = ()=> {
     const [thoughtText, setText] = useState('');
@@ -66,18 +69,19 @@ const ThoughtForm = ()=> {
     //returning JSX
     return (
        
-          <div className='w-full'>
+          <div className='w-full bg-opacity-40 shadow-xl rounded-lg mt-2 duration:300 hover:scale-105'>
             
             <form className='flex flex-col items-center p-2' onSubmit={handleFormSubmit}>
-                <label html4="textarea" className="text-3xl text-white mb-4">Post:</label>
-                <textarea placeholder= "Share something new!"  value={thoughtText} name="textarea" className=' block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500' rows='4' columns='5' onChange={handleChange}> </textarea>
+                <label html4="textarea" className="text-3xl text-white mb-4 flex items-center"><ImPlus size={24}/><p className="flex ml-3">Post:</p></label>
+           
+                <textarea placeholder= "Share something new!"  value={thoughtText} name="textarea" className=' block p-2.5 w-1/2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500' rows='4' columns='5' onChange={handleChange}> </textarea>
 
-                <p className= {`text-lg text-gray-500 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
+                <p className= {`text-sm dark:placeholder-gray-400  ${characterCount === 280 || error ? 'text-error' : ''}`}>
                 {error && <span className= 'ml-2'>Something went wrong..</span>}
             </p>
         
            
-                <button className='btn-minecraft m-2' type='submit'>Submit</button>
+                <button className='btn-minecraft m-2 duration-300 hover:scale-105' type='submit'>Submit</button>
              
 
 

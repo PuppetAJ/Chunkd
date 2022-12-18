@@ -46,7 +46,7 @@ const Header = () => {
 									</Link>
 								</ul>
 								<a
-									className="m-3 btn-minecraft rounded p-2 w-24"
+									className="m-3 btn-minecraft rounded p-2 w-24 duration-300 hover:scale-105"
 									href='/'
 									onClick={logout}
 								>
@@ -56,7 +56,7 @@ const Header = () => {
 						</>
 					) : (
 						<>
-							<div className="justify-center">
+							<div className="justify-center mt-10">
 								<Link
 									to='/login'
 									className="btn-minecraft rounded mr-7 -bottom-60"

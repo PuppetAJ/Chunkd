@@ -8,7 +8,7 @@ const ReactionList = ({ reactions }) => {
     return (
         <div className="mb-3">
             <div className="">
-                <span className="text-light"> < FaRegComments size={18}/> </span>
+                <p className="text-light duration-300 hover:scale-105"> < FaRegComments size={18}/> </p>
             </div>
             <div className="">
                 {reactions &&
