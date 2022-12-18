@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react"
 import { useTexture } from "@react-three/drei"
 import { RigidBody } from "@react-three/rapier"
+import { useThree } from "@react-three/fiber"
 import create from "zustand"
 import dirt from "../assets/dirt.jpg"
 
@@ -19,6 +20,8 @@ export const Cubes = () => {
 }
 
 export function Cube(props) {
+  const { scene } = useThree();
+
   const ref = useRef()
   const [hover, set] = useState(null)
   const addCube = useCubeStore((state) => state.addCube)
@@ -41,9 +44,16 @@ export function Cube(props) {
     ]
     addCube(...dir[Math.floor(e.faceIndex / 2)])
   }, [addCube])
+  // const onClick = useCallback((e) => {
+  //   console.log(e);
+  //   e.stopPropagation()
+  //   const objectID = e.object.uuid
+  //   const object = scene.getObjectByName("test");
+  //   scene.remove(object);
+  // }, [])
   return (
     <RigidBody {...props} type="fixed" colliders="cuboid" ref={ref}>
-      <mesh receiveShadow castShadow onPointerMove={onMove} onPointerOut={onOut} onClick={onClick}>
+      <mesh name="test" receiveShadow castShadow onPointerMove={onMove} onPointerOut={onOut} onClick={onClick}>
         {[...Array(6)].map((_, index) => (
           <meshStandardMaterial attach={`material-${index}`} key={index} map={texture} color={hover === index ? "hotpink" : "white"} />
         ))}
