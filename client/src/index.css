@@ -130,6 +130,6 @@ canvas {
 }
 
 #logo:hover {
-  content: url(./assets/Campfire.webp);
+  content: url(./assets/Campfire.webp)
 }
 
