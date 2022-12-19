@@ -129,4 +129,7 @@ canvas {
   background-color: rgb(34, 34, 34);
 }
 
+#logo:hover {
+  content: url(./assets/Campfire.webp);
+}
 

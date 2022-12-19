@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
-import logo from "../../assets/animated.webp";
+import logo from "../../assets/Soul_Campfire.webp";
 
 
 const Header = () => {
@@ -39,7 +39,7 @@ const Header = () => {
 									</Link>
 								</ul>
 
-								<a href='/' className="w-16 place-self-center">
+								<a href='/' id="logo" className="w-16 place-self-center duration-300 hover:scale-105">
 									<img src={logo}></img>
 								</a>
 
