@@ -40,7 +40,7 @@ const SingleThought = props => {
 
 
         <div className="break-all my-2 p-2 mb-6 shadow-xl rounded-lg">
-          <p>{thought.thoughtText}</p>
+          <p className="text-ellipsis overflow-hidden">{thought.thoughtText}</p>
         </div>
 
 
