@@ -40,7 +40,7 @@ const ThoughtList = ({ thoughts, title }) => {
 
 								<div className="break-all">
 									
-										<p className='text-gray-300 pl-4 p-1 m-2 mb-3' >{thought.thoughtText}</p>
+										<p className='text-ellipsis overflow-hidden text-gray-300 pl-4 p-1 m-2 mb-3'>{thought.thoughtText}</p>
 										
 										<Link to={`/thought/${thought._id}`}>
 										<div className='flex px-2 mb-2 items-center w-full justify-center'>
