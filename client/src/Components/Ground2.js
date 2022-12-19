@@ -72,30 +72,32 @@ export function Ground2() {
   }, []);
 
   const onClick = (e) => {
-    console.log(scene);
+    console.log(window.event.button);
     e.stopPropagation();
 
-    const clickedObj = e.object;
+    if (window.event.button === 0) {
+      const clickedObj = e.object;
 
-    e.object.children = [];
-    e.object.colliders = false;
-    const instancedMesh = ref.current;
-    const instances = instancedMesh.children;
-    const index = instances.indexOf(clickedObj);
-    const { x, y, z } = e.object.position;
+      e.object.children = [];
+      e.object.colliders = false;
+      const instancedMesh = ref.current;
+      const instances = instancedMesh.children;
+      const index = instances.indexOf(clickedObj);
+      const { x, y, z } = e.object.position;
 
-    const ind = blocks.findIndex(([x2, y2, z2]) => {
-      if (x2 === x && y2 === y && z2 === z) {
-        return true;
+      const ind = blocks.findIndex(([x2, y2, z2]) => {
+        if (x2 === x && y2 === y && z2 === z) {
+          return true;
+        }
+      });
+
+      if (ind !== -1) {
+        let tempArr = blocks.slice();
+        tempArr.splice(ind, 1);
+        const el = instances.splice(index, 1);
+        instances.push(el[0]);
+        setBlocks(tempArr);
       }
-    });
-
-    if (ind !== -1) {
-      let tempArr = blocks.slice();
-      tempArr.splice(ind, 1);
-      const el = instances.splice(index, 1);
-      instances.push(el[0]);
-      setBlocks(tempArr);
     }
   };
 
@@ -121,15 +123,7 @@ export function Ground2() {
                 castShadow
                 receiveShadow
                 position={[x, y, z]}
-              >
-                {/* <RigidBody type="fixed"></RigidBody> */}
-                {/* <CuboidCollider
-                  position={[0, 0, 0]}
-                  type="fixed"
-                  attach="mesh"
-                  args={[0.5, 0.5, 0.5]}
-                /> */}
-              </Instance>
+              ></Instance>
             </Fragment>
           );
         })}
@@ -145,9 +139,4 @@ export function Ground2() {
       })}
     </>
   );
-
-  // ===========================
-  //   Unfinished feature code
-  //     - Terrain Removal
-  // ===========================
 }
