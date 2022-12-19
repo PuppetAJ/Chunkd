@@ -1,6 +1,7 @@
 import React from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import {
+	AdaptiveDpr,
 	Stats,
 	Sky,
 	softShadows,
@@ -10,7 +11,7 @@ import {
 	Preload,
 	BakeShadows,
 } from "@react-three/drei";
-import { useControls, button, Leva, } from "leva";
+import { useControls, button, Leva } from "leva";
 import { Physics } from "@react-three/rapier";
 import { Cube, Cubes } from "../Components/Cube";
 import { Ground } from "../Components/Ground";
@@ -23,7 +24,6 @@ import { Navigate, useParams } from "react-router-dom";
 import Auth from "../utils/auth";
 
 export default function Editor() {
-
 	const { username: userParam } = useParams();
 
 	const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
@@ -60,7 +60,7 @@ export default function Editor() {
 				{ name: "jump", keys: ["Space"] },
 			]}
 		>
-			<div 
+			<div
 				style={{
 					top: 16,
 					right: 130,
@@ -69,17 +69,18 @@ export default function Editor() {
 				}}
 				className=".btn-minecraft"
 			>
-			<Leva 
-				flat={{
-					flat: 'true'
-				}}
-				titleBar={false}
-				fill={true}
-			/>
+				<Leva
+					flat={{
+						flat: "true",
+					}}
+					titleBar={false}
+					fill={true}
+				/>
 			</div>
 			<Canvas gl={{ preserveDrawingBuffer: true }} shadows camera={{ fov: 45 }}>
 				<Preload all />
 				<Scene />
+				<AdaptiveDpr pixelated />
 				<BakeShadows />
 				<Sky
 					elevation={0.6}
@@ -122,9 +123,5 @@ function Scene() {
 			link.click();
 		}),
 	});
-	return (
-		<>
-		{/* We are using this space to fill the return statement. */}
-		</>
-	);
+	return <>{/* We are using this space to fill the return statement. */}</>;
 }
