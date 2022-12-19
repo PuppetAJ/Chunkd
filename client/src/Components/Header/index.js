@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Auth from "../../utils/auth";
+import logo from "../../assets/animated.webp";
 
 
 const Header = () => {
@@ -11,16 +12,16 @@ const Header = () => {
 
 	return (
 		// this needs to be re-styled to show login/signup form //
-		<header>
+		<header className="sticky top-0">
 			<div>
 				<Link to='/'>{/* <h1>website</h1> */}</Link>
 
 				<nav className='text-center'>
 					{Auth.loggedIn() ? (
 						<>
-							<div className='nav-wrapper flex place-content-between p-1 content-center border-b border-solid border-gray-800'>
+							<div className='relative nav-wrapper flex p-1 justify-center border-b border-solid border-gray-800'>
 								{/* Nav list */}
-								<ul className='flex'>
+								<ul className='flex absolute left-0'>
 									<Link
 										as={Link}
 										className="m-3 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105"
@@ -31,22 +32,19 @@ const Header = () => {
 
 									<Link
 										as={Link}
-										className="m-3 w-24 btn-minecraft rounded p-2 duration-300 hover:scale-105"
-										to='/'
-									>
-										Forum
-									</Link>
-
-									<Link
-										as={Link}
 										className="m-3 w-32 btn-minecraft rounded p-2 duration-300 hover:scale-105"
 										to='/Profile'
 									>
 										My Profile
 									</Link>
 								</ul>
+
+								<a href='/' className="w-16 place-self-center">
+									<img src={logo}></img>
+								</a>
+
 								<a
-									className="m-3 btn-minecraft rounded p-2 w-24 duration-300 hover:scale-105"
+									className="absolute right-0 m-3 btn-minecraft rounded p-2 w-24 duration-300 hover:scale-105"
 									href='/'
 									onClick={logout}
 								>
