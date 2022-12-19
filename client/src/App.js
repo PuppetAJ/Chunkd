@@ -1,5 +1,4 @@
 import React from "react";
-import { ChakraProvider } from '@chakra-ui/react'
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import {
 	ApolloProvider,
@@ -8,16 +7,16 @@ import {
 	createHttpLink,
 } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
-import Header from './Components/Header'
-import Footer from './Components/Footer'
-import Login from './Pages/Login'
-import NoMatch from './Pages/NoMatch'
-import SingleThought from './Pages/SingleThought'
-import Profile from './Pages/Profile'
-import Signup from './Pages/Signup'
-import Home from './Pages/Home'
+import Header from "./Components/Header";
+import Footer from "./Components/Footer";
+import Login from "./Pages/Login";
+import NoMatch from "./Pages/NoMatch";
+import SingleThought from "./Pages/SingleThought";
+import Profile from "./Pages/Profile";
+import Signup from "./Pages/Signup";
+import Home from "./Pages/Home";
 import Editor from "./Pages/Editor";
-
+import NavBar from "./Components/NavBar";
 
 const httpLink = createHttpLink({
 	uri: "/graphql",
@@ -43,13 +42,11 @@ const client = new ApolloClient({
 // USE LOCATION ^^ 
 function App() {
 	return (
-    //Chakra Provider 
-    <ChakraProvider>
 		<ApolloProvider client={client}>
       <Router>
         {/* <div className='flex-column justify-flex-start min-100-vh'> */}
           <Header />
-          {/* <div className='container'> */}
+
             <Routes>
               <Route
                 path='/'
@@ -80,12 +77,14 @@ function App() {
                 element={<NoMatch/>}
               />
             </Routes>
-          {/* </div> */}
-          {/* <Footer /> */}
-        {/* </div> */}
+
+         
+          {/* <Footer/> */}
+        </div>
+        
+
       </Router>
     </ApolloProvider>
-    </ChakraProvider>
 	);
 }
 

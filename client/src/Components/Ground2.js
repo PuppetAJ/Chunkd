@@ -1,9 +1,8 @@
 import React from "react";
-import * as THREE from "three";
 import { useState, useEffect, useRef, Fragment } from "react";
 import { Noise } from "noisejs";
 import { useThree } from "@react-three/fiber";
-import { CuboidCollider, RigidBody } from "@react-three/rapier";
+import { CuboidCollider } from "@react-three/rapier";
 import { useTexture, Instances, Instance } from "@react-three/drei";
 import create from "zustand";
 import grass from "../assets/grass.png";
@@ -18,7 +17,6 @@ export const useBlockStore = create((set) => ({
 export function Ground2() {
   const texture = useTexture(grass);
 
-  // const addBlock = useBlockStore((state) => state.addBlock);
   const setBlocksSet = useBlockStore((state) => state.setBlocksSet);
 
   const [blocks, setBlocks] = useState([]);
