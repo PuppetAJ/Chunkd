@@ -102,7 +102,7 @@ const PostModal = ({ setModalOn, setChoice }) => {
 // Return JSX for Post Modal
     return (
 
-        <div className="  bg-zinc-800 bg-opacity-80 fixed inset-0 z-75   ">
+        <div className=" bg-zinc-800 bg-opacity-80 fixed inset-0 z-75">
 
             <div className="flex h-screen justify-center items-center ">
 
