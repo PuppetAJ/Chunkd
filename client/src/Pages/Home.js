@@ -40,7 +40,7 @@ const Home = () => {
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
-						<div className='basis-2/3 max-w-screen-lg mx-auto'>
+						<div className='w-8/12 mx-auto'>
 							{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
 							<div className='container mx-auto'>
 
@@ -70,7 +70,7 @@ const Home = () => {
 						</div>
 						{/* This changes styling for friend list on Forum Page */}
 						{loggedIn && userData ? (
-							<div className='max-w-screen-lg mx-auto text-center bg-opacity-40 shadow-xl rounded-lg p-2 my-3'>
+							<div className='w-full mx-auto text-center bg-opacity-40 shadow-xl rounded-lg p-2 my-3'>
 								<FriendList
 									username={userData.me.username}
 									friendCount={userData.me.friendCount}
@@ -78,6 +78,13 @@ const Home = () => {
 								/>
 							</div>
 						) : null}
+					</>
+				)}
+
+				{!loggedIn && (
+					<>
+					<div id="nologin" className="object-fill h-screen">
+					</div>
 					</>
 				)}
 			</div>

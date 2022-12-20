@@ -40,45 +40,45 @@ const Header = () => {
                   </Link>
                 </ul>
 
-                <a
-                  href="/"
-                  id="logo"
-                  className="w-16 place-self-center duration-300 hover:scale-105"
-                >
-                  <img src={logo} alt="Website Logo"></img>
-                </a>
 
-                <a
-                  className="absolute right-0 m-3 btn-minecraft rounded p-2 w-24 duration-300 hover:scale-105"
-                  href="/"
-                  onClick={logout}
-                >
-                  Logout
-                </a>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="justify-center mt-10">
-                <Link
-                  to="/login"
-                  className="btn-minecraft rounded mr-7 -bottom-60"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="btn-minecraft rounded ml-7  -bottom-60"
-                >
-                  Signup
-                </Link>
-              </div>
-            </>
-          )}
-        </nav>
-      </div>
-    </header>
-  );
+
+								<a href='/' id="logo" className="w-16 place-self-center duration-300 hover:scale-105">
+									<img src={logo} alt="Website Logo"></img>
+
+								</a>
+
+								<a
+									className="absolute right-0 m-3 btn-minecraft rounded p-2 w-24 duration-300 hover:scale-105"
+									href='/'
+									onClick={logout}
+								>
+									Logout
+								</a>
+							</div>
+						</>
+					) : (
+						<>
+							<div id="login-header"className="relative nav-wrapper flex p-1 justify-center border-b border-solid border-gray-800">
+								<Link
+									to='/login'
+									className="btn-minecraft rounded mr-7"
+								>
+									Login
+								</Link>
+								<Link
+									to='/signup'
+									className="btn-minecraft rounded ml-7"
+								>
+									Signup
+								</Link>
+
+							</div>
+						</>
+					)}
+				</nav>
+			</div>
+		</header>
+	);
 };
 
 export default Header;
