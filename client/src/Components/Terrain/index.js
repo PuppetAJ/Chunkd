@@ -53,7 +53,7 @@ export function Terrain() {
             blockSet.add(`${x} ${y - j} ${z}`);
           }
         }
-        blockStore.push([x, 0, z]);
+        // blockStore.push([x, 0, z]);
         blockSet.add(`${x} ${-1} ${z}`);
         xOff = xOff + inc;
       }

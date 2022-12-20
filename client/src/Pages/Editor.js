@@ -13,11 +13,10 @@ import {
 } from "@react-three/drei";
 import { Physics, Debug } from "@react-three/rapier";
 import { Cubes, Cube } from "../Components/Cube";
-import { Ground } from "../Components/Ground";
 import { Player } from "../Components/Player";
 import { Terrain } from "../Components/Terrain";
 
-import { Suspense, useState } from "react";
+import { useState } from "react";
 
 import { useControls, button, Leva } from "leva";
 import { useQuery, useMutation } from "@apollo/client";
@@ -52,17 +51,17 @@ export default function Editor() {
           onDecline={() => setDpr(1)}
         >
           <Preload all />
-          <Suspense>
-            <BakeShadows />
-            <Sky
-              elevation={0.6}
-              rayleigh={1.558}
-              azimuth={14.7}
-              exposure={0.4349}
-              sunPosition={[100, 10, 100]}
-              turbidity={3.1}
-            />
-            {/* <Stars
+          <BakeShadows />
+          <Sky
+            elevation={0.6}
+            rayleigh={1.558}
+            azimuth={14.7}
+            exposure={0.4349}
+            sunPosition={[100, 10, 100]}
+            turbidity={3.1}
+          />
+          {/* <Scene></Scene> */}
+          {/* <Stars
 						radius={100}
 						depth={50}
 						count={5000}
@@ -72,16 +71,15 @@ export default function Editor() {
 						speed={1}
 					/> */}
 
-            <ambientLight intensity={0.3} />
-            <pointLight castShadow intensity={0.8} position={[100, 100, 100]} />
-            <Physics gravity={[0, 0, 0]}>
-              <Terrain />
-              <Player />
-              <Cube />
-              <Cubes />
-            </Physics>
-            <PointerLockControls />
-          </Suspense>
+          <ambientLight intensity={0.3} />
+          <pointLight castShadow intensity={0.8} position={[100, 100, 100]} />
+          <Physics gravity={[0, 0, 0]}>
+            <Terrain />
+            <Player />
+            <Cube />
+            <Cubes />
+          </Physics>
+          <PointerLockControls />
         </PerformanceMonitor>
       </Canvas>
       <Loader initialState={(active) => active} />
