@@ -1,12 +1,15 @@
 
-import React from "react";
+import { React, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries";
 import Auth from "../utils/auth";
 import FriendList from "../Components/FriendList";
-import ThoughtForm from "../Components/ThoughtForm";
+// import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
-// import Footer from '../Components/Footer';
+import PostModal from "../Components/PostModal";
+
+//Import Icons
+import {ImPlus} from 'react-icons/im';
 
 const Home = () => {
 	const { loading, data } = useQuery(QUERY_THOUGHTS);
@@ -18,6 +21,15 @@ const Home = () => {
 
 	const loggedIn = Auth.loggedIn();
 
+	//Logic for Modal
+	const [modalOn, setModalOn] = useState(false);
+	const [choice, setChoice] = useState(false)
+
+	const clicked = () => {
+		setModalOn(true)
+	}
+
+
 
 	//---** RENAME THIS TO FORUM.JS to be the 'FORUM PAGE' **-- //
 	return (
@@ -28,20 +40,31 @@ const Home = () => {
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
-					<div className= 'max-w-screen-lg mx-auto'>
-						{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
-						<div className='container mx-auto'>
-							<ThoughtForm />
-						</div>
+						<div className='max-w-screen-lg mx-auto'>
+							{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
+							<div className='container mx-auto'>
+
+								{/* Logic for Modal Here */}
+
+								{/* button for modal click  */}
+								<button onClick={clicked} className="text-3xl text-white my-4 flex items-center"><ImPlus size={24} /><span className="flex ml-3">Post:</span></button>
+
+								{/* MODAL LOGIC to conditionally render modal choice */}
+								{choice}
+								{/* <PostModal /> */}
+								{modalOn && < PostModal setModalOn={setModalOn} setChoice={setChoice} />}
+
+
+							</div>
 						</div>
 						<div className={` mb-3 ${loggedIn && "lg:grid-col-8"}`}>
 							{loading ? (
 								<div>Loading...</div>
 							) : (
 								// ** THIS IS THE LIST OF POSTS/BUILDS ** //
-								<ThoughtList 
+								<ThoughtList
 									thoughts={thoughts}
-									title='Explore Recent Builds' 
+									title='Explore Recent Builds'
 								/>
 							)}
 						</div>
@@ -63,3 +86,5 @@ const Home = () => {
 };
 
 export default Home;
+
+
