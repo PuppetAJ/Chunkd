@@ -133,4 +133,17 @@ canvas {
   content: url(./assets/Campfire.webp)
 }
 
+#login {
+  background-image: url('./assets/mossy_stone_bricks.svg');
+  background-color: rgb(58, 83, 51);
+}
 
+#login-header {
+  background-image: url('./assets/background.svg');
+  background-color: rgb(34, 34, 34);
+}
+
+#nologin {
+  background-image: url('./assets/mossy_stone_bricks.svg');
+  background-color: rgb(58, 83, 51);
+}

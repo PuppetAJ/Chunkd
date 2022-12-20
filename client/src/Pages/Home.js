@@ -80,6 +80,13 @@ const Home = () => {
 						) : null}
 					</>
 				)}
+
+				{!loggedIn && (
+					<>
+					<div id="nologin" className="object-fill h-screen">
+					</div>
+					</>
+				)}
 			</div>
 		</main>
 	);

@@ -58,16 +58,16 @@ const Header = () => {
 						</>
 					) : (
 						<>
-							<div className="justify-center mt-10">
+							<div id="login-header"className="relative nav-wrapper flex p-1 justify-center border-b border-solid border-gray-800">
 								<Link
 									to='/login'
-									className="btn-minecraft rounded mr-7 -bottom-60"
+									className="btn-minecraft rounded mr-7"
 								>
 									Login
 								</Link>
 								<Link
 									to='/signup'
-									className="btn-minecraft rounded ml-7  -bottom-60"
+									className="btn-minecraft rounded ml-7"
 								>
 									Signup
 								</Link>
