@@ -15,6 +15,7 @@ const Header = () => {
       <div>
         <Link to="/">{/* <h1>website</h1> */}</Link>
 
+
         <nav className="text-center">
           {Auth.loggedIn() ? (
             <>
@@ -28,6 +29,7 @@ const Header = () => {
                   >
                     Editor
                   </Link>
+
 
                   <Link
                     as={Link}
