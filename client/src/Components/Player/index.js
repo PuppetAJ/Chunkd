@@ -83,26 +83,13 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
 
       const dist = Math.sqrt(xDist + yDist + zDist);
 
-      // console.log(intersects[0]);
-
       if (
         intersects[0].object.name === "Terrain" &&
-        intersects[0].object.id !== objMem.id
+        intersects[0].object.id !== objMem.id &&
+        dist < 7
       ) {
-        if (intersects[0].object.name === "Terrain") {
-          console.log(intersects[0]);
-        }
-
-        console.log(intersects[0].object.color);
-        // if (objMem !== "") {
-        //   objMem.selected = false;
-        //   const oldColor = objMem.color;
-        //   oldColor["r"] = 1;
-        //   oldColor["b"] = 1;
-        //   oldColor["g"] = 1;
-        // }
         if (objMem !== "") {
-          // if (objMem.selected === true) objMem.selected = false;
+          if (objMem.selected === true) objMem.selected = false;
           objMem.color = new THREE.Color(1, 1, 1);
         }
         objMem = intersects[0].object;
@@ -113,7 +100,7 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
         color["g"] = 0;
       }
 
-      if (intersects[0].object.id !== objMem.id) {
+      if (intersects[0].object.id !== objMem.id || dist > 7) {
         if (objMem !== "") {
           objMem.selected = false;
           const oldColor = objMem.color;

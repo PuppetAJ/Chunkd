@@ -38,6 +38,7 @@ export function Terrain() {
         let y = Math.round((noise.perlin2(xOff, zOff) * amplitude) / 5) + 4;
         blockStore.push([x, y, z]);
         blockSet.add(`${x} ${y} ${z}`);
+
         // Only create hollow shell to improve preformance, calc perimeter
         if (x === 0 || x === 31) {
           for (let j = y; j > 0; j--) {
@@ -116,8 +117,8 @@ export function Terrain() {
         <boxGeometry />
         {[...Array(6)].map((_, index) => (
           <meshStandardMaterial
-            color="#467925"
             attach={`material-${index}`}
+            color={"#4e852a"}
             key={index}
             map={texture}
           />
