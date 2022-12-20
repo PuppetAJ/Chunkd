@@ -40,6 +40,7 @@ const Signup = () => {
 	return (
 		<main id="login" className="flex-row grow justify-content-center container">
 
+		
 
 			<div className="px-6 py-3 rounded w-64">
 				<form onSubmit={handleFormSubmit}>
@@ -57,7 +58,7 @@ const Signup = () => {
 
 						<div className="flex flex-col my-2">
 							<input
-								className='border rounded px-3 py-1 btn-minecraft'
+								className='border rounded px-3 py-1 pl-2 btn-minecraft'
 								placeholder='Your username'
 								name='username'
 								type='username'
@@ -68,7 +69,7 @@ const Signup = () => {
 						</div>
 
 						<input
-							className="border rounded px-3 py-1 btn-minecraft"
+							className="border rounded px-3 py-1 pl-2 btn-minecraft"
 							placeholder="Your email"
 							name="email"
 							type="email"
@@ -80,7 +81,7 @@ const Signup = () => {
 					</div>
 					<div className="flex flex-col my-2">
 						<input
-							className="border rounded px-3 py-1  btn-minecraft"
+							className="border rounded px-3 py-1 pl-2 btn-minecraft"
 							placeholder="Password"
 							name="password"
 							type="password"

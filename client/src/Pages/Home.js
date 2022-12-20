@@ -35,19 +35,19 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className=' grow justify-center mx-auto w-full'>
+			<div className=' grid grid-cols-3 grow w-5/6 justify-center mx-auto'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
-						<div className='w-8/12 mx-auto'>
+						<div className='col-start-3 mx-auto top-[81px]'>
 							{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
 							<div className='container mx-auto'>
 
 								{/* Logic for Modal Here */}
 
 								{/* button for modal click  */}
-								<button onClick={clicked} className=" text-3xl text-white my-4 flex items-center"><ImPlus size={24} /><span className="flex ml-3">Post:</span></button>
+								<button onClick={clicked} className="minecraft text-2xl text-white my-4 flex items-center duration-300 hover:scale105"><ImPlus size={18} /><span className="flex ml-3">Add Post</span></button>
 
 								{/* MODAL LOGIC to conditionally render modal choice */}
 								{choice}
@@ -57,7 +57,7 @@ const Home = () => {
 
 							</div>
 						</div>
-						<div className={` mb-3 ${loggedIn && "lg:grid-col-8"}`}>
+						<div className={`-mt-8 mb-3 gap-x-2 ${loggedIn && "col-start-1 col-span-2"}`}>
 							{loading ? (
 								<div className="text-gray-300 text-lg">Loading...</div>
 							) : (
@@ -70,7 +70,7 @@ const Home = () => {
 						</div>
 						{/* This changes styling for friend list on Forum Page */}
 						{loggedIn && userData ? (
-							<div className='w-full mx-auto text-center bg-opacity-40 shadow-xl rounded-lg p-2 my-3'>
+							<div className='flex-col w-full mx-auto text-center bg-opacity-40 shadow-lg rounded-lg p-2 my-3'>
 								<FriendList
 									username={userData.me.username}
 									friendCount={userData.me.friendCount}
@@ -83,7 +83,7 @@ const Home = () => {
 
 				{!loggedIn && (
 					<>
-					<div id="nologin" className="object-fill h-screen">
+					<div className="nologin bg-cover">
 					</div>
 					</>
 				)}

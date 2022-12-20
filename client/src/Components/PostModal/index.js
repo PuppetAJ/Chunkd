@@ -48,30 +48,7 @@ const PostModal = ({ setModalOn, setChoice }) => {
         }
     };
 
-
-    // const handleFormSubmit = async event => {
-    //     event.preventDefault();
-
-    //     try {
-    //         //add thought to database
-    //         await addThought({
-    //             variables: { thoughtText }
-    //         });
-
-    //         //clear form value
-    //         setText('');
-    //         setCharacterCount(0);
-    //     } catch (e) {
-    //         console.error(e);
-    //     }
-    // };
-
-
-
-
-
-
-//Function to handle Modal click to add Post
+    //Function to handle Modal click to add Post
     const handleOKClick = async event => {
         event.preventDefault();
 
@@ -87,7 +64,7 @@ const PostModal = ({ setModalOn, setChoice }) => {
         } catch (e) {
             console.error(e);
         }
-   
+
         setChoice(true)
         setModalOn(false)
     };
@@ -99,7 +76,7 @@ const PostModal = ({ setModalOn, setChoice }) => {
 
 
 
-// Return JSX for Post Modal
+    // Return JSX for Post Modal
     return (
 
         <div className="  bg-zinc-800 bg-opacity-80 fixed inset-0 z-100   ">
@@ -108,23 +85,18 @@ const PostModal = ({ setModalOn, setChoice }) => {
 
                 <div className="flex-col justify-center bg-zinc-900 py-12 px-16 border-2 border-gray-300 rounded-xl w-1/2 ">
 
-                <form className='flex flex-col items-center w-full p-2' >
+                    <form className='flex flex-col items-center w-full p-2' >
 
-<p html4="textarea" className="text-3xl text-white mb-8 flex items-center border-b-2"><ImPlus size={18} /><span className="flex ml-3">Post:</span></p>
+                        <p html4="textarea" className="minecraft text-3xl text-white mb-8 flex items-center border-b-2"><ImPlus size={18} /><span className="flex ml-3">Add Post</span></p>
 
-<p className={`text-2xs text-gray-400 mb-1  ${characterCount === 280 || error ? 'text-error' : ''}`}>
-    Character Count: {characterCount}/280
-    {error && <span className="ml-2">Something went wrong...</span>}
-</p>
-<textarea placeholder="Share something new!" value={thoughtText} name="textarea" className=' block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500' rows='4'  onChange={handleChange}> </textarea>
-
-
+                        <p className={` text-xs text-gray-400 mb-1  ${characterCount === 280 || error ? 'text-error' : ''}`}>
+                            Character Count: {characterCount}/280
+                            {error && <span className="ml-2">Something went wrong...</span>}
+                        </p>
+                        <textarea placeholder="Share something new!" value={thoughtText} name="textarea" className=' block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500' rows='4' onChange={handleChange}> </textarea>
 
 
-{/* <button className='btn-minecraft mt-2 duration-300 hover:scale-105' type='submit'>Submit</button> */}
-
-
-</form>
+                    </form>
 
                     <div className="flex justify-evenly px-2">
                         <button onClick={handleOKClick} className='btn-minecraft mt-2 duration-300 hover:scale-105' type="submit">Post</button>
@@ -134,7 +106,6 @@ const PostModal = ({ setModalOn, setChoice }) => {
                 </div>
             </div>
         </div>
-
     );
 }
 

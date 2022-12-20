@@ -6,7 +6,9 @@ import {FaRegClock, FaRegCommentDots }from 'react-icons/fa'
 
 const ThoughtList = ({ thoughts, title }) => {
 	if (!thoughts.length) {
+
 		return <h3 className=" btn-minecraft flex flex-col items-center m-auto">No Posts Yet</h3>;
+
 	}
 
 	return (
@@ -28,7 +30,7 @@ const ThoughtList = ({ thoughts, title }) => {
 								<div className="rounded-t flex items-center p-1 px-4 w-auto justify-between bg-gray-700 bg-opacity-40 font-bold">
 									<Link
 										to={`/profile/${thought.username}`}
-										className='font-bold text-gray-300 hover:underline hover:scale-110'
+										className='font-bold text-gray-300 hover:underline duration-300 hover:scale-105'
 									>
 										{thought.username}
 									</Link>{" "}
@@ -40,7 +42,7 @@ const ThoughtList = ({ thoughts, title }) => {
 
 								<div className="break-all">
 									<div>
-										<p className='shadow rounded bg-gray-700 bg-opacity-40 text-ellipsis overflow-hidden text-gray-300 pl-4 p-1 m-2 mb-3'>{thought.thoughtText}</p>
+										<p className='shadow-md rounded bg-gray-700 bg-opacity-40 text-ellipsis overflow-hidden text-gray-300 pl-4 p-1 m-2 mb-3'>{thought.thoughtText}</p>
 										</div>
 										<Link to={`/thought/${thought._id}`}>
 
