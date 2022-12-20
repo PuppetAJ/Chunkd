@@ -72,6 +72,74 @@ export default function Editor() {
 						speed={1}
 					/> */}
 
+
+	const { username: userParam } = useParams();
+
+	const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
+		variables: { username: userParam },
+	});
+
+	const user = data?.me || data?.user || {};
+
+	if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
+		return <Navigate to='/Editor' />;
+	}
+
+	if (loading) {
+		return <div className="text-gray-300 text-lg">Loading...</div>;
+	}
+
+	if (!user?.username) {
+		return (
+			<h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
+				You need to be logged in to see this page. Please log in or sign up!
+			</h3>
+		);
+	}
+
+	softShadows();
+
+	return (
+		<KeyboardControls
+			map={[
+				{ name: "forward", keys: ["ArrowUp", "w", "W"] },
+				{ name: "backward", keys: ["ArrowDown", "s", "S"] },
+				{ name: "left", keys: ["ArrowLeft", "a", "A"] },
+				{ name: "right", keys: ["ArrowRight", "d", "D"] },
+				{ name: "jump", keys: ["Space"] },
+			]}
+		>
+			<div 
+				style={{
+					top: 16,
+					right: 130,
+					position: "absolute",
+					width: "auto",
+				}}
+				className=".btn-minecraft"
+			>
+			<Leva 
+				flat={{
+					flat: 'true'
+				}}
+				titleBar={false}
+				fill={true}
+			/>
+			</div>
+			<Canvas gl={{ preserveDrawingBuffer: true }} shadows camera={{ fov: 45 }}>
+				<Preload all />
+				<Scene />
+				<BakeShadows />
+				<Sky
+					elevation={0.6}
+					rayleigh={1.558}
+					azimuth={14.7}
+					exposure={0.4349}
+					sunPosition={[100, 10, 100]}
+					turbidity={3.1}
+				/>
+
+
             <ambientLight intensity={0.3} />
             <pointLight castShadow intensity={0.8} position={[100, 100, 100]} />
             <Physics gravity={[0, 0, 0]}>
@@ -87,6 +155,7 @@ export default function Editor() {
       <Loader initialState={(active) => active} />
     </KeyboardControls>
   );
+
 }
 
 function Scene() {
