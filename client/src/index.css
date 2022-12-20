@@ -130,26 +130,26 @@ canvas {
 }
 
 #login {
-  background-image: url('./assets/ChunkedBG.png');
+  background-image: url('./assets/darkBG.jpg');
   background-color: rgb(58, 83, 51);
   background-size: cover;
   background-repeat: no-repeat;
-  object-fit: cover;
   background-position-x: center;
 }
 
 #login-header {
-  background-image: url('./assets/ChunkedBG.png');
+  background-image: url('./assets/darkBG.jpg');
   background-color: rgb(34, 34, 34);
 }
 
-.nologin {
-  background-image: url('./assets/ChunkedBG.png');
+#nologin {
+  background-image: url('./assets/darkBG.jpg');
   background-color: rgb(58, 83, 51);
-  background-size: cover;
+  background-size: fill;
   background-repeat: no-repeat;
   background-position-x: center;
-  object-fit: cover;
+  background-position: center;
+  
 }
 
 .chunktitle {
