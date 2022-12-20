@@ -6,7 +6,9 @@ import {FaRegClock, FaRegCommentDots }from 'react-icons/fa'
 
 const ThoughtList = ({ thoughts, title }) => {
 	if (!thoughts.length) {
-		return <h3 className="btn-minecraft flex flex-col items-center m-auto">No Posts Yet</h3>;
+
+		return <h3 className=" btn-minecraft flex flex-col items-center m-auto">No Posts Yet</h3>;
+
 	}
 
 	return (
