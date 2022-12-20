@@ -40,8 +40,11 @@ const Header = () => {
 									</Link>
 								</ul>
 
-								<a href='/' id="logo" className="w-16 place-self-center duration-300 hover:scale-105 mb-2">
-									<img src={logo}></img>
+
+
+								<a href='/' id="logo" className="w-16 place-self-center duration-300 hover:scale-105">
+									<img src={logo} alt="Website Logo"></img>
+
 								</a>
 
 								<a

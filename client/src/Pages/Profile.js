@@ -56,7 +56,11 @@ const Profile = () => {
     <div className="grid grid-cols-3 justify-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
       <div className='text-center rounded-lg p-2 mt-2'>
         <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
+
            {userParam ? `${user.username}'s` : 'Welcome to Your'} Profile
+
+         
+
         </h2>
 
        
