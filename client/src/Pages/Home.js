@@ -35,7 +35,7 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className=' grid grid-cols-3 grow w-5/6 justify-center mx-auto'>
+			<div className='grid grid-cols-3 grow w-5/6 justify-center mx-auto'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
@@ -81,13 +81,15 @@ const Home = () => {
 					</>
 				)}
 
-				{!loggedIn && (
+			
+			</div>
+			{!loggedIn && (
 					<>
-					<div className="nologin bg-cover">
+
+					<div id="nologin" className=" bg-cover h-screen">
 					</div>
 					</>
 				)}
-			</div>
 		</main>
 	);
 };
