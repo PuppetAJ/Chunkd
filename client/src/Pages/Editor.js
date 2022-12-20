@@ -12,10 +12,10 @@ import {
   PerformanceMonitor,
 } from "@react-three/drei";
 import { Physics, Debug } from "@react-three/rapier";
-import { Cube, Cubes } from "../Components/Cube";
+import { Cubes, Cube } from "../Components/Cube";
 import { Ground } from "../Components/Ground";
 import { Player } from "../Components/Player";
-import { Ground2 } from "../Components/Ground2";
+import { Terrain } from "../Components/Terrain";
 
 softShadows();
 export default function Editor() {
@@ -28,6 +28,15 @@ export default function Editor() {
         { name: "left", keys: ["ArrowLeft", "a", "A"] },
         { name: "right", keys: ["ArrowRight", "d", "D"] },
         { name: "jump", keys: ["Space"] },
+        { name: "hotbar1", keys: ["1"] },
+        { name: "hotbar2", keys: ["2"] },
+        { name: "hotbar3", keys: ["3"] },
+        { name: "hotbar4", keys: ["4"] },
+        { name: "hotbar5", keys: ["5"] },
+        { name: "hotbar6", keys: ["6"] },
+        { name: "hotbar7", keys: ["7"] },
+        { name: "hotbar8", keys: ["8"] },
+        { name: "hotbar9", keys: ["9"] },
       ]}
     >
       <Canvas shadows camera={{ fov: 45 }}>
@@ -59,10 +68,9 @@ export default function Editor() {
             <ambientLight intensity={0.3} />
             <pointLight castShadow intensity={0.8} position={[100, 100, 100]} />
             <Physics gravity={[0, 0, 0]}>
-              <Ground />
-              <Ground2 />
+              <Terrain />
               <Player />
-              <Cube position={[0, 0.5, -10]} />
+              <Cube />
               <Cubes />
             </Physics>
             <PointerLockControls />
