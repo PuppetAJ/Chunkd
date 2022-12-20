@@ -1,5 +1,5 @@
 import React from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@apollo/client'
 import { QUERY_THOUGHT } from '../utils/queries'
 import ReactionList from '../Components/ReactionList'
@@ -20,7 +20,7 @@ const SingleThought = props => {
   const thought = data?.thought || {};
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-gray-300 text-4xl">Loading...</div>;
   }
 
   return (
@@ -29,9 +29,10 @@ const SingleThought = props => {
       <div className= "w-full rounded-lg p-5 my-3">
         <div className="flex items-center justify-between text-xl font-bold p-2 px-3 text-gray-300 bg-gray-700 bg-opacity-40 text-center rounded-lg">
         <h4 >
-          <span className="text-light hover:underline">
+          <Link className="text-light hover:underline"  
+          to={`/profile/${thought.username}`}>
             {thought.username}
-          </span>{' '}
+          </Link>{' '}
         </h4>
         <div className='flex items-center text-gray-400 text-xs justify-end'>
 									<FaRegClock size={14} /> <p className="pl-3">{thought.createdAt}</p>

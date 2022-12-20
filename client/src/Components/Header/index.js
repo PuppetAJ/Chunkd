@@ -4,6 +4,7 @@ import Auth from "../../utils/auth";
 import logo from "../../assets/Soul_Campfire.webp";
 
 
+
 const Header = () => {
 	const logout = (event) => {
 		event.preventDefault();
@@ -12,7 +13,7 @@ const Header = () => {
 
 	return (
 		// this needs to be re-styled to show login/signup form //
-		<header className="sticky top-0">
+		<header className="sticky top-0 z-50">
 			<div>
 				<Link to='/'>{/* <h1>website</h1> */}</Link>
 
@@ -39,8 +40,11 @@ const Header = () => {
 									</Link>
 								</ul>
 
+
+
 								<a href='/' id="logo" className="w-16 place-self-center duration-300 hover:scale-105">
 									<img src={logo} alt="Website Logo"></img>
+
 								</a>
 
 								<a

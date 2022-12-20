@@ -2,11 +2,11 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 //Import Icons
-import {FaRegClock, FaRegComments }from 'react-icons/fa'
+import {FaRegClock, FaRegCommentDots }from 'react-icons/fa'
 
 const ThoughtList = ({ thoughts, title }) => {
 	if (!thoughts.length) {
-		return <h3>No Posts Yet</h3>;
+		return <h3 className="text-gray-300">No Posts Yet</h3>;
 	}
 
 	return (
@@ -39,18 +39,20 @@ const ThoughtList = ({ thoughts, title }) => {
 								</div>
 
 								<div className="break-all">
-									
+									<div>
 										<p className='text-ellipsis overflow-hidden text-gray-300 pl-4 p-1 m-2 mb-3'>{thought.thoughtText}</p>
-										
+										</div>
 										<Link to={`/thought/${thought._id}`}>
-										<div className='flex px-2 mb-2 items-center w-full justify-center'>
+										<div className='grid grid-cols-6 px-2 mb-2 items-center w-full justify-center'>
 
-											<div className='flex text-gray-300 mr-6 items-center hover:scale-110'>
-											< FaRegComments size={24}/>    
-										<p className="mx-3">{thought.reactionCount} </p>
+											<div className='flex justify-center text-gray-300 hover:scale-110'>
+											
+											< FaRegCommentDots size={24}/>    
+											<p className="pl-2">{thought.reactionCount} </p>
+										
 										</div>
 
-										<button className="btn-minecraft text-xs">Click to {" "}
+										<button className="col-start-2 col-span-3 btn-minecraft break-normal text-xs">Click to {" "}
 											{thought.reactionCount ? "see" : "start"} the discussion! </button>
 											</div>
 					
