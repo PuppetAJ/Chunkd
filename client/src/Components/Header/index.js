@@ -42,7 +42,7 @@ const Header = () => {
 
 
 
-								<a href='/' id="logo" className="w-16 place-self-center duration-300 hover:scale-105">
+								<a href='/' id="logo" className="w-16 place-self-center">
 									<img src={logo} alt="Website Logo"></img>
 
 								</a>

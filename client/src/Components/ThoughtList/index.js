@@ -51,8 +51,8 @@ const ThoughtList = ({ thoughts, title }) => {
 										
 										</div> */}
 
-										<button className="relative left-1 bottom-1 col-start-4 rounded col-span-3 btn-minecraft break-normal text-xs">
-											{thought.reactionCount ? "See" : "Start"} the discussion!<p className="inline-block pl-2">{thought.reactionCount} </p>< FaRegCommentDots size={16} className="inline-block mb-1"/></button>
+										<button className=" left-1 bottom-1 col-start-4 rounded col-span-3 btn-minecraft break-normal text-xs">
+											{thought.reactionCount ? "See" : "Start"} the discussion!<p className="inline-block pl-2">{thought.reactionCount}    </p>< FaRegCommentDots size={16} className="inline-block mb-1 pl-0.5"/></button>
 					
 									</Link>
 								</div>

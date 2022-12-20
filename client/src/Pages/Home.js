@@ -35,7 +35,7 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className='flex flex-row grow justify-center mx-auto w-full'>
+			<div className=' grow justify-center mx-auto w-full'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
@@ -47,7 +47,7 @@ const Home = () => {
 								{/* Logic for Modal Here */}
 
 								{/* button for modal click  */}
-								<button onClick={clicked} className="bg-green-300 text-3xl text-white my-4 flex items-center"><ImPlus size={24} /><span className="flex ml-3">Post:</span></button>
+								<button onClick={clicked} className=" text-3xl text-white my-4 flex items-center"><ImPlus size={24} /><span className="flex ml-3">Post:</span></button>
 
 								{/* MODAL LOGIC to conditionally render modal choice */}
 								{choice}
