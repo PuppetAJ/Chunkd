@@ -54,9 +54,9 @@ const Profile = () => {
 
   if (!user?.username) {
     return (
-      <h4 className="text-gray-300 text-4XL text-center">
+      <h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
         You need to be logged in to see this page. Please log in or sign up!
-      </h4>
+      </h3>
     )
   }
 
