@@ -15,7 +15,7 @@ const ReactionList = ({ reactions }) => {
                     reactions.map(reaction => (
                         <p className=" p-1 my-2 rounded-lg" key={reaction._id}>
                             {reaction.reactionBody} {'// '}
-                            <Link to={`/profile/${reaction.username}`} className="text-xs" style={{ fontWeight: 700 }}>
+                            <Link to={`/profile/${reaction.username}`} className="text-xs hover:underline" >
                                 {reaction.username} on {reaction.createdAt}
                             </Link>
                         </p>

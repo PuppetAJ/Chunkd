@@ -16,7 +16,7 @@ const Header = () => {
         <Link to="/">{/* <h1>website</h1> */}</Link>
 
 
-        <nav className="text-center">
+        <nav className="text-center bg-cover">
           {Auth.loggedIn() ? (
             <>
               <div className="relative nav-wrapper flex p-1 justify-center border-b border-solid border-gray-800">
@@ -42,13 +42,13 @@ const Header = () => {
 
 
 
-								<a href='/' id="logo" className="w-16 place-self-center">
+								<a href='/' id="logo" className="w-16 shrink place-self-center mb-3">
 									<img src={logo} alt="Website Logo"></img>
 
 								</a>
 
 								<a
-									className="absolute right-0 m-3 btn-minecraft rounded p-2 w-24 duration-300 hover:scale-105"
+									className="absolute shrink right-0 m-3 btn-minecraft rounded p-2 w-24 duration-300 hover:scale-105"
 									href='/'
 									onClick={logout}
 								>

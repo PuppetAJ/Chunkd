@@ -39,7 +39,7 @@ const Profile = () => {
   }
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-gray-300 text-lg">Loading...</div>;
   }
 
   const handleClick = async () => {
@@ -64,7 +64,7 @@ const Profile = () => {
     
     <div className="w-5/6 grow grid grid-cols-3 justify-center border-x-2 mx-auto border-gray-800">
       <div className='col-span-2 text-center rounded-lg p-2 mt-2'>
-        <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
+        <h2 className='minecraft container mx-auto mb-3 text-white text-3xl p-3'>
 
            {userParam ? `${user.username}'s` : 'Welcome to Your'} Profile
 
@@ -74,7 +74,7 @@ const Profile = () => {
         {userParam && (
 
           <div className="grid mx-auto items-center m-2 text-gray-300">
-          <button className='justify-center flex mr-6 items-center duration:300 hover:scale-110' onClick={handleClick}>
+          <button className='minecraft justify-center flex mr-6 items-center duration:300 hover:scale-105' onClick={handleClick}>
            <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
           </button>
 
@@ -83,12 +83,12 @@ const Profile = () => {
       </div>
 
       <div className='sticky top-[81px] col-span-1 text-center text-lg bg-opacity-40 rounded-lg p-2 mt-2'>
-        <div className='container mx-auto mt-2 shadow-xl'>
+        <div className='container mx-auto mt-2 shadow-lg'>
 
           {/* Logic for Modal Here */}
 
           {/* button for modal click  */}
-          <button onClick={clicked} className="text-3xl text-white my-4 flex items-center"><ImPlus size={24} /><span className="flex ml-3">Add Post</span></button>
+          <button onClick={clicked} className="minecraft text-2xl text-white my-4 flex items-center duration-300 hover:scale-105"><ImPlus size={18} /><span className="flex ml-3">Add Post</span></button>
 
           {/* MODAL LOGIC to conditionally render modal choice */}
           {choice}
@@ -97,7 +97,7 @@ const Profile = () => {
 
 
         </div>
-        <div className='bt-2 shadow-xl flex-col'>
+        <div className='bt-2 shadow-lg flex-col'>
           <FriendList
             username={user.username}
             friendCount={user.friendCount}

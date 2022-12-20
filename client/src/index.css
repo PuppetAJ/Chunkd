@@ -31,8 +31,9 @@ body,
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  /* background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2); */
+  /* background-image: url('./assets/ChunkedBG.png'); */
   background-size: cover;
+  background-repeat: no-repeat;
   /* overflow: hidden; */
   background-color: #29272c;
 }
@@ -58,10 +59,7 @@ canvas {
   align-items: center;
 }
 
-.h1,
-.h2, 
-.h3,
-.h4 {
+.minecraft {
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
 }
 
@@ -91,9 +89,7 @@ canvas {
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
   background: #727272;
   color: rgb(247, 247, 247);
-  /* width: 100%; */
-  padding: .3rem .3rem;
-  /* margin-inline-end: 2rem; */
+  padding: .3rem .5rem;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   font-size: 1rem;
   letter-spacing: .025em;
@@ -134,16 +130,28 @@ canvas {
 }
 
 #login {
-  background-image: url('./assets/mossy_stone_bricks.svg');
+  background-image: url('./assets/ChunkedBG.png');
   background-color: rgb(58, 83, 51);
+  background-size: cover;
+  background-repeat: no-repeat;
+  object-fit: cover;
+  background-position-x: center;
 }
 
 #login-header {
-  background-image: url('./assets/background.svg');
+  background-image: url('./assets/ChunkedBG.png');
   background-color: rgb(34, 34, 34);
 }
 
-#nologin {
-  background-image: url('./assets/mossy_stone_bricks.svg');
+.nologin {
+  background-image: url('./assets/ChunkedBG.png');
   background-color: rgb(58, 83, 51);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position-x: center;
+  object-fit: cover;
+}
+
+.chunktitle {
+  background-image: url('./assets/CHUNKD.png');
 }
