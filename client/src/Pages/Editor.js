@@ -17,6 +17,9 @@ import { Ground } from "../Components/Ground";
 import { Player } from "../Components/Player";
 import { Terrain } from "../Components/Terrain";
 
+import { Suspense, useState } from "react";
+
+import { useControls, button, Leva } from "leva";
 import { useQuery, useMutation } from "@apollo/client";
 import { QUERY_USER, QUERY_ME } from "../utils/queries";
 import { Navigate, useParams } from "react-router-dom";
