@@ -24,18 +24,11 @@ const root = require("path").join(__dirname, "../client", "build");
 app.use(express.static(root));
 
 // if we're in production, serve client/build as static assets
-// if (process.env.NODE_ENV === "production") {
-//   app.use(express.static(path.join(__dirname, "../client/build")));
-// }
 if (process.env.NODE_ENV === "production") {
   app.get("*", (req, res) => {
     res.sendFile("index.html", { root });
   });
 }
-// // Catch all route
-// app.get("/*", (req, res) => {
-//   res.sendFile(path.join(__dirname, "../client/build/index.html"));
-// });
 
 // Start apollo server function
 const startApolloServer = async () => {
