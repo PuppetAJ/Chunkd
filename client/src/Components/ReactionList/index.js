@@ -2,13 +2,13 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 
 //Import Icons
-import {FaRegComments} from 'react-icons/fa';
+import {FaRegCommentDots} from 'react-icons/fa';
 
 const ReactionList = ({ reactions }) => {
     return (
         <div className="flex flex-col mb-1 rounded-lg">
             <div className="flex items-center">
-                <div className="flex items-center text-light pl-3 duration-300 hover:scale-105"> <FaRegComments size={18}/><span className="pl-2">Replies:</span> </div>
+                <div className="flex items-center text-light pl-3 duration-300 hover:scale-105"> <FaRegCommentDots size={18}/><span className="pl-2">Replies:</span> </div>
             </div>
             <div className="mx-2">
                 {reactions &&

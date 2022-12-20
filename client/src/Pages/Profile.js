@@ -26,7 +26,7 @@ const Profile = () => {
   const user = data?.me || data?.user || {};
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to="/profile:username"/>
+    return <Navigate to="/profile"/>
   }
 
   if (loading) {
@@ -45,22 +45,29 @@ const Profile = () => {
 
   if (!user?.username) {
     return (
-      <h4>
+      <h4 className="text-gray-300 text-4XL text-center">
         You need to be logged in to see this page. Please log in or sign up!
       </h4>
     )
   }
 
   return (
-    <main>
-    <div className=" grow items-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
+    
+    <div className="grid grid-cols-3 justify-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
       <div className='text-center rounded-lg p-2 mt-2'>
         <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
-          Viewing {userParam ? `${user.username}'s` : 'Your'} Profile
+
+           {userParam ? `${user.username}'s` : 'Welcome to Your'} Profile
+
+         
+
         </h2>
+
+       
+
         {userParam && (
 
-          <div className="flex flex-col items-center text-white">
+          <div className=" mx-auto items-center m-2 text-gray-300">
           <button className='flex mr-6 items-center duration:300 hover:scale-110' onClick={handleClick}>
            <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
           </button>
@@ -69,25 +76,32 @@ const Profile = () => {
         )}
       </div>
 
-      <div className="flex-row justify-center mb-3">
-        <div className="mt-3">
-          <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
-        </div>
-
-        <div className='text-center text-lg bg-opacity-40 shadow-xl rounded-lg p-2 mt-2'>
+      <div className='text-center text-lg bg-opacity-40 shadow-xl rounded-lg p-2 mt-2'>
           <FriendList
             username={user.username}
             friendCount={user.friendCount}
             friends={user.friends}
           />
+
         </div>
+
+      <div className="col-span-2 justify-center mb-3">
+        <div className="mt-3">
+          <ThoughtList thoughts={user.thoughts} title={`${user.username}'s Posts`} />
+        </div>
+
+        
         <div className= 'max-w-screen-lg mx-auto'>
       </div>
       <div className= 'mb-3'>{!userParam && <ThoughtForm />}</div>
     </div>
     </div>
-    </main>
+    
   );
 };
 
 export default Profile;
+
+
+
+	

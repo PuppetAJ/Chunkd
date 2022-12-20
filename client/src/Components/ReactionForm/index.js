@@ -38,7 +38,7 @@ const handleFormSubmit = async (event) => {
   return (
 
     <div className='w-full p-3 bg-opacity-40 shadow-xl rounded-lg duration:300 hover:scale-105'>
-      <p className={`text-sm text-gray-400 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
+      <p className={`text-xs text-gray-400 m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
         Character Count: {characterCount}/280
         {error && <span className="ml-2">Something went wrong...</span>}
       </p>
@@ -46,7 +46,7 @@ const handleFormSubmit = async (event) => {
        
         <textarea
           placeholder="What do you think?" value={reactionBody} rows='4'
-          className="flex mx-auto w-full rounded-lg shadow-xl dark:bg-gray-700 my-2" onChange={handleChange}
+          className="flex mx-auto w-full rounded-lg shadow-xl dark:bg-gray-700 my-2 pl-2" onChange={handleChange}
         ></textarea>
        
 
