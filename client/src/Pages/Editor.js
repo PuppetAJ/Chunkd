@@ -37,14 +37,14 @@ export default function Editor() {
 	}
 
 	if (loading) {
-		return <div>Loading...</div>;
+		return <div className="text-gray-300 text-lg">Loading...</div>;
 	}
 
 	if (!user?.username) {
 		return (
-			<h4>
+			<h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
 				You need to be logged in to see this page. Please log in or sign up!
-			</h4>
+			</h3>
 		);
 	}
 

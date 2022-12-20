@@ -35,19 +35,19 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className='grow justify-center w-full'>
+			<div className='flex flex-row grow justify-center mx-auto w-full'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
-						<div className='max-w-screen-lg mx-auto'>
+						<div className='basis-2/3 max-w-screen-lg mx-auto'>
 							{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
 							<div className='container mx-auto'>
 
 								{/* Logic for Modal Here */}
 
 								{/* button for modal click  */}
-								<button onClick={clicked} className="text-3xl text-white my-4 flex items-center"><ImPlus size={24} /><span className="flex ml-3">Post:</span></button>
+								<button onClick={clicked} className="bg-green-300 text-3xl text-white my-4 flex items-center"><ImPlus size={24} /><span className="flex ml-3">Post:</span></button>
 
 								{/* MODAL LOGIC to conditionally render modal choice */}
 								{choice}
@@ -59,7 +59,7 @@ const Home = () => {
 						</div>
 						<div className={` mb-3 ${loggedIn && "lg:grid-col-8"}`}>
 							{loading ? (
-								<div>Loading...</div>
+								<div className="text-gray-300 text-lg">Loading...</div>
 							) : (
 								// ** THIS IS THE LIST OF POSTS/BUILDS ** //
 								<ThoughtList

@@ -45,15 +45,15 @@ const Profile = () => {
 
   if (!user?.username) {
     return (
-      <h4 className="text-gray-300 text-4XL text-center">
+      <h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
         You need to be logged in to see this page. Please log in or sign up!
-      </h4>
+      </h3>
     )
   }
 
   return (
     
-    <div className="grid grid-cols-3 justify-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
+    <div className="grid grid-cols-3 justify-center border-x-2 max-w-screen-lg mx-auto m-4 border-gray-800">
       <div className='text-center rounded-lg p-2 mt-2'>
         <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
 
@@ -67,8 +67,8 @@ const Profile = () => {
 
         {userParam && (
 
-          <div className=" mx-auto items-center m-2 text-gray-300">
-          <button className='flex mr-6 items-center duration:300 hover:scale-110' onClick={handleClick}>
+          <div className="grid mx-auto items-center m-2 text-gray-300">
+          <button className='flex mr-6 justify-center items-center duration:300 hover:scale-110' onClick={handleClick}>
            <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
           </button>
 
@@ -85,7 +85,7 @@ const Profile = () => {
 
         </div>
 
-      <div className="col-span-2 justify-center mb-3">
+      <div className="grid col-span-2 sm:grid-cols-1 justify-center mb-3">
         <div className="mt-3">
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s Posts`} />
         </div>
