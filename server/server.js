@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3001;
 
 // Express middleware
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 const root = require("path").join(__dirname, "../client", "build");
 app.use(express.static(root));
