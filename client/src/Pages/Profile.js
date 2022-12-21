@@ -87,13 +87,12 @@ const Profile = () => {
         {userParam && (
 
           <div className="grid mx-auto items-center m-2 text-gray-300">
-          <button className='minecraft justify-center flex mr-6 items-center duration:300 hover:scale-105' onClick={handleClick}>
-           <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
-          </button>
-        <div className="flex-row justify-center mb-3">
-          <div className="mt-3">
-            <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
+            <button className='minecraft justify-center flex mr-6 items-center duration:300 hover:scale-105' onClick={handleClick}>
+            <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
+            </button>
           </div>
+        )}
+        </div>
       <div className='sticky top-[81px] col-span-1 text-center text-lg bg-opacity-40 rounded-lg p-2 mt-2'>
         <div className='container mx-auto mt-2 shadow-lg'>
 
