@@ -64,7 +64,7 @@ const Home = () => {
 						<div className={loggedIn ? "col-start-1 col-span-2" : "mt-8  mb-3 gap-x-2 col-start-1 col-span-3"}>
 
 							{loading ? (
-								<div className="text-gray-300 text-lg">Loading...</div>
+								<div className="ml-6 text-gray-300 text-lg">Loading...</div>
 							) : (
 								// ** THIS IS THE LIST OF POSTS/BUILDS ** //
 								<ThoughtList

@@ -16,7 +16,7 @@ const ThoughtList = ({ thoughts, title }) => {
 
 			<div className="sm:w-8/12 justify-center">
 				<div className="space-y-2">
-					<div className="space-y-4 bg-gray-700 bg-opacity-40 shadow-xl rounded-lg">
+					<div className="space-y-4 bg-gray-700 bg-opacity-40 shadow-lg rounded-lg">
 						<h3 className="text-xl p-3 font-bold text-center text-white">
 							{title}
 						</h3>

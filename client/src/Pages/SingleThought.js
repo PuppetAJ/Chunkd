@@ -27,7 +27,7 @@ const SingleThought = (props) => {
 	const user = userData.data.me;
 
 	if (loading) {
-		return <div className="text-gray-300 text-4xl">Loading...</div>;
+		return <div className="ml-6 text-gray-300 text-4xl">Loading...</div>;
 	}
 
 	const handleClick = async () => {
@@ -43,7 +43,7 @@ const SingleThought = (props) => {
 	};
 
 	return (
-		<div className="grow max-w-screen-lg w-3/4 mx-auto bg-opacity-40 items-center justify-center rounded-xl mt-6 text-gray-300 shadow-xl hover:rounded-2xl">
+		<div className="grow max-w-screen-lg w-3/4 mx-auto bg-opacity-40 items-center justify-center rounded-xl mt-6 text-gray-300 shadow-md hover:rounded-2xl">
 			<LoadTest />
 			<div className="w-full rounded-lg p-5 my-3">
 				<div className="flex items-center justify-between text-xl font-bold p-2 px-3 text-gray-300 bg-gray-700 bg-opacity-40 text-center rounded-lg ">
@@ -61,7 +61,7 @@ const SingleThought = (props) => {
 					<p className="text-ellipsis overflow-hidden">{thought.thoughtText}</p>
 				</div>
 
-				<div className="text-grey-400 flex flex-row space-x-1  my-4">
+				<div className="text-grey-400 flex flex-row space-x-1 justify-between my-4">
 					<svg
 						stroke="currentColor"
 						fill="none"
@@ -82,7 +82,8 @@ const SingleThought = (props) => {
 				</div>
 
 				{user.username === thought.username && (
-					<button onClick={handleClick} className='text-light'>
+					<button onClick={handleClick} className='float-right bg-red-700 rounded-md px-2 mr-6 mb-2
+					 text-gray-300 duration-300 hover:scale-105 '>
 						Delete
 					</button>
 				)}
