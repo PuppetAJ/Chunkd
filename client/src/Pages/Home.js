@@ -41,7 +41,7 @@ const Home = () => {
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
-					<>
+					
 						<div className='col-start-3 mx-auto top-[81px]'>
 							{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
 							<div className='container mx-auto'>
@@ -59,7 +59,8 @@ const Home = () => {
 
 							</div>
 						</div>
-						<div className={`-mt-8 mb-3 gap-x-2 ${loggedIn && "col-start-1 col-span-2"}`}>
+				)}
+						<div className={loggedIn ? "col-start-1 col-span-2" : "mt-8  mb-3 gap-x-2 col-start-1 col-span-3"}>
 							{loading ? (
 								<div className="text-gray-300 text-lg">Loading...</div>
 							) : (
@@ -80,16 +81,7 @@ const Home = () => {
 								/>
 							</div>
 						) : null}
-					</>
-				)}
 			</div>
-			{!loggedIn && (
-					<>
-					<div id="nologin" className="flex bg-cover h-screen justify-center">
-						<div id="homeLogo" className="mt-40"><img src={homeLogo} alt="logo"></img></div>
-					</div>
-					</>
-				)}
 		</main>
 	);
 };
