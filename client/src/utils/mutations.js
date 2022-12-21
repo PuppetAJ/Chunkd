@@ -67,3 +67,12 @@ export const ADD_REACTION = gql`
     }
   }
 `;
+
+export const ADD_BUILD = gql`
+  mutation addBuild($buildData: String!) {
+    addBuild(buildData: $buildData) {
+      username
+      savedBuilds
+    }
+  }
+`;

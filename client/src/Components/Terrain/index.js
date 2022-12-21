@@ -1,15 +1,21 @@
 import React from "react";
-import { useState, useEffect, useRef, Fragment, useCallback } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { Noise } from "noisejs";
 import { CuboidCollider } from "@react-three/rapier";
 import { useTexture, Instances, Instance } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
 import create from "zustand";
-import grass from "../../assets/textures/grass.png";
 import { useCubeStore } from "../Cube";
+import { useSelectedStore } from "../Player";
+import dirtText from "../../assets/textures/dirt.png";
+import grassText from "../../assets/textures/grass.png";
+
+export const useInstanceStore = create((set) => ({
+  positions: [],
+  setPositions: (arr) => set((state) => ({ positions: arr })),
+}));
 
 export function Terrain() {
-  const texture = useTexture(grass);
+  const texture = useTexture(grassText);
 
   const cubes = useCubeStore((state) => state.cubes);
   const addCube = useCubeStore((state) => state.addCube);
@@ -18,13 +24,13 @@ export function Terrain() {
   const [size, setSize] = useState(100000);
   const ref = useRef();
 
-  const { camera } = useThree();
+  const selected = useSelectedStore((state) => state.selected);
+  const setPositions = useInstanceStore((state) => state.setPositions);
 
-  // https://discourse.threejs.org/t/directly-remove-instancedmesh-instance/25504/2
-  // oh boy..
+  let dirt = useTexture(dirtText);
+  let grass = useTexture(grassText);
 
   useEffect(() => {
-    // Note: terrain gen bug where multiple instances potentially lap (?)
     const noise = new Noise(Math.random());
     let blockSet = new Set();
     let blockStore = [];
@@ -53,7 +59,7 @@ export function Terrain() {
             blockSet.add(`${x} ${y - j} ${z}`);
           }
         }
-        // blockStore.push([x, 0, z]);
+        blockStore.push([x, -1, z]);
         blockSet.add(`${x} ${-1} ${z}`);
         xOff = xOff + inc;
       }
@@ -62,20 +68,12 @@ export function Terrain() {
 
     setBlocks(blockStore);
     setSize(blockStore.length);
+    setPositions(blockStore);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onClick = (e) => {
     e.stopPropagation();
-
-    const intersectPos = e.object.position;
-    const camPos = camera.position;
-
-    const xDist = Math.pow(camPos.x - intersectPos.x, 2);
-    const yDist = Math.pow(camPos.y - intersectPos.y, 2);
-    const zDist = Math.pow(camPos.z - intersectPos.z, 2);
-
-    const dist = Math.sqrt(xDist + yDist + zDist);
 
     if (window.event.button === 0 && e.object.selected === true) {
       const clickedObj = e.object;
@@ -96,6 +94,7 @@ export function Terrain() {
         const el = instances.splice(index, 1);
         instances.push(el[0]);
         setBlocks(tempArr);
+        setPositions(tempArr);
       }
     } else if (window.event.button === 2 && e.object.selected === true) {
       const { x, y, z } = e.object.position;
@@ -107,7 +106,29 @@ export function Terrain() {
         [x, y, z + 1],
         [x, y, z - 1],
       ];
-      addCube(...dir[Math.floor(e.faceIndex / 2)]);
+
+      const newPos = dir[Math.floor(e.faceIndex / 2)];
+      let color;
+      let texture;
+      let textName;
+
+      if (!selected || selected === "1") {
+        texture = dirt;
+        color = "#7a5a05";
+        textName = "dirt";
+      } else if (selected === "2") {
+        texture = grass;
+        color = "#4e852a";
+        textName = "grass";
+      }
+
+      const pkg = {
+        position: newPos,
+        texture: texture,
+        color: color,
+        textName: textName,
+      };
+      addCube(pkg);
     }
   };
 

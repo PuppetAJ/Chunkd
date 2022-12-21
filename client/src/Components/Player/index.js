@@ -1,26 +1,37 @@
 import * as THREE from "three";
 import * as RAPIER from "@dimforge/rapier3d-compat";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
-import { isWebGL2Available, useKeyboardControls } from "@react-three/drei";
+import { useKeyboardControls } from "@react-three/drei";
 import { CapsuleCollider, RigidBody, useRapier } from "@react-three/rapier";
 import Axe from "../Axe";
 import create from "zustand";
 
-const SPEED = 5;
+import { useCubeStore } from "../Cube";
+import { useInstanceStore } from "../Terrain";
+
+import { useMutation } from "@apollo/client";
+import { ADD_BUILD } from "../../utils/mutations";
+
+let SPEED = 6;
 const direction = new THREE.Vector3();
 const frontVector = new THREE.Vector3();
 const sideVector = new THREE.Vector3();
 const rotation = new THREE.Vector3();
 
 let objMem = "";
+let saveMem = false;
 
 export const useSelectedStore = create((set) => ({
   selected: "",
+  lookAt: false,
   setSelected: (option) => set((state) => ({ selected: option })),
+  setLookAt: (look) => set((state) => ({ lookAt: look })),
 }));
 
 export function Player({ lerp = THREE.MathUtils.lerp }) {
+  const [addBuild] = useMutation(ADD_BUILD);
+
   const axe = useRef();
   const ref = useRef();
   const rapier = useRapier();
@@ -29,8 +40,31 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
 
-  const selected = useSelectedStore((state) => state.selected);
+  const [saveButton, setSaveButton] = useState(false);
+
   const setSelected = useSelectedStore((state) => state.setSelected);
+  const setLookAt = useSelectedStore((state) => state.setLookAt);
+  const cubes = useCubeStore((state) => state.cubes);
+  const instanceBlocks = useInstanceStore((state) => state.positions);
+
+  useEffect(() => {
+    const setDB = async (data) => {
+      try {
+        await addBuild({
+          variables: { buildData: data },
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    if (saveButton) {
+      const pkg = { cubes: cubes, instanceBlocks: instanceBlocks };
+      const data = JSON.stringify(pkg);
+
+      setDB(data);
+    }
+  }, [saveButton]);
 
   useFrame((state) => {
     let {
@@ -48,21 +82,43 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
       hotbar7,
       hotbar8,
       hotbar9,
+      save,
+      shift,
     } = get();
+
+    // Shift speed modifier
+    if (shift) {
+      SPEED = 3;
+    } else {
+      SPEED = 6;
+    }
+
+    if (save && saveMem !== save) {
+      setSaveButton(true);
+      saveMem = true;
+    } else if (!save) {
+      setSaveButton(false);
+      saveMem = false;
+    }
 
     const velocity = ref.current.linvel();
     const { x, y, z } = ref.current.translation();
 
+    // Catch player falls
+    if (y < -30) {
+      ref.current.setTranslation({ x: 10, y: 20, z: 10 });
+    }
+
     // Hotbar cycling
     if (hotbar1) setSelected("1");
     else if (hotbar2) setSelected("2");
-    else if (hotbar3) setSelected("3");
-    else if (hotbar4) setSelected("4");
-    else if (hotbar5) setSelected("5");
-    else if (hotbar6) setSelected("6");
-    else if (hotbar7) setSelected("7");
-    else if (hotbar8) setSelected("8");
-    else if (hotbar9) setSelected("9");
+    // else if (hotbar3) setSelected("3");
+    // else if (hotbar4) setSelected("4");
+    // else if (hotbar5) setSelected("5");
+    // else if (hotbar6) setSelected("6");
+    // else if (hotbar7) setSelected("7");
+    // else if (hotbar8) setSelected("8");
+    // else if (hotbar9) setSelected("9");
 
     // Potentially convert radians to degrees and then decide what to do from there
     direction
@@ -90,23 +146,32 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
       ) {
         if (objMem !== "") {
           if (objMem.selected === true) objMem.selected = false;
+          setLookAt(false);
           objMem.color = new THREE.Color(1, 1, 1);
         }
+
         objMem = intersects[0].object;
         intersects[0].object.selected = true;
+        setLookAt(true);
         const color = intersects[0].object.color;
-        color["r"] = 3;
-        color["b"] = 0;
-        color["g"] = 0;
+        if (color !== undefined) {
+          color["r"] = 3;
+          color["b"] = 0;
+          color["g"] = 0;
+        }
       }
 
       if (intersects[0].object.id !== objMem.id || dist > 7) {
         if (objMem !== "") {
+          setLookAt(false);
           objMem.selected = false;
           const oldColor = objMem.color;
-          oldColor["r"] = 1;
-          oldColor["b"] = 1;
-          oldColor["g"] = 1;
+
+          if (oldColor !== undefined) {
+            oldColor["r"] = 1;
+            oldColor["b"] = 1;
+            oldColor["g"] = 1;
+          }
           objMem = "";
         }
       }
@@ -128,15 +193,13 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
       .add(camera.getWorldDirection(rotation).multiplyScalar(1));
 
     // movement
+
     frontVector.set(0, 0, backward - forward);
     sideVector.set(left - right, 0, 0);
 
-    // This is the code that's breaking the movement !!!!!!!!
-    // looking down or up causes you to stop moving
-
     ref.current.setLinvel({
       x: direction.x,
-      y: velocity.y - 0.5,
+      y: velocity.y,
       z: direction.z,
     });
 
@@ -156,7 +219,7 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
         colliders={false}
         mass={1}
         type="dynamic"
-        position={[0, 20, 0]}
+        position={[10, 20, 10]}
         enabledRotations={[false, false, false]}
       >
         <CapsuleCollider args={[0.3, 0.3]} />

@@ -16,6 +16,7 @@ import Profile from "./Pages/Profile";
 import Signup from "./Pages/Signup";
 import Home from "./Pages/Home";
 import Editor from "./Pages/Editor";
+import LoadTest from "./Pages/LoadTest";
 // import NavBar from "./Components/NavBar";
 
 const httpLink = createHttpLink({
@@ -56,6 +57,7 @@ function App() {
             <Route path="" element={<Profile />} />
           </Route>
           <Route path="/thought/:id" element={<SingleThought />} />
+          <Route path="/test" element={<LoadTest />} />
           <Route path="*" element={<NoMatch />} />
         </Routes>
 

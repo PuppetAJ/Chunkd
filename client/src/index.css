@@ -16,7 +16,6 @@
   font-display: swap;
 }
 
-
 /* Global Styling */
 html,
 body,
@@ -41,30 +40,51 @@ body,
   display: flex;
   flex-direction: column;
   justify-items: stretch;
-  justify-content:space-between;
+  justify-content: space-between;
 }
 
-canvas {
+#save-container {
+  height: 50%;
+  display: flex;
+  justify-content: center;
+}
+
+#save-wrapper {
+  width: 50%;
+  border: 1px solid gray;
+  filter: drop-shadow(0 0 0.75rem black);
+}
+
+#editor {
   width: 100%;
   height: 100%;
+}
+
+#test-select {
+  display: flex;
+  justify-content: center;
+}
+
+#dropdown {
+  width: 300px;
+  height: 30px;
 }
 
 /* Main Container Styling */
 .container {
   width: auto;
-  display: flex; 
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
 
 .h1,
-.h2, 
+.h2,
 .h3,
 .h4 {
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
 }
-
 
 .menu {
   display: flex;
@@ -92,11 +112,11 @@ canvas {
   background: #727272;
   color: rgb(247, 247, 247);
   /* width: 100%; */
-  padding: .3rem .3rem;
+  padding: 0.3rem 0.3rem;
   /* margin-inline-end: 2rem; */
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   font-size: 1rem;
-  letter-spacing: .025em;
+  letter-spacing: 0.025em;
   border: 2px solid rgba(0, 0, 0, 1);
   box-shadow: inset 3px 3px 0 rgba(255, 255, 255, 0.5),
     inset -3px -3px 0 rgba(0, 0, 0, 0.5);
@@ -105,7 +125,6 @@ canvas {
 
 .btn-minecraft:hover {
   background: rgba(115, 107, 221, 1);
-
 }
 
 .btn-minecraft:focus {
@@ -119,17 +138,16 @@ canvas {
   width: auto;
   /* position: absolute; */
   bottom: 0;
-  background-image: url('./assets/background.svg');
+  background-image: url("./assets/background.svg");
   background-color: rgb(34, 34, 34);
   color: rgb(247, 247, 247);
 }
 
 .nav-wrapper {
-  background-image: url('./assets/background.svg');
+  background-image: url("./assets/background.svg");
   background-color: rgb(34, 34, 34);
 }
 
 #logo:hover {
-  content: url(./assets/Campfire.webp)
+  content: url(./assets/Campfire.webp);
 }
-

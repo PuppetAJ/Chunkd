@@ -65,6 +65,8 @@ export default function Editor() {
         { name: "hotbar7", keys: ["7"] },
         { name: "hotbar8", keys: ["8"] },
         { name: "hotbar9", keys: ["9"] },
+        { name: "save", keys: ["p", "P"] },
+        { name: "shift", keys: ["Shift"] },
       ]}
     >
       <div
@@ -84,7 +86,12 @@ export default function Editor() {
           fill={true}
         />
       </div>
-      <Canvas gl={{ preserveDrawingBuffer: true }} shadows camera={{ fov: 45 }}>
+      <Canvas
+        id="editor"
+        gl={{ preserveDrawingBuffer: true }}
+        shadows
+        camera={{ fov: 45 }}
+      >
         <Preload all />
         <Scene />
         <BakeShadows />
@@ -98,10 +105,10 @@ export default function Editor() {
         />
         <ambientLight intensity={0.3} />
         <pointLight castShadow intensity={0.8} position={[100, 100, 100]} />
-        <Physics gravity={[0, 0, 0]}>
+        <Physics gravity={[0, -30, 0]}>
           <Terrain />
           <Player />
-          <Cube />
+          {/* <Cube /> */}
           <Cubes />
         </Physics>
         <PointerLockControls />
