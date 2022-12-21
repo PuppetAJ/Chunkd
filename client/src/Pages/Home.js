@@ -7,6 +7,7 @@ import FriendList from "../Components/FriendList";
 // import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
 import PostModal from "../Components/PostModal";
+import homeLogo from "../assets/CHUNKD.png";
 
 //Import Icons
 import {ImPlus} from 'react-icons/im';
@@ -80,13 +81,11 @@ const Home = () => {
 						) : null}
 					</>
 				)}
-
-			
 			</div>
 			{!loggedIn && (
 					<>
-
-					<div id="nologin" className=" bg-cover h-screen">
+					<div id="nologin" className="flex bg-cover h-screen justify-center">
+						<div id="homeLogo" className="mt-40"><img src={homeLogo} alt="logo"></img></div>
 					</div>
 					</>
 				)}

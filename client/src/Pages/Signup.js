@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { ADD_USER } from "../utils/mutations";
 import Auth from "../utils/auth";
+import homeLogo from "../assets/CHUNKD.png";
 // import Footer from '../Components/Footer';
 
 const Signup = () => {
@@ -41,7 +42,9 @@ const Signup = () => {
 		<main id="login" className="flex-row grow justify-content-center container">
 
 		
-
+				<div className="128">
+				<img src={homeLogo} alt="logo"></img>
+				</div>
 			<div className="px-6 py-3 rounded w-64">
 				<form onSubmit={handleFormSubmit}>
 					<div className="flex flex-col my-2">
