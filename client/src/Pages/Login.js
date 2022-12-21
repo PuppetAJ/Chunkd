@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { LOGIN_USER } from "../utils/mutations";
+import homeLogo from "../assets/CHUNKD.png";
 
 import Auth from "../utils/auth";
 // import Footer from "../Components/Footer";
@@ -43,10 +44,12 @@ const Login = (props) => {
 
 	//Returning JSX
 	return (
-		<main id="login" className="flex-row grow justify-content-center mb-4 container">
+		<main id="login" className="flex-row grow justify-center container">
 
 			
-
+		<div className="128">
+		<img src={homeLogo} alt="logo"></img>
+		</div>
     <div className="px-6 py-3 rounded w-64">
         <div className="flex flex-col items-center justify-center mb-4">
         </div>

@@ -30,8 +30,9 @@ body,
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  /* background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2); */
+  /* background-image: url('./assets/ChunkedBG.png'); */
   background-size: cover;
+  background-repeat: no-repeat;
   /* overflow: hidden; */
   background-color: #29272c;
 }
@@ -79,10 +80,7 @@ body,
   align-items: center;
 }
 
-.h1,
-.h2,
-.h3,
-.h4 {
+.minecraft {
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
 }
 
@@ -111,9 +109,7 @@ body,
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
   background: #727272;
   color: rgb(247, 247, 247);
-  /* width: 100%; */
-  padding: 0.3rem 0.3rem;
-  /* margin-inline-end: 2rem; */
+  padding: 0.3rem 0.5rem;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   font-size: 1rem;
   letter-spacing: 0.025em;
@@ -150,4 +146,30 @@ body,
 
 #logo:hover {
   content: url(./assets/Campfire.webp);
+}
+
+#login {
+  background-image: url("./assets/darkBG.jpg");
+  background-color: rgb(58, 83, 51);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position-x: center;
+}
+
+#login-header {
+  background-image: url("./assets/background.svg");
+  background-color: rgb(34, 34, 34);
+}
+
+#nologin {
+  background-image: url("./assets/darkBG.jpg");
+  background-color: rgb(58, 83, 51);
+  background-size: fill;
+  background-repeat: no-repeat;
+  background-position-x: center;
+  background-position: center;
+}
+
+.chunktitle {
+  background-image: url("./assets/CHUNKD.png");
 }
