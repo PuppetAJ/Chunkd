@@ -35,9 +35,9 @@ export default function LoadTest() {
 
 	if (!user?.username) {
 		return (
-			<h4>
+			<h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
 				You need to be logged in to see this page. Please log in or sign up!
-			</h4>
+			</h3>
 		);
 	}
 
@@ -53,11 +53,11 @@ export default function LoadTest() {
 	return (
 		<>
 			<div id="test-select">
-				<select onChange={handleChange} id="dropdown">
+				{/* <select onChange={handleChange} id="dropdown">
 					{user.savedBuilds.map((el, i) => (
 						<option key={i} value={i}>{`Build ${i + 1}`}</option>
 					))}
-				</select>
+				</select> */}
 			</div>
 			<div id="save-container">
 				<div id="save-wrapper">
