@@ -105,23 +105,25 @@ const PostModal = ({ setModalOn, setChoice }) => {
 
 	// Return JSX for Post Modal
 	return (
-		<div className="  bg-zinc-800 bg-opacity-80 fixed inset-0 z-100   ">
-			<div className="flex h-screen justify-center items-center ">
-				<div className="flex-col justify-center bg-zinc-900 py-12 px-16 border-2 border-gray-300 rounded-xl w-1/2 ">
-					<form className='flex flex-col items-center  p-2'>
-						<select onChange={handleChange} id="dropdown">
-							{user.savedBuilds.map((el, i) => (
-								<option key={i} value={i}>{`Build ${i + 1}`}</option>
-							))}
-						</select>
-
-						<p
+		<div className="  bg-zinc-800 bg-opacity-80 fixed inset-0 z-100">
+			<div className="flex h-screen justify-center items-center mx-auto w-1/2 sm:w-full  ">
+				<div className="flex-col justify-center bg-zinc-900 py-12 px-16 border-2 border-gray-300 rounded-xl sm:w-1/2 ">
+	<p
 							html4="textarea"
 							className="minecraft text-3xl text-white mb-8 flex items-center border-b-2"
 						>
 							<ImPlus size={18}/>
 							<span className="flex ml-3">Add Post</span>
 						</p>
+
+					<form className='flex flex-col items-center p-2'>
+						<select className="bg-gray-700 text-gray-300 mb-3" onChange={handleChange} id="dropdown">
+							{user.savedBuilds.map((el, i) => (
+								<option key={i} value={i}>{`Build ${i + 1}`}</option>
+							))}
+						</select>
+
+		
 
 						<p
 							className={`text-xs text-gray-400 mb-1  ${characterCount === 280 || error ? "text-error" : ""
@@ -143,17 +145,17 @@ const PostModal = ({ setModalOn, setChoice }) => {
 					</form>
 
 					{/* Fix Responsiveness */}
-					<div className="flex flex-col w-1/4 justify-evenly px-2">
+					<div className="flex flex-col items-center sm:flex-row sm:justify-evenly px-2">
 						<button
 							onClick={handleOKClick}
-							className='btn-minecraft mt-2 duration-300 hover:scale-105'
+							className='btn-minecraft mt-2 duration-300 hover:scale-105 text-xs md:text-sm'
 							type="submit"
 						>
 							Post
 						</button>
 						<button
 							onClick={handleCancelClick}
-							className='btn-minecraft mt-2 duration-300 hover:scale-105'
+							className='btn-minecraft mt-2 duration-300 hover:scale-105 text-xs md:text-sm'
 						>
 							Cancel
 						</button>

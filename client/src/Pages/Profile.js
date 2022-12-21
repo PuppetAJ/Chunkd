@@ -43,7 +43,7 @@ const Profile = () => {
   }
 
   if (loading) {
-    return <div className="text-gray-300 text-lg">Loading...</div>;
+    return <div className="ml-6 text-gray-300 text-lg">Loading...</div>;
   }
 
   const handleClick = async () => {
@@ -58,7 +58,7 @@ const Profile = () => {
 
   if (!user?.username) {
     return (
-      <h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
+      <h3 className="btn-minecraft flex flex-col w-1/2 items-center m-auto animate-pulse">
         You need to be logged in to see this page. Please log in or sign up!
       </h3>
     )

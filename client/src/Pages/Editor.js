@@ -32,12 +32,12 @@ export default function Editor() {
 	}
 
 	if (loading) {
-		return <div>Loading...</div>;
+		return <div className="ml-6 text-gray-300 text-xl">Loading...</div>;
 	}
 
 	if (!user?.username) {
 		return (
-			<h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
+			<h3 className="btn-minecraft w-1/2 flex flex-col items-center m-auto animate-pulse">
 				You need to be logged in to see this page. Please log in or sign up!
 			</h3>
 		);
