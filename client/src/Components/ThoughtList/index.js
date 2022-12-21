@@ -12,13 +12,13 @@ const ThoughtList = ({ thoughts, title }) => {
 	}
 
 	return (
-		 <div className="mx-auto items-center justify-center max-w-screen-lg rounded-xl sm:flex  shadow-xl hover:rounded-2xl">
-			
+		<div className="mx-auto items-center justify-center max-w-screen-lg rounded-xl sm:flex  shadow-xl hover:rounded-2xl">
+
 			<div className="sm:w-8/12 justify-center">
 				<div className="space-y-2">
-				<div className="space-y-4 bg-gray-700 bg-opacity-40 shadow-xl rounded-lg">
-					<h3 className="text-xl p-3 font-bold text-center text-white">
-						{title}
+					<div className="space-y-4 bg-gray-700 bg-opacity-40 shadow-xl rounded-lg">
+						<h3 className="text-xl p-3 font-bold text-center text-white">
+							{title}
 						</h3>
 				</div>
 				<div className="flex-col items-center py-4 justify-between">
@@ -58,12 +58,11 @@ const ThoughtList = ({ thoughts, title }) => {
 					
 									</Link>
 								</div>
-							</div>
-						))}
-					</div>	
+							))}
+					</div>
 				</div>
 			</div>
-		 </div>
+		</div>
 	);
 };
 
