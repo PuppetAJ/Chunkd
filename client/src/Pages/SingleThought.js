@@ -4,6 +4,7 @@ import { useQuery } from "@apollo/client";
 import { QUERY_THOUGHT } from "../utils/queries";
 import ReactionList from "../Components/ReactionList";
 import ReactionForm from "../Components/ReactionForm";
+import LoadTest from "./LoadTest";
 import Auth from "../utils/auth";
 
 //Import Icons
@@ -24,6 +25,7 @@ const SingleThought = (props) => {
 
 	return (
 		<div className="grow max-w-screen-lg mx-auto bg-opacity-40 items-center justify-center rounded-xl w-full text-gray-300 shadow-xl hover:rounded-2xl">
+			<LoadTest />
 			<div className="w-full rounded-lg p-5 my-3">
 				<div className="flex items-center justify-between text-xl font-bold p-2 px-3 text-gray-300 bg-gray-700 bg-opacity-40 text-center rounded-lg ">
 					<h4 className="duration-300 hover:scale-105 hover:underline">
