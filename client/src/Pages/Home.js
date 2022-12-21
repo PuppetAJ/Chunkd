@@ -20,7 +20,6 @@ const Home = () => {
 	const { data: userData } = useQuery(QUERY_ME_BASIC);
 
 	const thoughts = data?.thoughts || [];
-	console.log(thoughts);
 
 	const loggedIn = Auth.loggedIn();
 
