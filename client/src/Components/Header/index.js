@@ -92,7 +92,7 @@ const Header = () => {
 									</ul>
 									{/* button for modal click  */}
 									{location.pathname ==="/Editor" &&
-										<button onClick={clicked} className="m-3 w-32 btn-minecraft rounded p-2 duration-300 hover:scale-105">
+										<button onClick={clicked} className="m-3 mt-4 w-32 btn-minecraft rounded p-2 duration-300 hover:scale-105">
 											Controls
 										</button>}
 									{/* <GameControlsModal /> */}
