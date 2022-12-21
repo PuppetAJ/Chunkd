@@ -75,7 +75,7 @@ const Profile = () => {
   // console.log(getMe)
 
   return (
-    <div className="w-5/6 grow grid md:grid-cols-3 justify-center border-x-2 mx-auto border-gray-800">
+    <div className="w-5/6 grow grid grid-cols-3 justify-center border-x-2 mx-auto border-gray-800">
       <div className='col-span-2 text-center rounded-lg p-2 mt-2'>
         <h2 className='minecraft container mx-auto mb-3 text-white text-3xl p-3'>
 
@@ -117,7 +117,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <div className="-mt-10 col-span-2 justify-center mb-3">
+      <div className="-mt-10 m-1 col-span-2 justify-center mb-3">
         <div className="mt-3">
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s Posts`} />
         </div>

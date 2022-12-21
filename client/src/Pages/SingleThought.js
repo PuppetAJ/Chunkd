@@ -43,7 +43,7 @@ const SingleThought = (props) => {
 	};
 
 	return (
-		<div className="grow max-w-screen-lg mx-auto bg-opacity-40 items-center justify-center rounded-xl w-full text-gray-300 shadow-xl hover:rounded-2xl">
+		<div className="grow max-w-screen-lg w-3/4 mx-auto bg-opacity-40 items-center justify-center rounded-xl mt-6 text-gray-300 shadow-xl hover:rounded-2xl">
 			<LoadTest />
 			<div className="w-full rounded-lg p-5 my-3">
 				<div className="flex items-center justify-between text-xl font-bold p-2 px-3 text-gray-300 bg-gray-700 bg-opacity-40 text-center rounded-lg ">

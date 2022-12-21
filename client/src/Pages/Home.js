@@ -37,7 +37,7 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className='grid md:grid-cols-3 grow w-5/6 justify-center mx-auto'>
+			<div className='grid grid-cols-3 grow w-5/6 justify-center mx-auto'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
@@ -59,7 +59,7 @@ const Home = () => {
 
 							</div>
 						</div>
-						<div className={`-mt-8 mb-3 gap-x-2 ${loggedIn && "col-start-1 col-span-2"}`}>
+						<div className={`-mt-8 m-1 mb-3 gap-x-2 ${loggedIn && "col-start-1 col-span-2"}`}>
 							{loading ? (
 								<div className="text-gray-300 text-lg">Loading...</div>
 							) : (
