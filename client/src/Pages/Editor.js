@@ -1,54 +1,46 @@
-import React, { Suspense, useState } from "react";
+import React from "react";
 import { Canvas } from "@react-three/fiber";
 import {
 	Stats,
 	Sky,
-	Stars,
 	softShadows,
 	PointerLockControls,
 	KeyboardControls,
-	Loader,
 	Preload,
 	BakeShadows,
-	PerformanceMonitor,
 } from "@react-three/drei";
 import { Physics } from "@react-three/rapier";
-import { Cube, Cubes } from "../Components/Cube";
-import { Ground } from "../Components/Ground";
+import { Cubes } from "../Components/Cube";
 import { Player } from "../Components/Player";
-import { Ground2 } from "../Components/Ground2";
-
-import { useQuery, useMutation } from '@apollo/client'
-import { QUERY_USER, QUERY_ME } from '../utils/queries'
-import { Navigate, useParams } from 'react-router-dom'
-import Auth from '../utils/auth'
+import { Terrain } from "../Components/Terrain";
+import { useQuery, useMutation } from "@apollo/client";
+import { QUERY_USER, QUERY_ME } from "../utils/queries";
+import { Navigate, useParams } from "react-router-dom";
+import Auth from "../utils/auth";
 
 export default function Editor() {
-
-	const [dpr, setDpr] = useState(1.5);
-
 	const { username: userParam } = useParams();
 
 	const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
-	  variables: { username: userParam }
+		variables: { username: userParam },
 	});
-  
+
 	const user = data?.me || data?.user || {};
-  
+
 	if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-	  return <Navigate to='/Editor' />
+		return <Navigate to="/Editor" />;
 	}
-  
+
 	if (loading) {
-	  return <div>Loading...</div>;
+		return <div>Loading...</div>;
 	}
 
 	if (!user?.username) {
 		return (
-		  <h4>
-			You need to be logged in to see this page. Please log in or sign up!
-		  </h4>
-		)
+			<h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
+				You need to be logged in to see this page. Please log in or sign up!
+			</h3>
+		);
 	}
 
 	softShadows();
@@ -61,14 +53,25 @@ export default function Editor() {
 				{ name: "left", keys: ["ArrowLeft", "a", "A"] },
 				{ name: "right", keys: ["ArrowRight", "d", "D"] },
 				{ name: "jump", keys: ["Space"] },
+				{ name: "hotbar1", keys: ["1"] },
+				{ name: "hotbar2", keys: ["2"] },
+				{ name: "hotbar3", keys: ["3"] },
+				{ name: "hotbar4", keys: ["4"] },
+				{ name: "hotbar5", keys: ["5"] },
+				{ name: "hotbar6", keys: ["6"] },
+				{ name: "hotbar7", keys: ["7"] },
+				{ name: "hotbar8", keys: ["8"] },
+				{ name: "hotbar9", keys: ["9"] },
+				{ name: "save", keys: ["p", "P"] },
+				{ name: "shift", keys: ["Shift"] },
 			]}
 		>
-			{/* <Suspense> */}
-			<Canvas shadows camera={{ fov: 45 }}>
-				{/* <PerformanceMonitor
-					onIncline={() => setDpr(2)}
-					onDecline={() => setDpr(1)}
-				> */}
+			<Canvas
+				id="editor"
+				gl={{ preserveDrawingBuffer: true }}
+				shadows
+				camera={{ fov: 45 }}
+			>
 				<Preload all />
 				<BakeShadows />
 				<Sky
@@ -79,31 +82,17 @@ export default function Editor() {
 					sunPosition={[100, 10, 100]}
 					turbidity={3.1}
 				/>
-				{/* <Stars
-						radius={100}
-						depth={50}
-						count={5000}
-						factor={4}
-						saturation={0}
-						fade
-						speed={1}
-					/> */}
-
 				<ambientLight intensity={0.3} />
 				<pointLight castShadow intensity={0.8} position={[100, 100, 100]} />
 				<Physics gravity={[0, -30, 0]}>
-					<Ground />
-					<Ground2 />
+					<Terrain />
 					<Player />
-					<Cube position={[0, 0.5, -10]} />
 					<Cubes />
 				</Physics>
 				<PointerLockControls />
-				{/* </PerformanceMonitor> */}
-				<Stats />
+				{/* FPS counter used for performance */}
+				{/* <Stats /> */}
 			</Canvas>
-			{/* </Suspense> */}
-			<Loader initialState={(active) => active} />
 		</KeyboardControls>
 	);
 }

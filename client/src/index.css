@@ -16,7 +16,6 @@
   font-display: swap;
 }
 
-
 /* Global Styling */
 html,
 body,
@@ -31,8 +30,9 @@ body,
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  /* background-image: url(https://preview.redd.it/rk2ly8cspmb51.jpg?width=1920&format=pjpg&auto=webp&s=91400a0976b41c42daf966a9526251fca4328ea2); */
+  /* background-image: url('./assets/creeper.jpg'); */
   background-size: cover;
+  /* background-blend-mode: darken; */
   /* overflow: hidden; */
   background-color: #29272c;
 }
@@ -41,30 +41,48 @@ body,
   display: flex;
   flex-direction: column;
   justify-items: stretch;
-  justify-content:space-between;
+  justify-content: space-between;
 }
 
-canvas {
+#save-container {
+  height: 50%;
+  display: flex;
+  justify-content: center;
+}
+
+#save-wrapper {
+  width: 50%;
+  border: 1px solid gray;
+  filter: drop-shadow(0 0 0.75rem black);
+}
+
+#editor {
   width: 100%;
   height: 100%;
+}
+
+#test-select {
+  display: flex;
+  justify-content: center;
+}
+
+#dropdown {
+  width: 300px;
+  height: 30px;
 }
 
 /* Main Container Styling */
 .container {
   width: auto;
-  display: flex; 
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
 
-.h1,
-.h2, 
-.h3,
-.h4 {
+.minecraft {
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
 }
-
 
 .menu {
   display: flex;
@@ -91,12 +109,10 @@ canvas {
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
   background: #727272;
   color: rgb(247, 247, 247);
-  /* width: 100%; */
-  padding: .5rem .5rem;
-  /* margin-inline-end: 2rem; */
+  padding: 0.3rem 0.5rem;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
   font-size: 1rem;
-  letter-spacing: .025em;
+  letter-spacing: 0.025em;
   border: 2px solid rgba(0, 0, 0, 1);
   box-shadow: inset 3px 3px 0 rgba(255, 255, 255, 0.5),
     inset -3px -3px 0 rgba(0, 0, 0, 0.5);
@@ -105,7 +121,6 @@ canvas {
 
 .btn-minecraft:hover {
   background: rgba(115, 107, 221, 1);
-
 }
 
 .btn-minecraft:focus {
@@ -119,14 +134,42 @@ canvas {
   width: auto;
   /* position: absolute; */
   bottom: 0;
-  background-image: url('./assets/background.svg');
+  background-image: url("./assets/background.svg");
   background-color: rgb(34, 34, 34);
   color: rgb(247, 247, 247);
 }
 
 .nav-wrapper {
-  background-image: url('./assets/background.svg');
+  background-image: url("./assets/background.svg");
   background-color: rgb(34, 34, 34);
 }
 
+#logo:hover {
+  content: url(./assets/Campfire.webp);
+}
 
+#login {
+  background-image: url("./assets/darkBG.jpg");
+  background-color: rgb(58, 83, 51);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position-x: center;
+}
+
+#login-header {
+  background-image: url("./assets/background.svg");
+  background-color: rgb(34, 34, 34);
+}
+
+#nologin {
+  background-image: url("./assets/darkBG.jpg");
+  background-color: rgb(58, 83, 51);
+  background-size: fill;
+  background-repeat: no-repeat;
+  background-position-x: center;
+  background-position: center;
+}
+
+.chunktitle {
+  background-image: url("./assets/CHUNKD.png");
+}

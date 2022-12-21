@@ -4,7 +4,6 @@ const { signToken } = require("../utils/auth");
 
 // Resolvers
 const resolvers = {
-
 	Query: {
 		thoughts: async (parent, { username }) => {
 			const params = username ? { username } : {};
@@ -139,6 +138,22 @@ const resolvers = {
 
 			throw new AuthenticationError("You meed to be logged in");
 		},
+    
+    addBuild: async (parent, { buildData }, context) => {
+      // console.log(args);
+      // console.log(args.buildData);
+      if (context.user) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $addToSet: { savedBuilds: buildData } },
+          { new: true }
+        ).populate("friends");
+
+        return updatedUser;
+      }
+
+      throw new AuthenticationError("You meed to be logged in");
+    },
 
 		// deleteFriend: async (parent, { friendId }, context) => {
 		// 	if (context.user) {
@@ -155,4 +170,3 @@ const resolvers = {
 };
 
 module.exports = resolvers;
-

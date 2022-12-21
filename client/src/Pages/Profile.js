@@ -1,16 +1,18 @@
-import React from 'react';
+import { React, useState } from "react";
 import { Navigate, useParams } from 'react-router-dom'
 import Auth from '../utils/auth'
 import ThoughtList from '../Components/ThoughtList'
 import FriendList from '../Components/FriendList'
-import ThoughtForm from '../Components/ThoughtForm'
 import { useQuery, useMutation } from '@apollo/client'
 import { QUERY_USER, QUERY_ME } from '../utils/queries'
 import { ADD_FRIEND, DELETE_FRIEND } from '../utils/mutations'
+import PostModal from "../Components/PostModal";
 // import Footer from '../Components/Footer';
 
 //Import Icons
-import { AiOutlineUserAdd } from 'react-icons/ai';
+import {AiOutlineUserAdd} from 'react-icons/ai';
+import {ImPlus} from 'react-icons/im';
+
 
 
 const Profile = () => {
@@ -24,14 +26,24 @@ const Profile = () => {
   });
 
   const user = data?.me || data?.user || {};
+
   // const [deleteFriend] = useMutation(DELETE_FRIEND)
 
+  console.log(user.thoughts);
+
+  const [modalOn, setModalOn] = useState(false);
+	const [choice, setChoice] = useState(false)
+
+	const clicked = () => {
+		setModalOn(true)
+	}
+
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to="/profile" />
+    return <Navigate to="/profile"/>
   }
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-gray-300 text-lg">Loading...</div>;
   }
 
   const handleClick = async () => {
@@ -46,9 +58,9 @@ const Profile = () => {
 
   if (!user?.username) {
     return (
-      <h4>
+      <h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
         You need to be logged in to see this page. Please log in or sign up!
-      </h4>
+      </h3>
     )
   }
 
@@ -63,42 +75,64 @@ const Profile = () => {
   // console.log(getMe)
 
   return (
-    <main>
-      <div className=" grow items-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
-        <div className='text-center rounded-lg p-2 mt-2'>
-          <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
-            {userParam ? `${user.username}'s` : 'your'} profile.
-          </h2>
-          {userParam && (
+    <div className="w-5/6 grow grid grid-cols-3 justify-center border-x-2 mx-auto border-gray-800">
+      <div className='col-span-2 text-center rounded-lg p-2 mt-2'>
+        <h2 className='minecraft container mx-auto mb-3 text-white text-3xl p-3'>
 
-            <div className="grid mx-auto items-center m-2 text-gray-300">
-              <button className='minecraft justify-center flex mr-6 items-center duration:300 hover:scale-105' onClick={handleClick}>
-                <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
-              </button>
+           {userParam ? `${user.username}'s` : 'Welcome to Your'} Profile
 
-            </div>
-          )}
-        </div>
+         
 
+        </h2>
+        {userParam && (
+
+          <div className="grid mx-auto items-center m-2 text-gray-300">
+          <button className='minecraft justify-center flex mr-6 items-center duration:300 hover:scale-105' onClick={handleClick}>
+           <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
+          </button>
         <div className="flex-row justify-center mb-3">
           <div className="mt-3">
             <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
           </div>
+      <div className='sticky top-[81px] col-span-1 text-center text-lg bg-opacity-40 rounded-lg p-2 mt-2'>
+        <div className='container mx-auto mt-2 shadow-lg'>
 
-          <div className='text-center text-lg bg-opacity-40 shadow-xl rounded-lg p-2 mt-2'>
-            <FriendList
-              username={user.username}
-              friendCount={user.friendCount}
-              friends={user.friends}
-            />
-          </div>
-          <div className='max-w-screen-lg mx-auto'>
-          </div>
-          <div className='mb-3'>{!userParam && <ThoughtForm />}</div>
+          {/* Logic for Modal Here */}
+
+          {/* button for modal click  */}
+          <button onClick={clicked} className="minecraft text-2xl text-white my-4 flex items-center duration-300 hover:scale-105"><ImPlus size={18} /><span className="flex ml-3">Add Post</span></button>
+
+          {/* MODAL LOGIC to conditionally render modal choice */}
+          {choice}
+          {/* <PostModal /> */}
+          {modalOn && < PostModal setModalOn={setModalOn} setChoice={setChoice} />}
+
+
+        </div>
+        <div className='bt-2 shadow-lg flex-col'>
+          <FriendList
+            username={user.username}
+            friendCount={user.friendCount}
+            friends={user.friends}
+          />
         </div>
       </div>
-    </main >
+
+      <div className="-mt-10 col-span-2 justify-center mb-3">
+        <div className="mt-3">
+          <ThoughtList thoughts={user.thoughts} title={`${user.username}'s Posts`} />
+        </div>
+
+        
+        <div className= 'max-w-screen-lg mx-auto'>
+      </div>
+    </div>
+    </div>
   );
 };
 
 export default Profile;
+
+
+
+	

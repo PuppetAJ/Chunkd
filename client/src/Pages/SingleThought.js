@@ -1,11 +1,14 @@
 import React from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useMutation, useQuery } from '@apollo/client'
 import { QUERY_THOUGHT, QUERY_ME_BASIC } from '../utils/queries'
 import { DELETE_THOUGHT } from '../utils/mutations'
 import ReactionList from '../Components/ReactionList'
 import ReactionForm from '../Components/ReactionForm'
 import Auth from '../utils/auth'
+
+//Import Icons
+import { FaRegClock } from 'react-icons/fa';
 
 const SingleThought = props => {
 
@@ -24,7 +27,7 @@ const SingleThought = props => {
   const user = userData.data.me
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="text-gray-300 text-4xl">Loading...</div>;
   }
 
   const handleClick = async () => {
@@ -40,20 +43,25 @@ const SingleThought = props => {
   }
 
   return (
-    <div className="grow border-x-2 max-w-screen-lg mx-auto border-gray-800 bg-white items-center justify-center w-[680px] rounded-xl group sm:flex space-x-6 text-gray-300 bg-opacity-50 shadow-xl hover:rounded-2xl">
+    <div className="grow max-w-screen-lg mx-auto bg-opacity-40 items-center justify-center rounded-xl w-full text-gray-300 shadow-xl hover:rounded-2xl">
 
-      <div className="sm:w-8/12 pl-0 p-5">
-        <h4 className="text-lg font-bold text-gray-300 bg-gray-700 bg-opacity-40 text-center">
-          <span className="text-light">
+      <div className= "w-full rounded-lg p-5 my-3">
+        <div className="flex items-center justify-between text-xl font-bold p-2 px-3 text-gray-300 bg-gray-700 bg-opacity-40 text-center rounded-lg ">
+        <h4 className="duration-300 hover:scale-105 hover:underline">
+          <Link   
+          to={`/profile/${thought.username}`}>
             {thought.username}
-          </span>{' '}
+          </Link>{' '}
         </h4>
+        <div className='flex items-center text-gray-400 text-xs justify-end'>
+									<FaRegClock size={14} /> <p className="pl-3">{thought.createdAt}</p>
+										 </div>
+                     </div>
 
 
-        <div className="text-md my-2 pl-2 p-2">
-          <p>{thought.thoughtText}</p>
+        <div className="break-all my-2 p-2 mb-6 shadow-lg rounded-lg">
+          <p className="text-ellipsis overflow-hidden">{thought.thoughtText}</p>
         </div>
-
 
         <div className="text-grey-400 flex flex-row space-x-1  my-4">
           <svg stroke="currentColor" fill="none" stroke-width="0" viewBox="0 0 24 24" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -61,10 +69,11 @@ const SingleThought = props => {
         </div>
 
         {user.username === thought.username && <button onClick={handleClick} className='text-light'>Delete</button>}
-
-        <div>
+        
+        <div className="w-full">
           {thought.reactionCount > 0 && <ReactionList reactions={thought.reactions} />}
           {Auth.loggedIn() && <ReactionForm thoughtId={thought._id} />}
+         
         </div>
       </div>
 

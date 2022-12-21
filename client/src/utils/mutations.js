@@ -79,3 +79,13 @@ export const DELETE_THOUGHT = gql`
     deleteThought(thoughtId: $thoughtId)
   }
 `
+
+export const ADD_BUILD = gql`
+  mutation addBuild($buildData: String!) {
+    addBuild(buildData: $buildData) {
+      username
+      savedBuilds
+    }
+  }
+`
+

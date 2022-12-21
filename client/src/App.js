@@ -1,10 +1,10 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import {
-	ApolloProvider,
-	ApolloClient,
-	InMemoryCache,
-	createHttpLink,
+  ApolloProvider,
+  ApolloClient,
+  InMemoryCache,
+  createHttpLink,
 } from "@apollo/client";
 import { setContext } from "@apollo/client/link/context";
 import Header from "./Components/Header";
@@ -16,55 +16,55 @@ import Profile from "./Pages/Profile";
 import Signup from "./Pages/Signup";
 import Home from "./Pages/Home";
 import Editor from "./Pages/Editor";
+import LoadTest from "./Pages/LoadTest";
 // import NavBar from "./Components/NavBar";
 
 const httpLink = createHttpLink({
-	uri: "/graphql",
+  uri: "/graphql",
 });
 
 const authLink = setContext((_, { headers }) => {
-	const token = localStorage.getItem("id_token");
-	return {
-		headers: {
-			...headers,
-			authorization: token ? `Bearer ${token}` : "",
-		},
-	};
+  const token = localStorage.getItem("id_token");
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : "",
+    },
+  };
 });
 
 const client = new ApolloClient({
-	link: authLink.concat(httpLink),
-	cache: new InMemoryCache(),
+  link: authLink.concat(httpLink),
+  cache: new InMemoryCache(),
 });
 
 // Add catch route all later
 // https://reactrouter.com/en/main/hooks/use-location
 // USE LOCATION ^^
 function App() {
-	return (
-		<ApolloProvider client={client}>
-			<Router>
-				
-				<Header />
+  return (
+    <ApolloProvider client={client}>
+      <Router>
+        <Header />
 
-				<Routes>
-					<Route path='/' element={<Home />} />
-					<Route path='/editor' element={<Editor />} />
-					<Route path='/login' element={<Login />} />
-					<Route path='/signup' element={<Signup />} />
-					<Route path='/profile'>
-						<Route path=":username" element={<Profile />} />
-						<Route path="" element={<Profile />} />
-					</Route>
-					<Route path='/thought/:id' element={<SingleThought />} />
-					<Route path='*' element={<NoMatch />} />
-				</Routes>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/editor" element={<Editor />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/profile">
+            <Route path=":username" element={<Profile />} />
+            <Route path="" element={<Profile />} />
+          </Route>
+          <Route path="/thought/:id" element={<SingleThought />} />
+          <Route path="/test" element={<LoadTest />} />
+          <Route path="*" element={<NoMatch />} />
+        </Routes>
 
-				<Footer/>
-			
-			</Router>
-		</ApolloProvider>
-	);
+        <Footer />
+      </Router>
+    </ApolloProvider>
+  );
 }
 
 export default App;

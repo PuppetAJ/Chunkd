@@ -1,12 +1,18 @@
 
-import React from "react";
+import { React, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries";
 import Auth from "../utils/auth";
 import FriendList from "../Components/FriendList";
-import ThoughtForm from "../Components/ThoughtForm";
+// import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
-// import Footer from '../Components/Footer';
+import PostModal from "../Components/PostModal";
+import homeLogo from "../assets/CHUNKD.png";
+
+
+
+//Import Icons
+import {ImPlus} from 'react-icons/im';
 
 const Home = () => {
 	const { loading, data } = useQuery(QUERY_THOUGHTS);
@@ -17,36 +23,56 @@ const Home = () => {
 
 	const loggedIn = Auth.loggedIn();
 
+	//Logic for Modal
+	const [modalOn, setModalOn] = useState(false);
+	const [choice, setChoice] = useState(false)
+
+	const clicked = () => {
+		setModalOn(true)
+	}
+
+
 
 	//---** RENAME THIS TO FORUM.JS to be the 'FORUM PAGE' **-- //
 	return (
 		<main>
 
-			<div className='grow justify-center'>
+			<div className='grid grid-cols-3 grow w-5/6 justify-center mx-auto'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
 					<>
-					<div className= 'max-w-screen-lg mx-auto'>
-						{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
-						<div className='container mx-auto'>
-							<ThoughtForm />
+						<div className='col-start-3 mx-auto top-[81px]'>
+							{/* <p className='text-white text-center text-4xl'>{`Welcome, ${userData.me.username}`}</p> */}
+							<div className='container mx-auto'>
+
+								{/* Logic for Modal Here */}
+
+								{/* button for modal click  */}
+								<button onClick={clicked} className="minecraft text-2xl text-white my-4 flex items-center duration-300 hover:scale105"><ImPlus size={18} /><span className="flex ml-3">Add Post</span></button>
+
+								{/* MODAL LOGIC to conditionally render modal choice */}
+								{choice}
+								{/* <PostModal /> */}
+								{modalOn && < PostModal setModalOn={setModalOn} setChoice={setChoice} />}
+
+
+							</div>
 						</div>
-						</div>
-						<div className={` mb-3 ${loggedIn && "lg:grid-col-8"}`}>
+						<div className={`-mt-8 mb-3 gap-x-2 ${loggedIn && "col-start-1 col-span-2"}`}>
 							{loading ? (
-								<div>Loading...</div>
+								<div className="text-gray-300 text-lg">Loading...</div>
 							) : (
 								// ** THIS IS THE LIST OF POSTS/BUILDS ** //
-								<ThoughtList 
+								<ThoughtList
 									thoughts={thoughts}
-									title='Explore Recent Builds' 
+									title='Explore Recent Builds'
 								/>
 							)}
 						</div>
 						{/* This changes styling for friend list on Forum Page */}
 						{loggedIn && userData ? (
-							<div className='max-w-screen-lg mx-auto text-center bg-opacity-40 shadow-xl rounded-lg p-2 my-3'>
+							<div className='flex-col w-full mx-auto text-center bg-opacity-40 shadow-lg rounded-lg p-2 my-3'>
 								<FriendList
 									username={userData.me.username}
 									friendCount={userData.me.friendCount}
@@ -57,8 +83,17 @@ const Home = () => {
 					</>
 				)}
 			</div>
+			{!loggedIn && (
+					<>
+					<div id="nologin" className="flex bg-cover h-screen justify-center">
+						<div id="homeLogo" className="mt-40"><img src={homeLogo} alt="logo"></img></div>
+					</div>
+					</>
+				)}
 		</main>
 	);
 };
 
 export default Home;
+
+

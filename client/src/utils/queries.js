@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client';
 
+
 export const QUERY_THOUGHTS = gql`
   query thoughts($username: String) {
     thoughts(username: $username) {
@@ -64,6 +65,7 @@ export const QUERY_ME = gql`
       username
       email
       friendCount
+      savedBuilds
       thoughts {
         _id
         thoughtText
