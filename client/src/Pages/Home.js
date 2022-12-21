@@ -8,6 +8,8 @@ import FriendList from "../Components/FriendList";
 import ThoughtList from "../Components/ThoughtList";
 import PostModal from "../Components/PostModal";
 
+
+
 //Import Icons
 import {ImPlus} from 'react-icons/im';
 
