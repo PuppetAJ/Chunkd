@@ -37,7 +37,7 @@ const Home = () => {
 	return (
 		<main>
 
-			<div className='grid grid-cols-3 grow w-5/6 justify-center mx-auto'>
+			<div className='grid md:grid-cols-3 grow w-5/6 justify-center mx-auto'>
 
 				{loggedIn && (
 					// ** FORM FOR NEW POST/THOUGHT on FORUM PAGE** //
