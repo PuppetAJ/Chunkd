@@ -1,21 +1,18 @@
 import React from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import {
   Stats,
   Sky,
   softShadows,
   PointerLockControls,
   KeyboardControls,
-  Loader,
   Preload,
   BakeShadows,
 } from "@react-three/drei";
-import { useControls, button, Leva } from "leva";
 import { Physics } from "@react-three/rapier";
-import { Cube, Cubes } from "../Components/Cube";
+import { Cubes } from "../Components/Cube";
 import { Player } from "../Components/Player";
 import { Terrain } from "../Components/Terrain";
-
 import { useQuery, useMutation } from "@apollo/client";
 import { QUERY_USER, QUERY_ME } from "../utils/queries";
 import { Navigate, useParams } from "react-router-dom";
@@ -70,24 +67,7 @@ export default function Editor() {
         { name: "shift", keys: ["Shift"] },
       ]}
     >
-      <SaveModal></SaveModal>
-      <div
-        style={{
-          top: 16,
-          right: 130,
-          position: "absolute",
-          width: "auto",
-        }}
-        className=".btn-minecraft"
-      >
-        <Leva
-          flat={{
-            flat: "true",
-          }}
-          titleBar={false}
-          fill={true}
-        />
-      </div>
+      <SaveModal />
       <Canvas
         id="editor"
         gl={{ preserveDrawingBuffer: true }}
@@ -95,7 +75,6 @@ export default function Editor() {
         camera={{ fov: 45 }}
       >
         <Preload all />
-        <Scene />
         <BakeShadows />
         <Sky
           elevation={0.6}
@@ -110,31 +89,12 @@ export default function Editor() {
         <Physics gravity={[0, -30, 0]}>
           <Terrain />
           <Player />
-          {/* <Cube /> */}
           <Cubes />
         </Physics>
         <PointerLockControls />
-        <Stats />
+        {/* FPS counter used for performance */}
+        {/* <Stats /> */}
       </Canvas>
-      <Loader initialState={(active) => active} />
     </KeyboardControls>
   );
-}
-
-function Scene() {
-  const gl = useThree((state) => state.gl);
-  useControls({
-    screenshot: button(() => {
-      const link = document.createElement("a");
-      link.setAttribute("download", "Saved.png");
-      link.setAttribute(
-        "href",
-        gl.domElement
-          .toDataURL("image/png")
-          .replace("image/png", "image/octet-stream")
-      );
-      link.click();
-    }),
-  });
-  return <>{/* We are using this space to fill the return statement. */}</>;
 }

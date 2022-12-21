@@ -13,7 +13,7 @@ export const SaveModal = ({ setModalOn }) => {
       <div className="flex justify-center items-center">
         <div className="flex-col justify-center bg-zinc-900 py-6 px-6 border-2 border-gray-300 rounded-xl">
           <div className="flex flex-col items-center w-full p-2">
-            <div className="btn-minecraft flex flex-col items-center m-auto p-3 animate-pulse">
+            <div className="errorhandling flex flex-col items-center m-auto p-3 animate-pulse">
               <h1>Build Saved!</h1>
             </div>
           </div>

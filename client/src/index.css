@@ -113,9 +113,7 @@ body,
   align-items: center;
 }
 
-.minecraft {
-  font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
-}
+
 
 .menu {
   display: flex;
@@ -137,6 +135,27 @@ body,
 .menu-options .btn-minecraft:first-child {
   margin-right: 10px;
 }
+
+/* MineCraft Font Styling */
+.minecraft {
+  font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
+}
+
+.errorhandling {
+  font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
+  background: #727272;
+  color: rgb(247, 247, 247);
+  padding: 0.5rem 0.5rem;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+  font-size: 1rem;
+  letter-spacing: 0.025em;
+  border: 2px solid rgba(0, 0, 0, 1);
+  box-shadow: inset 3px 3px 0 rgba(255, 255, 255, 0.5),
+    inset -3px -3px 0 rgba(0, 0, 0, 0.5);
+}
+
+
+/* MineCraft Button Styling */
 
 .btn-minecraft {
   font-family: Minecraft, Avenir, Helvetica, Arial, sans-serif;
@@ -172,6 +191,8 @@ body,
   color: rgb(247, 247, 247);
 }
 
+
+/* Nav and Login Styling */
 .nav-wrapper {
   background-image: url("./assets/background.svg");
   background-color: rgb(34, 34, 34);
