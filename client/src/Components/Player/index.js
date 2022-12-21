@@ -120,13 +120,13 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
     // Hotbar cycling
     if (hotbar1) setSelected("1");
     else if (hotbar2) setSelected("2");
-    // else if (hotbar3) setSelected("3");
-    // else if (hotbar4) setSelected("4");
-    // else if (hotbar5) setSelected("5");
-    // else if (hotbar6) setSelected("6");
-    // else if (hotbar7) setSelected("7");
-    // else if (hotbar8) setSelected("8");
-    // else if (hotbar9) setSelected("9");
+    else if (hotbar3) setSelected("3");
+    else if (hotbar4) setSelected("4");
+    else if (hotbar5) setSelected("5");
+    else if (hotbar6) setSelected("6");
+    else if (hotbar7) setSelected("7");
+    else if (hotbar8) setSelected("8");
+    else if (hotbar9) setSelected("9");
 
     // Potentially convert radians to degrees and then decide what to do from there
     direction
