@@ -37,6 +37,11 @@ body,
   background-color: #29272c;
 }
 
+/* Header styles */
+.header-format {
+  height: 50px;
+}
+
 /* Editor classes */
 #root {
   display: flex;
