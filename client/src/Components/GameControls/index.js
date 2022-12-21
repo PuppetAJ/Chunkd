@@ -35,6 +35,7 @@ const GameControlsModal = ({ setModalOn }) => {
                             <p>Right-Click: Place Block</p>
                             <p>WASD / Arrows: Move</p>
                             <p>Space: Jump</p>
+                            <p># 1-9: Change Block Material</p>
                             <p>Hold Shift: Lower Speed</p>
                             <p>P: Save Build</p>
                             <p>Esc: Menu</p>

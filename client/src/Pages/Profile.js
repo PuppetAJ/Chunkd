@@ -10,8 +10,8 @@ import PostModal from "../Components/PostModal";
 // import Footer from '../Components/Footer';
 
 //Import Icons
-import {AiOutlineUserAdd} from 'react-icons/ai';
-import {ImPlus} from 'react-icons/im';
+import { AiOutlineUserAdd } from 'react-icons/ai';
+import { ImPlus } from 'react-icons/im';
 
 
 
@@ -32,14 +32,14 @@ const Profile = () => {
   console.log(user.thoughts);
 
   const [modalOn, setModalOn] = useState(false);
-	const [choice, setChoice] = useState(false)
+  const [choice, setChoice] = useState(false)
 
-	const clicked = () => {
-		setModalOn(true)
-	}
+  const clicked = () => {
+    setModalOn(true)
+  }
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to="/profile"/>
+    return <Navigate to="/profile" />
   }
 
   if (loading) {
@@ -75,25 +75,30 @@ const Profile = () => {
   // console.log(getMe)
 
   return (
-    <div className="w-5/6 grow grid grid-cols-3 justify-center border-x-2 mx-auto border-gray-800">
+    <div className="w-5/6 grow grid grid-cols-3 justify-center  mx-auto">
       <div className='col-span-2 text-center rounded-lg p-2 mt-2'>
         <h2 className='minecraft container mx-auto mb-3 text-white text-3xl p-3'>
 
-           {userParam ? `${user.username}'s` : 'Welcome to Your'} Profile
+          {userParam ? `${user.username}'s` : 'Welcome to Your'} Profile
 
-         
+
 
         </h2>
+
         {userParam && (
 
           <div className="grid mx-auto items-center m-2 text-gray-300">
             <button className='minecraft justify-center flex mr-6 items-center duration:300 hover:scale-105' onClick={handleClick}>
-            <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
+              <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
             </button>
           </div>
-        )}
+
+          
+          )}
+          
         </div>
       <div className='sticky top-[81px] col-span-1 text-center text-lg bg-opacity-40 rounded-lg p-2 mt-2'>
+        {!userParam && (
         <div className='container mx-auto mt-2 shadow-lg'>
 
           {/* Logic for Modal Here */}
@@ -102,12 +107,14 @@ const Profile = () => {
           <button onClick={clicked} className="minecraft text-2xl text-white my-4 flex items-center duration-300 hover:scale-105"><ImPlus size={18} /><span className="flex ml-3">Add Post</span></button>
 
           {/* MODAL LOGIC to conditionally render modal choice */}
-          {choice}
-          {/* <PostModal /> */}
+         
           {modalOn && < PostModal setModalOn={setModalOn} setChoice={setChoice} />}
 
 
         </div>
+     )}
+
+
         <div className='bt-2 shadow-lg flex-col'>
           <FriendList
             username={user.username}
@@ -122,10 +129,10 @@ const Profile = () => {
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s Posts`} />
         </div>
 
-        
-        <div className= 'max-w-screen-lg mx-auto'>
+
+        <div className='max-w-screen-lg mx-auto'>
+        </div>
       </div>
-    </div>
     </div>
   );
 };
@@ -134,4 +141,3 @@ export default Profile;
 
 
 
-	
