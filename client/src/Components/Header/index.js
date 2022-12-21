@@ -1,5 +1,5 @@
 import { React, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Auth from "../../utils/auth";
 import logo from "../../assets/Soul_Campfire.webp";
 import GameControlsModal from "../GameControls";
@@ -11,7 +11,7 @@ const Header = () => {
 		Auth.logout();
 	};
 
-	
+	const location = useLocation();
 
 	//Logic for Modal
 	const [modalOn, setModalOn] = useState(false);
@@ -51,10 +51,10 @@ const Header = () => {
 									</Link>
 
 									{/* button for modal click  */}
-									
+									{location.pathname ==="/Editor" &&
 										<button onClick={clicked} className="m-3 w-32 btn-minecraft rounded p-2 duration-300 hover:scale-105">
 											Controls
-										</button>
+										</button>}
 									{/* <GameControlsModal /> */}
 									{modalOn && < GameControlsModal setModalOn={setModalOn} />}
 
