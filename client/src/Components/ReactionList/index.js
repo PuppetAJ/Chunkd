@@ -25,4 +25,4 @@ const ReactionList = ({ reactions }) => {
     )
 }
 
-export default ReactionList
+export default ReactionList;
