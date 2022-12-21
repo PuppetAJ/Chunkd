@@ -11,7 +11,7 @@ const server = new ApolloServer({
   context: authMiddleware,
 });
 
-db.dropDatabase();
+// db.dropDatabase();
 
 // Initialize express server
 const app = express();
