@@ -37,6 +37,7 @@ body,
   background-color: #29272c;
 }
 
+/* Editor classes */
 #root {
   display: flex;
   flex-direction: column;
@@ -59,6 +60,7 @@ body,
 #editor {
   width: 100%;
   height: 100%;
+  position: relative;
 }
 
 #test-select {
@@ -87,6 +89,11 @@ body,
   animation-fill-mode: forwards;
 }
 
+.hotbar {
+  bottom: 75px;
+  left: 10px;
+}
+
 @keyframes fadeOut {
   0% {
     opacity: 1;
@@ -95,6 +102,7 @@ body,
     opacity: 0;
   }
 }
+
 @keyframes fadeIn {
   0% {
     opacity: 0;
@@ -102,6 +110,16 @@ body,
   100% {
     opacity: 1;
   }
+}
+
+.hotbar-container {
+  z-index: 50;
+  position: relative;
+}
+
+.slot {
+  position: relative;
+  z-index: 50;
 }
 
 /* Main Container Styling */
@@ -112,8 +130,6 @@ body,
   justify-content: center;
   align-items: center;
 }
-
-
 
 .menu {
   display: flex;
@@ -154,7 +170,6 @@ body,
     inset -3px -3px 0 rgba(0, 0, 0, 0.5);
 }
 
-
 /* MineCraft Button Styling */
 
 .btn-minecraft {
@@ -190,7 +205,6 @@ body,
   background-color: rgb(34, 34, 34);
   color: rgb(247, 247, 247);
 }
-
 
 /* Nav and Login Styling */
 .nav-wrapper {

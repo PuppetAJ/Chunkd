@@ -1,7 +1,7 @@
 import React from "react";
 import { Canvas } from "@react-three/fiber";
 import {
-  Stats,
+  // Stats,
   Sky,
   softShadows,
   PointerLockControls,
@@ -13,12 +13,12 @@ import { Physics } from "@react-three/rapier";
 import { Cubes } from "../Components/Cube";
 import { Player } from "../Components/Player";
 import { Terrain } from "../Components/Terrain";
-import { useQuery, useMutation } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import { QUERY_USER, QUERY_ME } from "../utils/queries";
 import { Navigate, useParams } from "react-router-dom";
 import { SaveModal } from "../Components/SaveModal";
+import { Hotbar } from "../Components/Hotbar";
 import Auth from "../utils/auth";
-
 export default function Editor() {
   const { username: userParam } = useParams();
 
@@ -69,6 +69,7 @@ export default function Editor() {
     >
       <SaveModal />
       <Canvas
+        className="z-10"
         id="editor"
         gl={{ preserveDrawingBuffer: true }}
         shadows
@@ -95,6 +96,7 @@ export default function Editor() {
         {/* FPS counter used for performance */}
         {/* <Stats /> */}
       </Canvas>
+      <Hotbar />
     </KeyboardControls>
   );
 }
