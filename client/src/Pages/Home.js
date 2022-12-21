@@ -3,7 +3,6 @@ import { useQuery } from "@apollo/client";
 import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries";
 import Auth from "../utils/auth";
 import FriendList from "../Components/FriendList";
-// import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
 import PostModal from "../Components/PostModal";
 

@@ -134,9 +134,9 @@ const PostModal = ({ setModalOn, setChoice }) => {
 							</div>
 					</div>
 		
-		  <form className="flex flex-col items-center w-full p-2">
+		  <form className="flex flex-col items-center w-full p-2 mb-2">
             {user.savedBuilds.length && (
-              <select onChange={handleSelChange} id="dropdown">
+              <select className="bg-gray-700 mb-4" onChange={handleSelChange} id="dropdown">
                 {user.savedBuilds.map((el, i) => (
                   <option key={i} value={i}>{`Build ${i + 1}`}</option>
                 ))}
