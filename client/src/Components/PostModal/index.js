@@ -107,14 +107,13 @@ const PostModal = ({ setModalOn, setChoice }) => {
 	return (
 		<div className="  bg-zinc-800 bg-opacity-80 fixed inset-0 z-100">
 			<div className="flex h-screen justify-center items-center mx-auto w-1/2 sm:w-full  ">
-				<div className="flex-col justify-center bg-zinc-900 py-12 px-16 border-2 border-gray-300 rounded-xl sm:w-1/2 ">
-	<p
-							html4="textarea"
-							className="minecraft text-3xl text-white mb-8 flex items-center border-b-2"
-						>
-							<ImPlus size={18}/>
-							<span className="flex ml-3">Add Post</span>
-						</p>
+				<div className="flex-col justify-center  bg-zinc-900 py-12 px-16 border-2 border-gray-300 rounded-xl sm:w-1/2 ">
+					<div className="minecraft text-3xl text-white mb-8 flex flex-col items-center border-b-2">
+							<div className="flex items-center">
+							<ImPlus size={18} />
+							<span className="ml-3">Add Post</span>
+							</div>
+					</div>
 
 					<form className='flex flex-col items-center p-2'>
 						<select className="bg-gray-700 text-gray-300 mb-3" onChange={handleChange} id="dropdown">
@@ -123,7 +122,7 @@ const PostModal = ({ setModalOn, setChoice }) => {
 							))}
 						</select>
 
-		
+
 
 						<p
 							className={`text-xs text-gray-400 mb-1  ${characterCount === 280 || error ? "text-error" : ""
