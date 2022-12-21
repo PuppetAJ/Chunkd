@@ -48,32 +48,6 @@ const PostModal = ({ setModalOn, setChoice }) => {
     },
   });
 
-  // const [addThoughtBuild, dat] = useMutation(ADD_THOUGHT, {
-  //   update(cache, { data: { addThought } }) {
-  //     //read what's currently in the cache
-  //     //Could potentially not exist yet so wrap in try/catch
-  //     try {
-  //       //update Me array's cache
-  //       const { me } = cache.readQuery({ query: QUERY_ME });
-  //       cache.writeQuery({
-  //         query: QUERY_ME,
-  //         data: { me: { ...me, thoughts: [...me.thoughts, addThought] } },
-  //       });
-  //     } catch (e) {
-  //       console.warn("First thought insertion by user!");
-  //     }
-
-  //     //update thought array's cache
-  //     const { thoughts } = cache.readQuery({ query: QUERY_THOUGHTS });
-
-  //     //prepend the newest thought to the front of the array
-  //     cache.writeQuery({
-  //       query: QUERY_THOUGHTS,
-  //       data: { thoughts: [addThought, ...thoughts] },
-  //     });
-  //   },
-  // });
-
   const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
     variables: { username: userParam },
   });
