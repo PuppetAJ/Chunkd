@@ -1,118 +1,175 @@
-const { AuthenticationError } = require('apollo-server-express')
-const { User, Thought } = require('../models')
-const { signToken } = require('../utils/auth')
+const { AuthenticationError } = require("apollo-server-express");
+const { User, Thought } = require("../models");
+const { signToken } = require("../utils/auth");
 
+// Resolvers
 const resolvers = {
-    Query: {
-
-        thoughts: async (parent, { username }) => {
-            const params = username ? { username } : {}
-            return Thought.find(params).sort({ createdAt: -1 })
-        },
-
-        thought: async (parent, { _id }) => {
-            return Thought.findOne({ _id })
-        },
-
-        users: async () => {
-            return User.find()
-                .select('-__v -password')
-                .populate('friends')
-                .populate('thoughts')
-        },
-
-        user: async (parent, { username }) => {
-            return User.findOne({ username })
-                .select('-__v -password')
-                .populate('friends')
-                .populate('thoughts')
-        },
-
-        me: async (parent, args, context) => {
-            if (context.user) {
-                const userData = await User.findOne({})
-                    .select('-__v -password')
-                    .populate('thoughts')
-                    .populate('friends')
-
-                return userData
-            }
-
-            throw new AuthenticationError('Not logged in')
-        }
+  Query: {
+    thoughts: async (parent, { username }) => {
+      const params = username ? { username } : {};
+      return Thought.find(params).sort({ createdAt: -1 });
     },
 
-    Mutation: {
+    thought: async (parent, { _id }) => {
+      return Thought.findOne({ _id });
+    },
 
-        addUser: async (parent, args) => {
-            const user = await User.create(args)
-            const token = signToken(user)
+    users: async () => {
+      return User.find()
+        .select("-__v -password")
+        .populate("friends")
+        .populate("thoughts");
+    },
 
-            return { token, user }
-        },
+    user: async (parent, { username }) => {
+      return User.findOne({ username })
+        .select("-__v -password")
+        .populate("friends")
+        .populate("thoughts");
+    },
 
-        login: async (parent, { email, password }) => {
-            const user = await User.findOne({ email })
+    me: async (parent, args, context) => {
+      console.log(context);
+      if (context.user) {
+        const userData = await User.findOne({ _id: context.user._id })
+          .select("-__v -password")
+          .populate("thoughts")
+          .populate("friends");
 
-            if(!user) {
-                throw new AuthenticationError('Incorrect credentials')
-            }
+        return userData;
+      }
 
-            const correctPw = await user.isCorrectPassword(password)
+      throw new AuthenticationError("Not logged in");
+    },
+  },
 
-            if (!correctPw) {
-                throw new AuthenticationError('Incorrect credentials')
-            }
+  Mutation: {
+    addUser: async (parent, args) => {
+      const user = await User.create(args);
+      const token = signToken(user);
 
-            const token = signToken(user)
-            console.log('Login successful')
-            return { token, user }
-        },
+      return { token, user };
+    },
 
-        addThought: async (parent, args, context) => {
-            if (context.user) {
-                const thought = await Thought.create({ ...args, username: context.user.username })
+    login: async (parent, { email, password }) => {
+      const user = await User.findOne({ email });
 
-                await User.findByIdAndUpdate(
-                    { _id: context.user._id },
-                    { $push: { thoughts: thought._id } },
-                    { new: true }
-                )
+      if (!user) {
+        throw new AuthenticationError("Incorrect credentials");
+      }
 
-                return thought
-            }
+      const correctPw = await user.isCorrectPassword(password);
 
-            throw new AuthenticationError('You need to be loggen in')
-        },
+      if (!correctPw) {
+        throw new AuthenticationError("Incorrect credentials");
+      }
 
-        addReaction: async (parent, { thoughtId, reactionBody }, context) => {
-            if (context.user) {
-                const updatedThought = await Thought.findOneAndUpdate(
-                    { _id: thoughtId },
-                    { $push: { reactions: { reactionBody, username: context.user.username } } },
-                    { new: true, runValidators: true }
-                )
+      const token = signToken(user);
+      console.log("Login successful");
+      return { token, user };
+    },
 
-                return updatedThought
-            }
+    addThought: async (parent, args, context) => {
+      if (context.user) {
+        const thought = await Thought.create({
+          ...args,
+          username: context.user.username,
+        });
 
-            throw new AuthenticationError('You need to be logged in')
-        },
+        await User.findByIdAndUpdate(
+          { _id: context.user._id },
+          { $push: { thoughts: thought._id } },
+          { new: true }
+        );
 
-        addFriend: async (parent, { friendId }, context) => {
-            if (context.user) {
-                const updatedUser = await User.findOneAndUpdate(
-                    { _id: context.user._id },
-                    { $addToSet: { friends: friendId } },
-                    { new: true }
-                ).populate('friends')
+        return thought;
+      }
 
-                return updatedUser
-            }
+      throw new AuthenticationError("You need to be loggen in");
+    },
 
-            throw new AuthenticationError('You meed to be logged in')
+    deleteThought: async (parent, { thoughtId }, context) => {
+      if (context.user) {
+        try {
+          const thought = await Thought.findById(thoughtId);
+
+          if (context.user.username === thought.username) {
+            await thought.delete();
+            console.log("Post deleted successfully");
+            return;
+          } else {
+            throw new AuthenticationError(
+              "Action denied, you are not the owner"
+            );
+          }
+        } catch (err) {
+          throw new Error(err);
         }
-    }
-}
+      }
 
-module.exports = resolvers
+      throw new AuthenticationError("You need to be loggen in");
+    },
+
+    addReaction: async (parent, { thoughtId, reactionBody }, context) => {
+      if (context.user) {
+        const updatedThought = await Thought.findOneAndUpdate(
+          { _id: thoughtId },
+          {
+            $push: {
+              reactions: { reactionBody, username: context.user.username },
+            },
+          },
+          { new: true, runValidators: true }
+        );
+
+        return updatedThought;
+      }
+
+      throw new AuthenticationError("You need to be logged in");
+    },
+
+    addFriend: async (parent, { friendId }, context) => {
+      if (context.user) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $addToSet: { friends: friendId } },
+          { new: true }
+        ).populate("friends");
+
+        return updatedUser;
+      }
+
+      throw new AuthenticationError("You meed to be logged in");
+    },
+
+    addBuild: async (parent, { buildData }, context) => {
+      // console.log(args);
+      // console.log(args.buildData);
+      if (context.user) {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $addToSet: { savedBuilds: buildData } },
+          { new: true }
+        ).populate("friends");
+
+        return updatedUser;
+      }
+
+      throw new AuthenticationError("You meed to be logged in");
+    },
+
+    // deleteFriend: async (parent, { friendId }, context) => {
+    // 	if (context.user) {
+    // 		const user = await User.findOneAndUpdate(
+    // 			{ _id: context.user._id },
+    // 			{ $pull: {friends: {$in: [friendId]}} },
+    // 			{new: true}
+    // 		)
+
+    // 		return user;
+    // 	}
+    // }
+  },
+};
+
+module.exports = resolvers;
