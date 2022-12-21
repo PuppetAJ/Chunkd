@@ -88,6 +88,26 @@ const resolvers = {
 			throw new AuthenticationError("You need to be loggen in");
 		},
 
+		deleteThought: async (parent, { thoughtId }, context) => {
+			if (context.user) {
+				try {
+					const thought = await Thought.findById(thoughtId)
+
+					if (context.user.username === thought.username) {
+						await thought.delete()
+						console.log('Post deleted successfully')
+						return
+					} else {
+						throw new AuthenticationError('Action denied, you are not the owner')
+					}
+				} catch (err) {
+					throw new Error(err)
+				}
+			}
+
+			throw new AuthenticationError('You need to be loggen in')
+		},
+
 		addReaction: async (parent, { thoughtId, reactionBody }, context) => {
 			if (context.user) {
 				const updatedThought = await Thought.findOneAndUpdate(
@@ -119,6 +139,18 @@ const resolvers = {
 
 			throw new AuthenticationError("You meed to be logged in");
 		},
+
+		// deleteFriend: async (parent, { friendId }, context) => {
+		// 	if (context.user) {
+		// 		const user = await User.findOneAndUpdate(
+		// 			{ _id: context.user._id },
+		// 			{ $pull: {friends: {$in: [friendId]}} },
+		// 			{new: true}
+		// 		)
+
+		// 		return user;
+		// 	}
+		// }
 	},
 };
 

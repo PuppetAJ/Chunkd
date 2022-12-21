@@ -1,12 +1,15 @@
 import React from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@apollo/client'
-import { QUERY_THOUGHT } from '../utils/queries'
+import { useMutation, useQuery } from '@apollo/client'
+import { QUERY_THOUGHT, QUERY_ME_BASIC } from '../utils/queries'
+import { DELETE_THOUGHT } from '../utils/mutations'
 import ReactionList from '../Components/ReactionList'
 import ReactionForm from '../Components/ReactionForm'
 import Auth from '../utils/auth'
 
 const SingleThought = props => {
+
+  const [deleteThought] = useMutation(DELETE_THOUGHT)
 
   const { id: thoughtId } = useParams();
 
@@ -14,10 +17,26 @@ const SingleThought = props => {
     variables: { id: thoughtId }
   });
 
+  const userData = useQuery(QUERY_ME_BASIC)
+
   const thought = data?.thought || {};
+
+  const user = userData.data.me
 
   if (loading) {
     return <div>Loading...</div>;
+  }
+
+  const handleClick = async () => {
+    console.log('delete button')
+    try {
+      await deleteThought({
+        variables: { thoughtId: thought._id }
+      })
+      return window.location.replace('/')
+    } catch (e) {
+      console.log(e)
+    }
   }
 
   return (
@@ -41,6 +60,7 @@ const SingleThought = props => {
           <p className="text-xs">{thought.createdAt}</p>
         </div>
 
+        {user.username === thought.username && <button onClick={handleClick} className='text-light'>Delete</button>}
 
         <div>
           {thought.reactionCount > 0 && <ReactionList reactions={thought.reactions} />}

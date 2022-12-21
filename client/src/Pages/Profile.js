@@ -6,11 +6,11 @@ import FriendList from '../Components/FriendList'
 import ThoughtForm from '../Components/ThoughtForm'
 import { useQuery, useMutation } from '@apollo/client'
 import { QUERY_USER, QUERY_ME } from '../utils/queries'
-import { ADD_FRIEND } from '../utils/mutations'
+import { ADD_FRIEND, DELETE_FRIEND } from '../utils/mutations'
 // import Footer from '../Components/Footer';
 
 //Import Icons
-import {AiOutlineUserAdd} from 'react-icons/ai';
+import { AiOutlineUserAdd } from 'react-icons/ai';
 
 
 const Profile = () => {
@@ -24,9 +24,10 @@ const Profile = () => {
   });
 
   const user = data?.me || data?.user || {};
+  // const [deleteFriend] = useMutation(DELETE_FRIEND)
 
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to="/profile:username"/>
+    return <Navigate to="/profile" />
   }
 
   if (loading) {
@@ -51,42 +52,52 @@ const Profile = () => {
     )
   }
 
+  // // Get current logged in user data
+  // const getMe = Auth.getProfile()
+  // const meUsername = getMe.data.username
+  // const meId = getMe.data._id
+
+  // console.log(userParam)
+  // console.log(meUsername)
+  // console.log(meId)
+  // console.log(getMe)
+
   return (
     <main>
-    <div className=" grow items-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
-      <div className='text-center rounded-lg p-2 mt-2'>
-        <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
-           {userParam ? `${user.username}'s` : 'your'} profile.
-        </h2>
-        {userParam && (
+      <div className=" grow items-center border-x-2 max-w-screen-lg mx-auto border-gray-800">
+        <div className='text-center rounded-lg p-2 mt-2'>
+          <h2 className='container mx-auto mb-3 text-white text-3xl p-3'>
+            {userParam ? `${user.username}'s` : 'your'} profile.
+          </h2>
+          {userParam && (
 
-          <div className="flex flex-col items-center text-white">
-          <button className='flex mr-6 items-center duration:300 hover:scale-110' onClick={handleClick}>
-           <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
-          </button>
+            <div className="grid mx-auto items-center m-2 text-gray-300">
+              <button className='minecraft justify-center flex mr-6 items-center duration:300 hover:scale-105' onClick={handleClick}>
+                <AiOutlineUserAdd size={32} /> <p className="mx-4 text-sm">Add friend</p>
+              </button>
 
+            </div>
+          )}
+        </div>
+
+        <div className="flex-row justify-center mb-3">
+          <div className="mt-3">
+            <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
           </div>
-        )}
-      </div>
 
-      <div className="flex-row justify-center mb-3">
-        <div className="mt-3">
-          <ThoughtList thoughts={user.thoughts} title={`${user.username}'s thoughts...`} />
+          <div className='text-center text-lg bg-opacity-40 shadow-xl rounded-lg p-2 mt-2'>
+            <FriendList
+              username={user.username}
+              friendCount={user.friendCount}
+              friends={user.friends}
+            />
+          </div>
+          <div className='max-w-screen-lg mx-auto'>
+          </div>
+          <div className='mb-3'>{!userParam && <ThoughtForm />}</div>
         </div>
-
-        <div className='text-center text-lg bg-opacity-40 shadow-xl rounded-lg p-2 mt-2'>
-          <FriendList
-            username={user.username}
-            friendCount={user.friendCount}
-            friends={user.friends}
-          />
-        </div>
-        <div className= 'max-w-screen-lg mx-auto'>
       </div>
-      <div className='mb-3'>{!userParam && <ThoughtForm />}</div>
-    </div>
-    </div>
-    </main>
+    </main >
   );
 };
 

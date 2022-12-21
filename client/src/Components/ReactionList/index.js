@@ -1,14 +1,12 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-
-//Import Icons
-import {FaRegComments} from 'react-icons/fa';
+import { FaRegComments } from 'react-icons/fa';
 
 const ReactionList = ({ reactions }) => {
     return (
         <div className="mb-3">
             <div className="">
-                <p className="text-light duration-300 hover:scale-105"> < FaRegComments size={18}/> </p>
+                <p className="text-light duration-300 hover:scale-105"> < FaRegComments size={18} /> </p>
             </div>
             <div className="">
                 {reactions &&
