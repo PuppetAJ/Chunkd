@@ -12,7 +12,7 @@ const ThoughtList = ({ thoughts, title }) => {
 	}
 
 	return (
-		<div className="mx-auto items-center justify-center max-w-screen-lg rounded-xl sm:flex  shadow-xl hover:rounded-2xl">
+		<div className="mx-auto items-center justify-center max-w-screen-lg rounded-xl sm:flex hover:rounded-2xl">
 
 			<div className="sm:w-8/12 justify-center">
 				<div className="space-y-2">

@@ -117,7 +117,7 @@ const Profile = () => {
         </div>
       </div>
 
-      <div className="-mt-10 col-span-2 justify-center mb-3">
+      <div className="-mt-10 m-1 col-span-2 justify-center mb-3">
         <div className="mt-3">
           <ThoughtList thoughts={user.thoughts} title={`${user.username}'s Posts`} />
         </div>

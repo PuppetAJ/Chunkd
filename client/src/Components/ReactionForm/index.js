@@ -37,7 +37,7 @@ const ReactionForm = ({ thoughtId }) => {
 
   return (
 
-    <div className='w-full p-3 bg-opacity-40 break-normal shadow-xl rounded-lg duration:300 hover:scale-105'>
+    <div className='w-full p-3 bg-opacity-40 break-normal shadow-lg rounded-lg duration:300 hover:scale-105'>
       <p className={`text-xs text-gray-400 text-center m-0 ${characterCount === 280 || error ? 'text-error' : ''}`}>
         Character Count: {characterCount}/280
         {error && <span className="ml-2">Something went wrong...</span>}
