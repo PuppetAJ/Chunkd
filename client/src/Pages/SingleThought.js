@@ -43,17 +43,17 @@ const SingleThought = (props) => {
 	};
 
 	return (
-		<div className="grow max-w-screen-lg w-3/4 mx-auto bg-opacity-40 items-center justify-center rounded-xl mt-6 text-gray-300 shadow-md hover:rounded-2xl">
+		<div className="grow max-w-screen-lg w-3/4 mx-auto bg-opacity-40 items-center justify-center rounded-xl mt-10 text-gray-300 hover:rounded-2xl">
 			<LoadTest />
 			<div className="w-full rounded-lg p-5 my-3">
-				<div className="flex items-center justify-between text-xl font-bold p-2 px-3 text-gray-300 bg-gray-700 bg-opacity-40 text-center rounded-lg ">
+				<div className="flex items-center justify-between text-Lg sm:text-Xl font-bold p-2 px-3 text-gray-300 bg-gray-700 bg-opacity-40 text-center rounded-lg ">
 					<h4 className="duration-300 hover:scale-105 hover:underline">
 						<Link to={`/profile/${thought.username}`}>
 							{thought.username}
 						</Link>{" "}
 					</h4>
-					<div className='flex items-center text-gray-400 text-xs justify-end'>
-						<FaRegClock size={14} /> <p className="pl-3">{thought.createdAt}</p>
+					<div className='flex flex-col sm:flex-row w-3/4 items-center text-gray-400 text-xs justify-center'>
+						<FaRegClock size={14} /> <p className="pl-2 ">{thought.createdAt}</p>
 					</div>
 				</div>
 
@@ -61,31 +61,15 @@ const SingleThought = (props) => {
 					<p className="text-ellipsis overflow-hidden">{thought.thoughtText}</p>
 				</div>
 
-				<div className="text-grey-400 flex flex-row space-x-1 justify-between my-4">
-					<svg
-						stroke="currentColor"
-						fill="none"
-						stroke-width="0"
-						viewBox="0 0 24 24"
-						height="1em"
-						width="1em"
-						xmlns="http://www.w3.org/2000/svg"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-						></path>
-					</svg>
-					<p className="text-xs">{thought.createdAt}</p>
-				</div>
+				
 
 				{user.username === thought.username && (
-					<button onClick={handleClick} className='float-right bg-red-700 rounded-md px-2 mr-6 mb-2
+					<div className="flex flex-col items-center">
+					<button onClick={handleClick} className='items-center w-1/8 bg-red-700 rounded-md py-1 px-2 mb-2
 					 text-gray-300 duration-300 hover:scale-105 '>
 						Delete
 					</button>
+					</div>
 				)}
 
 				<div className="w-full">

@@ -7,7 +7,7 @@ import { FaRegClock, FaRegCommentDots } from 'react-icons/fa'
 const ThoughtList = ({ thoughts, title }) => {
 	if (!thoughts.length) {
 
-		return <h3 className=" btn-minecraft flex flex-col items-center m-auto">No Posts Yet</h3>;
+		return <h3 className=" btn-minecraft flex flex-col sm:w-1/4 items-center mx-auto">No Posts Yet</h3>;
 
 	}
 
@@ -53,7 +53,7 @@ const ThoughtList = ({ thoughts, title }) => {
 										
 										</div> */}
 
-											<button className=" left-1 bottom-1 col-start-4 rounded col-span-3 btn-minecraft break-normal text-xs">
+											<button className=" flex left-1 mb-2 justify-center mx-auto col-start-4 rounded col-span-3 btn-minecraft break-normal text-xs">
 												{thought.reactionCount ? "See" : "Start"} the discussion!<p className="inline-block pl-2">{thought.reactionCount}    </p>< FaRegCommentDots size={16} className="inline-block mb-1 pl-0.5" /></button>
 
 										</Link>
