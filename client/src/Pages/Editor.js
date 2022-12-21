@@ -19,6 +19,7 @@ import { Terrain } from "../Components/Terrain";
 import { useQuery, useMutation } from "@apollo/client";
 import { QUERY_USER, QUERY_ME } from "../utils/queries";
 import { Navigate, useParams } from "react-router-dom";
+import { SaveModal } from "../Components/SaveModal";
 import Auth from "../utils/auth";
 
 export default function Editor() {
@@ -69,6 +70,7 @@ export default function Editor() {
         { name: "shift", keys: ["Shift"] },
       ]}
     >
+      <SaveModal></SaveModal>
       <div
         style={{
           top: 16,

@@ -71,6 +71,39 @@ body,
   height: 30px;
 }
 
+.save-modal {
+  bottom: 75px;
+  right: 10px;
+  opacity: 0;
+}
+
+.fade-in {
+  animation: fadeIn 1s;
+  animation-fill-mode: forwards;
+}
+
+.fade-out {
+  animation: fadeOut 1s;
+  animation-fill-mode: forwards;
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 /* Main Container Styling */
 .container {
   width: auto;

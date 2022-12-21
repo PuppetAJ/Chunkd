@@ -59,6 +59,14 @@ export function Player({ lerp = THREE.MathUtils.lerp }) {
     };
 
     if (saveButton) {
+      const modal = document.querySelector(".save-modal");
+      modal.classList.remove("fade-out");
+      modal.classList.add("fade-in");
+
+      setTimeout(() => {
+        modal.classList.remove("fade-in");
+        modal.classList.add("fade-out");
+      }, 1500);
       const pkg = { cubes: cubes, instanceBlocks: instanceBlocks };
       const data = JSON.stringify(pkg);
 
