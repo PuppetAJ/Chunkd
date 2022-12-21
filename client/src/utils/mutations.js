@@ -1,4 +1,4 @@
-import { gql } from "@apollo/client"
+import { gql } from "@apollo/client";
 
 export const LOGIN_USER = gql`
   mutation login($email: String!, $password: String!) {
@@ -10,7 +10,7 @@ export const LOGIN_USER = gql`
       }
     }
   }
-`
+`;
 
 export const ADD_USER = gql`
   mutation addUser($username: String!, $email: String!, $password: String!) {
@@ -22,7 +22,7 @@ export const ADD_USER = gql`
       }
     }
   }
-`
+`;
 
 export const ADD_FRIEND = gql`
   mutation addFriend($id: ID!) {
@@ -36,7 +36,7 @@ export const ADD_FRIEND = gql`
       }
     }
   }
-`
+`;
 
 // export const DELETE_FRIEND = gql`
 //   mutation deleteFriend($friendId: ID!) {
@@ -45,11 +45,12 @@ export const ADD_FRIEND = gql`
 // `
 
 export const ADD_THOUGHT = gql`
-  mutation addThought($thoughtText: String!) {
-    addThought(thoughtText: $thoughtText) {
+  mutation addThought($thoughtText: String!, $build: String) {
+    addThought(thoughtText: $thoughtText, build: $build) {
       _id
       thoughtText
       createdAt
+      build
       username
       reactionCount
       reactions {
@@ -57,7 +58,7 @@ export const ADD_THOUGHT = gql`
       }
     }
   }
-`
+`;
 
 export const ADD_REACTION = gql`
   mutation addReaction($thoughtId: ID!, $reactionBody: String!) {
@@ -72,13 +73,13 @@ export const ADD_REACTION = gql`
       }
     }
   }
-`
+`;
 
 export const DELETE_THOUGHT = gql`
   mutation deleteThought($thoughtId: ID!) {
     deleteThought(thoughtId: $thoughtId)
   }
-`
+`;
 
 export const ADD_BUILD = gql`
   mutation addBuild($buildData: String!) {
@@ -87,5 +88,4 @@ export const ADD_BUILD = gql`
       savedBuilds
     }
   }
-`
-
+`;

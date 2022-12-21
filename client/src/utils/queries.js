@@ -1,5 +1,4 @@
-import { gql } from '@apollo/client';
-
+import { gql } from "@apollo/client";
 
 export const QUERY_THOUGHTS = gql`
   query thoughts($username: String) {
@@ -17,7 +16,7 @@ export const QUERY_THOUGHTS = gql`
       }
     }
   }
-`
+`;
 
 export const QUERY_THOUGHT = gql`
   query thought($id: ID!) {
@@ -25,6 +24,7 @@ export const QUERY_THOUGHT = gql`
       _id
       thoughtText
       createdAt
+      build
       username
       reactionCount
       reactions {
@@ -35,7 +35,7 @@ export const QUERY_THOUGHT = gql`
       }
     }
   }
-`
+`;
 
 export const QUERY_USER = gql`
   query user($username: String!) {
@@ -56,7 +56,7 @@ export const QUERY_USER = gql`
       }
     }
   }
-`
+`;
 
 export const QUERY_ME = gql`
   {
@@ -84,7 +84,7 @@ export const QUERY_ME = gql`
       }
     }
   }
-`
+`;
 
 export const QUERY_ME_BASIC = gql`
   {
@@ -94,7 +94,7 @@ export const QUERY_ME_BASIC = gql`
       email
     }
   }
-`
+`;
 
 // export const QUERY_ME_FRIENDS = gql`
 //   {

@@ -15,6 +15,7 @@ const typeDefs = gql`
     _id: ID
     thoughtText: String
     createdAt: String
+    build: String
     username: String
     reactionCount: Int
     reactions: [Reaction]
@@ -40,16 +41,16 @@ const typeDefs = gql`
     thought(_id: ID): Thought
   }
 
-    type Mutation {
-        addBuild(buildData: String!): User
-        login(email: String!, password: String!): Auth
-        addUser(username: String!, email: String!, password: String!): Auth
-        addThought(thoughtText: String!): Thought
-        deleteThought(thoughtId: ID!): String
-        addReaction(thoughtId: ID!, reactionBody: String!): Thought
-        addFriend(friendId: ID!): User
-        # deleteFriend(friendId: ID!): String
-    }
-`
+  type Mutation {
+    addBuild(buildData: String!): User
+    login(email: String!, password: String!): Auth
+    addUser(username: String!, email: String!, password: String!): Auth
+    addThought(thoughtText: String!, build: String): Thought
+    deleteThought(thoughtId: ID!): String
+    addReaction(thoughtId: ID!, reactionBody: String!): Thought
+    addFriend(friendId: ID!): User
+    # deleteFriend(friendId: ID!): String
+  }
+`;
 
 module.exports = typeDefs;

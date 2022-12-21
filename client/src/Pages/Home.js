@@ -1,4 +1,3 @@
-
 import { React, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries";
@@ -7,31 +6,27 @@ import FriendList from "../Components/FriendList";
 // import ThoughtForm from "../Components/ThoughtForm";
 import ThoughtList from "../Components/ThoughtList";
 import PostModal from "../Components/PostModal";
-import homeLogo from "../assets/CHUNKD.png";
-
 
 
 //Import Icons
-import {ImPlus} from 'react-icons/im';
+import { ImPlus } from "react-icons/im";
 
 const Home = () => {
-	const { loading, data } = useQuery(QUERY_THOUGHTS);
+  const { loading, data } = useQuery(QUERY_THOUGHTS);
 
-	const { data: userData } = useQuery(QUERY_ME_BASIC);
+  const { data: userData } = useQuery(QUERY_ME_BASIC);
 
-	const thoughts = data?.thoughts || [];
+  const thoughts = data?.thoughts || [];
 
-	const loggedIn = Auth.loggedIn();
+  const loggedIn = Auth.loggedIn();
 
-	//Logic for Modal
-	const [modalOn, setModalOn] = useState(false);
-	const [choice, setChoice] = useState(false)
+  //Logic for Modal
+  const [modalOn, setModalOn] = useState(false);
+  const [choice, setChoice] = useState(false);
 
-	const clicked = () => {
-		setModalOn(true)
-	}
-
-
+  const clicked = () => {
+    setModalOn(true);
+  };
 
 	//---** RENAME THIS TO FORUM.JS to be the 'FORUM PAGE' **-- //
 	return (
@@ -90,5 +85,3 @@ const Home = () => {
 };
 
 export default Home;
-
-

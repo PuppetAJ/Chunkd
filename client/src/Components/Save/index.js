@@ -1,10 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useTexture, Instances, Instance } from "@react-three/drei";
 import dirtText from "../../assets/textures/dirt.png";
 import grassText from "../../assets/textures/grass.png";
-import { useThree } from "@react-three/fiber";
-import * as THREE from "three";
+import glassText from "../../assets/textures/glass.png";
+import cobbleText from "../../assets/textures/cobblestone.png";
+import logText from "../../assets/textures/log.png";
+import planksText from "../../assets/textures/planks.png";
+import leavesText from "../../assets/textures/leaves.png";
+import stoneBricksText from "../../assets/textures/stone_bricks.png";
+import bricksText from "../../assets/textures/bricks.png";
 
 export function Save(props) {
   const build = JSON.parse(props.build);
@@ -12,16 +17,35 @@ export function Save(props) {
   const [instancePos] = useState(build.instanceBlocks);
   const [cubePos] = useState(build.cubes);
 
-  // console.log(build);
-
   const dirt = useTexture(dirtText);
   const grass = useTexture(grassText);
+  const glass = useTexture(glassText);
+  const cobble = useTexture(cobbleText);
+  const log = useTexture(logText);
+  const planks = useTexture(planksText);
+  const leaves = useTexture(leavesText);
+  const stoneBricks = useTexture(stoneBricksText);
+  const bricks = useTexture(bricksText);
 
   const textureSelect = (name) => {
     if (name === "dirt") {
       return dirt;
     } else if (name === "grass") {
       return grass;
+    } else if (name === "glass") {
+      return glass;
+    } else if (name === "cobble") {
+      return cobble;
+    } else if (name === "log") {
+      return log;
+    } else if (name === "planks") {
+      return planks;
+    } else if (name === "leaves") {
+      return leaves;
+    } else if (name === "stonebricks") {
+      return stoneBricks;
+    } else if (name === "bricks") {
+      return bricks;
     }
   };
 
@@ -63,6 +87,7 @@ export function Save(props) {
               <meshStandardMaterial
                 attach={`material-${index}`}
                 key={index}
+                transparent
                 map={textureSelect(el.textName)}
                 color={el.color}
               />
