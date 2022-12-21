@@ -23,8 +23,9 @@ This project was bootstrapped with [Create React App].
   * [Questions?](#questions)
 
   ## Description
-   This is a fully-responsive portfolio built with React to showcase the latest projects I have been working on.
-   
+   A MERN Stack application that allows a user to play and create in a 3D environment and share their builds to a community of other creators. Users are able to add friends and can comment and hold discussions about the game and their builds that they have shared.
+
+
   ## Installation
  
  First clone this repo to your local directory and install dependencies by running:

@@ -30,9 +30,9 @@ body,
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  /* background-image: url('./assets/ChunkedBG.png'); */
+  /* background-image: url('./assets/creeper.jpg'); */
   background-size: cover;
-  background-repeat: no-repeat;
+  /* background-blend-mode: darken; */
   /* overflow: hidden; */
   background-color: #29272c;
 }

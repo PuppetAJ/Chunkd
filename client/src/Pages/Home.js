@@ -9,6 +9,8 @@ import ThoughtList from "../Components/ThoughtList";
 import PostModal from "../Components/PostModal";
 import homeLogo from "../assets/CHUNKD.png";
 
+
+
 //Import Icons
 import {ImPlus} from 'react-icons/im';
 

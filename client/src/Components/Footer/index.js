@@ -14,7 +14,7 @@ import { FaGithub} from 'react-icons/fa';
           </a>
           </div>
         <p className="text-center ml-2">
-        &copy; {new Date().getFullYear()} Team NotHavinIt.
+        &copy; {new Date().getFullYear()} The Second Breakfast Club
         </p>
      
     </footer>
