@@ -43,8 +43,7 @@ export default function SavedBuild(props) {
 
   return (
     <>
-      <div id="test-select"></div>
-      <div id="save-container">
+      <div id="save-container" className="mt-8">
         <div id="save-wrapper">
           <Canvas
             gl={{ preserveDrawingBuffer: true }}

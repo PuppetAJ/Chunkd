@@ -119,31 +119,31 @@ const PostModal = ({ setModalOn, setChoice }) => {
   }
 
   console.log(user);
-	
-
 
   // Return JSX for Post Modal
   return (
     <div className="  bg-zinc-800 bg-opacity-80 fixed inset-0 z-100   ">
       <div className="flex h-screen justify-center items-center mx-auto w-1/2 sm:w-full  ">
-	  <div className="flex-col justify-center  bg-zinc-900 py-12 px-16 border-2 border-gray-300 rounded-xl sm:w-1/2 ">
-        <div className="minecraft text-3xl text-white mb-8 flex flex-col items-center border-b-2">
-							<div className="flex items-center">
-							<ImPlus size={18} />
-							<span className="ml-3">Add Post</span>
-							</div>
-					</div>
-		
-		  <form className="flex flex-col items-center w-full p-2 mb-2">
-            {user.savedBuilds.length && (
-             <select className="bg-gray-700 text-gray-300 mb-3" onChange={handleChange} id="dropdown">
-			 {user.savedBuilds.map((el, i) => (
-				 <option key={i} value={i}>{`Build ${i + 1}`}</option>
-			 ))}
-		 </select>
-            )}
+        <div className="flex-col justify-center  bg-zinc-900 py-12 px-16 border-2 border-gray-300 rounded-xl sm:w-1/2 ">
+          <div className="minecraft text-3xl text-white mb-8 flex flex-col items-center border-b-2">
+            <div className="flex items-center">
+              <ImPlus size={18} />
+              <span className="ml-3">Add Post</span>
+            </div>
+          </div>
 
-        
+          <form className="flex flex-col items-center w-full p-2 mb-2">
+            {user.savedBuilds.length && (
+              <select
+                className="bg-gray-700 text-gray-300 mb-3"
+                onChange={handleSelChange}
+                id="dropdown"
+              >
+                {user.savedBuilds.map((el, i) => (
+                  <option key={i} value={i}>{`Build ${i + 1}`}</option>
+                ))}
+              </select>
+            )}
 
             <p
               className={` text-xs text-gray-400 mb-1  ${
@@ -165,7 +165,7 @@ const PostModal = ({ setModalOn, setChoice }) => {
             </textarea>
           </form>
 
-		  <div className="flex flex-col items-center sm:flex-row sm:justify-evenly px-2">
+          <div className="flex flex-col items-center sm:flex-row sm:justify-evenly px-2">
             <button
               onClick={handleOKClick}
               className="btn-minecraft mt-2 duration-300 hover:scale-105"
