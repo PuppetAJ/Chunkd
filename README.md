@@ -72,6 +72,10 @@ This project was built using these technologies.
 
 Adrian Jimenez, Alexander Havers, Caleb Funderburk, Austin Reed, Dane Cronin
 
+## Credits
+- Block textures were used from the minecraft Sphax PureBDCraft [texturepack](https://bdcraft.net/downloads/purebdcraft-minecraft/)
+- Starting code for the 3D editor was used from [this](https://codesandbox.io/s/vkgi6) code sandbox
+
 ## License
 
 MIT License
