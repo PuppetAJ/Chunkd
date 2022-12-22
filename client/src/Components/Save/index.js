@@ -12,11 +12,14 @@ import stoneBricksText from "../../assets/textures/stone_bricks.png";
 import bricksText from "../../assets/textures/bricks.png";
 
 export function Save(props) {
+  // Parse data
   const build = JSON.parse(props.build);
 
+  // Instanced mesh and player placed cube positions
   const [instancePos] = useState(build.instanceBlocks);
   const [cubePos] = useState(build.cubes);
 
+  // Textures
   const dirt = useTexture(dirtText);
   const grass = useTexture(grassText);
   const glass = useTexture(glassText);
@@ -27,6 +30,7 @@ export function Save(props) {
   const stoneBricks = useTexture(stoneBricksText);
   const bricks = useTexture(bricksText);
 
+  // Select texture to apply
   const textureSelect = (name) => {
     if (name === "dirt") {
       return dirt;
@@ -48,6 +52,8 @@ export function Save(props) {
       return bricks;
     }
   };
+
+  // JSX -- simply maps an intanced mesh and separate meshes to the positions stored
 
   return (
     <>

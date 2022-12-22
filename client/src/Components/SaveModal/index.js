@@ -1,12 +1,6 @@
 import React from "react";
 
 export const SaveModal = ({ setModalOn }) => {
-  //Function to handle Modal click to add Post
-  // const handleCancelClick = () => {
-
-  //     setModalOn(false)
-  // }
-
   // Return JSX for SAVED Modal
   return (
     <div className="save-modal z-50 bg-opacity-80 fixed mt-20 z-75">

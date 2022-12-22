@@ -16,24 +16,30 @@ import leavesText from "../../assets/textures/leaves.png";
 import stoneBricksText from "../../assets/textures/stone_bricks.png";
 import bricksText from "../../assets/textures/bricks.png";
 
+// Global instancedMesh positions store
 export const useInstanceStore = create((set) => ({
   positions: [],
   setPositions: (arr) => set((state) => ({ positions: arr })),
 }));
 
+// Component
 export function Terrain() {
+  // Texture for instances
   const texture = useTexture(grassText);
 
-  const cubes = useCubeStore((state) => state.cubes);
-  const addCube = useCubeStore((state) => state.addCube);
+  // const cubes = useCubeStore((state) => state.cubes);
 
+  // Stores
+  const addCube = useCubeStore((state) => state.addCube);
+  const selected = useSelectedStore((state) => state.selected);
+  const setPositions = useInstanceStore((state) => state.setPositions);
+
+  // States and refs
   const [blocks, setBlocks] = useState([]);
   const [size, setSize] = useState(100000);
   const ref = useRef();
 
-  const selected = useSelectedStore((state) => state.selected);
-  const setPositions = useInstanceStore((state) => state.setPositions);
-
+  // Textures
   let dirt = useTexture(dirtText);
   let grass = useTexture(grassText);
   const glass = useTexture(glassText);
@@ -44,51 +50,65 @@ export function Terrain() {
   const stoneBricks = useTexture(stoneBricksText);
   const bricks = useTexture(bricksText);
 
+  // Terrain generation
   useEffect(() => {
+    // Instantiate noise using a random seed
     const noise = new Noise(Math.random());
-    let blockSet = new Set();
+
+    // Settings for noise and array to push blocks to
+    // let blockSet = new Set();
     let blockStore = [];
     let xOff = 0;
     let zOff = 0;
     let inc = 0.05;
     let amplitude = 35;
+
+    // Loop through all possible positions
     for (let x = 0; x < 32; x++) {
+      // xOffset - can potentially remove this: needs testing
       xOff = 0;
       for (let z = 0; z < 32; z++) {
+        // Generate y values using perlin noise
         let y = Math.round((noise.perlin2(xOff, zOff) * amplitude) / 5) + 4;
         blockStore.push([x, y, z]);
-        blockSet.add(`${x} ${y} ${z}`);
+        // blockSet.add(`${x} ${y} ${z}`);
 
         // Only create hollow shell to improve preformance, calc perimeter
         if (x === 0 || x === 31) {
           for (let j = y; j > 0; j--) {
             blockStore.push([x, y - j, z]);
-            blockSet.add(`${x} ${y - j} ${z}`);
+            // blockSet.add(`${x} ${y - j} ${z}`);
           }
         }
 
         if (z === 0 || z === 31) {
           for (let j = y; j > 0; j--) {
             blockStore.push([x, y - j, z]);
-            blockSet.add(`${x} ${y - j} ${z}`);
+            // blockSet.add(`${x} ${y - j} ${z}`);
           }
         }
         blockStore.push([x, -1, z]);
-        blockSet.add(`${x} ${-1} ${z}`);
+        // blockSet.add(`${x} ${-1} ${z}`);
+
+        // Increment xOffset
         xOff = xOff + inc;
       }
+      // Increment zOffset
       zOff = zOff + inc;
     }
 
+    // Update state
     setBlocks(blockStore);
     setSize(blockStore.length);
     setPositions(blockStore);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Click handler
   const onClick = (e) => {
     e.stopPropagation();
 
+    // If left click
     if (window.event.button === 0 && e.object.selected === true) {
       const clickedObj = e.object;
       const instancedMesh = ref.current;
@@ -96,12 +116,14 @@ export function Terrain() {
       const index = instances.indexOf(clickedObj);
       const { x, y, z } = e.object.position;
 
+      // Find index of block clicked
       const ind = blocks.findIndex(([x2, y2, z2]) => {
         if (x2 === x && y2 === y && z2 === z) {
           return true;
         }
       });
 
+      // Remove it from state and decrease the count of the instanced mesh
       if (ind !== -1) {
         let tempArr = blocks.slice();
         tempArr.splice(ind, 1);
@@ -110,6 +132,8 @@ export function Terrain() {
         setBlocks(tempArr);
         setPositions(tempArr);
       }
+
+      // If right click
     } else if (window.event.button === 2 && e.object.selected === true) {
       const { x, y, z } = e.object.position;
       const dir = [
@@ -121,6 +145,7 @@ export function Terrain() {
         [x, y, z - 1],
       ];
 
+      // Add a new block to the cubes global store
       const newPos = dir[Math.floor(e.faceIndex / 2)];
       let color;
       let texture;
@@ -164,6 +189,7 @@ export function Terrain() {
         textName = "stonebricks";
       }
 
+      // Package data
       const pkg = {
         position: newPos,
         texture: texture,
@@ -171,10 +197,12 @@ export function Terrain() {
         textName: textName,
       };
 
+      // Add the cube to store
       addCube(pkg);
     }
   };
 
+  // Instanced mesh JSX
   return (
     <>
       <Instances ref={ref} limit={size}>

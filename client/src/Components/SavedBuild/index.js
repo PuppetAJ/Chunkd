@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
-  Stats,
+  // Stats,
   Sky,
   softShadows,
   Preload,
@@ -15,6 +15,7 @@ import { Navigate, useParams } from "react-router-dom";
 import Auth from "../../utils/auth";
 
 export default function SavedBuild(props) {
+  // Authentication verification
   const { username: userParam } = useParams();
 
   const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
@@ -23,14 +24,17 @@ export default function SavedBuild(props) {
 
   const user = data?.me || data?.user || {};
 
+  // If logged in then navigate to profile
   if (Auth.loggedIn() && Auth.getProfile().data.username === userParam) {
-    return <Navigate to="/test" />;
+    return <Navigate to="/profile" />;
   }
 
+  // If loading dont display content
   if (loading) {
     return <div>Loading...</div>;
   }
 
+  // If not logged in then display message
   if (!user?.username) {
     return (
       <h3 className="btn-minecraft flex flex-col items-center m-auto animate-pulse">
@@ -39,8 +43,10 @@ export default function SavedBuild(props) {
     );
   }
 
+  // soft shadows
   softShadows();
 
+  // JSX declaring canvas and styling
   return (
     <>
       <div id="save-container" className="mt-8">

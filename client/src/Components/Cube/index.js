@@ -15,12 +15,14 @@ import leavesText from "../../assets/textures/leaves.png";
 import stoneBricksText from "../../assets/textures/stone_bricks.png";
 import bricksText from "../../assets/textures/bricks.png";
 
+// Global store containing player placed cubes
 export const useCubeStore = create((set) => ({
   cubes: [],
   addCube: (data) => set((state) => ({ cubes: [...state.cubes, data] })),
   setCubes: (arr) => set((state) => ({ cubes: arr })),
 }));
 
+// Load all cubes as separate components
 export const Cubes = () => {
   const cubes = useCubeStore((state) => state.cubes);
   return cubes.map((data, index) => (
@@ -33,10 +35,13 @@ export const Cubes = () => {
   ));
 };
 
+// Single cube
 export function Cube(props) {
   const { camera } = useThree();
   const ref = useRef();
   const [hover, set] = useState(null);
+
+  // Define store and store methods
   const cubes = useCubeStore((state) => state.cubes);
   const addCube = useCubeStore((state) => state.addCube);
   const setCubes = useCubeStore((state) => state.setCubes);
@@ -44,6 +49,7 @@ export function Cube(props) {
   const selected = useSelectedStore((state) => state.selected);
   const lookAt = useSelectedStore((state) => state.lookAt);
 
+  // Textures
   const dirt = useTexture(dirtText);
   const grass = useTexture(grassText);
   const glass = useTexture(glassText);
@@ -54,11 +60,14 @@ export function Cube(props) {
   const stoneBricks = useTexture(stoneBricksText);
   const bricks = useTexture(bricksText);
 
+  // Filters to pixelate textures
   dirt.magFilter = THREE.NearestFilter;
   grass.magFilter = THREE.NearestFilter;
 
+  // on mouse move
   const onMove = useCallback(
     (e) => {
+      // if distance from intersection is less than 7 then set hover to true
       const camPos = camera.position;
       const intersectPos = e.object.parent.position;
 
@@ -75,6 +84,8 @@ export function Cube(props) {
     },
     [lookAt]
   );
+
+  // on mouse out
   const onOut = useCallback(() => set(null), []);
   const onClick = (e) => {
     e.stopPropagation();
@@ -88,7 +99,9 @@ export function Cube(props) {
 
     const dist = Math.sqrt(xDist + yDist + zDist);
 
+    // If a block is left clicked and it is in range
     if (window.event.button === 0 && dist < 7) {
+      // Find its index in our data and remove it
       const { x, y, z } = e.object.parent.position;
 
       const ind = cubes.findIndex((data) => {
@@ -105,6 +118,7 @@ export function Cube(props) {
         setCubes(cubeMem);
       }
     } else if (window.event.button === 2 && dist < 7) {
+      // If right click then add the block depending on which face was clicked
       const { x, y, z } = ref.current.translation();
       const dir = [
         [x + 1, y, z],
@@ -115,6 +129,7 @@ export function Cube(props) {
         [x, y, z - 1],
       ];
 
+      // Colors and textures for block placed
       const newPos = dir[Math.floor(e.faceIndex / 2)];
       let texture;
       let color;
@@ -158,6 +173,7 @@ export function Cube(props) {
         textName = "stonebricks";
       }
 
+      // Packaged data
       const pkg = {
         position: newPos,
         texture: texture,
@@ -165,11 +181,12 @@ export function Cube(props) {
         textName: textName,
       };
 
-      // Add code here
+      // Add cubes
       addCube(pkg);
     }
   };
 
+  // React three fiber JSX
   return (
     <RigidBody {...props} type="fixed" colliders="cuboid" ref={ref}>
       <mesh

@@ -20,6 +20,7 @@ import { SaveModal } from "../Components/SaveModal";
 import { Hotbar } from "../Components/Hotbar";
 import Auth from "../utils/auth";
 export default function Editor() {
+  // Make sure user is logged in before displaying page
   const { username: userParam } = useParams();
 
   const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
@@ -46,6 +47,7 @@ export default function Editor() {
 
   softShadows();
 
+  // JSX declaring canvas with physics and skybox
   return (
     <KeyboardControls
       map={[
