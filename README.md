@@ -1,6 +1,6 @@
 <h2 align="center">
   CHUNK'D<br/>
-  <a href="https://github.com/PuppetAJ/ReactMC" target="_blank">CHUNK'D</a>
+  <a href="https://chunkd-aj.herokuapp.com/" target="_blank">CHUNK'D</a>
 </h2>
 
 <center>
@@ -29,7 +29,7 @@ First clone this repo to your local directory and install dependencies by runnin
 
 In the project directory, you can run:
 
-### `npm run develop`
+### `npm run dev`
 
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
@@ -49,6 +49,9 @@ As a new user, you need to sign up to create an account to log in. Once logged i
 This project was built using these technologies.
 
 - Three.js
+- React Three fiber
+- Noise.js
+- JWT
 - MongoDB
 - Express.js
 - React.js
