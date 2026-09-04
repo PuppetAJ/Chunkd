@@ -1,25 +1,34 @@
 {
-  "name": "reactmc",
-  "version": "1.0.0",
-  "description": "Minecraft remade using React",
-  "main": "main.js",
-  "scripts": {
-    "start": "node server/server.js",
-    "dev": "concurrently \"cd server && npm run watch\" \"cd client && npm start\"",
-    "install": "cd server && npm i && cd ../client && npm i",
-    "build": "cd client && npm run build"
+  "name": "chunkd",
+  "version": "2.0.0",
+  "private": true,
+  "description": "CHUNK'D - a browser voxel builder with a social feed. React Three Fiber client, GraphQL API.",
+  "author": "Adrian Jimenez",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.2.2",
+  "engines": {
+    "node": ">=22"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PuppetAJ/ReactMC.git"
   },
-  "author": "Adrian Jimenez",
-  "license": "MIT",
   "bugs": {
     "url": "https://github.com/PuppetAJ/ReactMC/issues"
   },
-  "homepage": "http://localhost:3001",
-  "devDependencies": {
-    "concurrently": "^7.6.0"
+  "scripts": {
+    "dev": "pnpm --recursive --parallel --stream dev",
+    "dev:client": "pnpm --filter client dev",
+    "dev:server": "pnpm --filter server dev",
+    "build": "pnpm --recursive build",
+    "start": "pnpm --filter server start",
+    "seed": "pnpm --filter server seed",
+    "lint": "pnpm --recursive lint",
+    "test": "pnpm --recursive test",
+    "typecheck": "pnpm --recursive typecheck",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "clean": "pnpm --recursive exec rm -rf node_modules dist build && rm -rf node_modules"
   }
 }
