@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    // Node 24 runs .ts files directly by stripping the types out, so TypeScript's
+    // only job here is checking. It never emits JavaScript.
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+
+    // Match what Node itself supports.
+    "target": "es2023",
+    "lib": ["es2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+
+    // Node strips types one file at a time and never looks at another file to
+    // decide what an import is. These two options make sure the code we write can
+    // always be stripped that way:
+    //   verbatimModuleSyntax  - forces `import type { X }` for type-only imports
+    //   erasableSyntaxOnly    - bans syntax that has runtime behaviour, e.g. `enum`
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+
+    // Report the mistakes worth reporting.
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}

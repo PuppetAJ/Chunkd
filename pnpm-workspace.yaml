@@ -1,0 +1,17 @@
+packages:
+  - client
+  - server
+  - packages/*
+
+# pnpm does not run a dependency's install scripts unless it is listed here.
+# Every entry is third-party code that executes at install time, so each one is
+# a deliberate decision rather than a blanket approval.
+allowBuilds:
+  # Downloads a real mongod binary that the server test suite runs against.
+  mongodb-memory-server: true
+  # Optional native protobuf acceleration for Apollo usage reporting, which we
+  # do not enable. The pure-JavaScript fallback is used instead.
+  '@apollo/protobufjs': false
+  # Both only print a funding notice on install.
+  core-js: false
+  core-js-pure: false
