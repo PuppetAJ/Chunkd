@@ -161,6 +161,14 @@ now chosen from the finished world by checking the player's own box fits, and
 being stuck now pushes upward out of the obstruction instead of disabling
 collision.
 
+Zoom gestures in the editor are refused as far as a page is allowed to refuse
+them. The earlier attempt used the CSS `touch-action` property, which looks like
+the right tool and is not: a trackpad reports itself as a mouse, so touch rules
+never apply to it. What does work is refusing wheel events that carry ctrl,
+which is how every browser delivers a trackpad pinch, and refusing Safari's own
+gesture events. Only the editor does this, so ordinary zooming still works on
+the rest of the site.
+
 ### Known issues carried forward
 
 - Editor frame rate on real hardware has not been measured. The numbers recorded
@@ -179,6 +187,11 @@ collision.
   dialog in phase 6.
 - Blocks with a grain record their axis but not their facing, so there is no way
   yet to point a directional texture a particular way round the vertical axis.
+- A two-finger double tap on a Mac trackpad can still zoom the page. macOS
+  decides that gesture in the window server and hands the browser a decision
+  rather than an event, and Chrome performs the zoom in the browser process
+  without asking the page, so there is nothing left for the page to refuse. The
+  only cure is System Settings, Trackpad, Scroll & Zoom, Smart Zoom.
 - Culling is per block, not per face. Blocks buried on all six sides are skipped,
   which removes 78% of the world, but each block that is drawn sends all six of
   its faces even where they are pressed against a neighbour. Measured on a fresh

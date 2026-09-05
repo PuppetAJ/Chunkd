@@ -139,7 +139,10 @@ why `.node-version` matters: it must stay at 22.18 or newer.
 A jump clears a little over one block, which leaves room to place a block under
 your own feet and build upwards.
 
-Holding either mouse button repeats the action about six times a second.
+Holding either mouse button repeats the action about six times a second, which
+is usually easier than clicking repeatedly, and on a Mac trackpad avoids the
+two-finger double tap that macOS reads as Smart Zoom. If that gesture zooms the
+page, turn it off in System Settings, Trackpad, Scroll & Zoom.
 
 The hotbar holds nine blocks and there are far more than nine, so the inventory
 is how you choose which nine. Picking a block there puts it into whichever slot

@@ -11,6 +11,7 @@ import Inventory from "../components/Inventory/index.tsx";
 import SaveToast from "../components/SaveToast/index.tsx";
 import Crosshair from "../components/Crosshair/index.tsx";
 import FlightIndicator from "../components/FlightIndicator/index.tsx";
+import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
 import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
 import type { Body } from "../lib/voxel/collision.ts";
@@ -25,6 +26,9 @@ export default function Editor() {
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   const [inventoryOpen, setInventoryOpen] = useState(false);
+
+  // Zooming the page moves the crosshair away from where the player is aiming.
+  useSuppressZoomGestures(true);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
