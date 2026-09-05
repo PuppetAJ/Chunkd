@@ -1,12 +1,21 @@
 import { createNoise2D } from "simplex-noise";
 import alea from "alea";
 import { toKey, type BlockKey } from "./coords.ts";
-import { BLOCKS } from "./blocks.ts";
+import { BLOCK_IDS } from "./blockIds.ts";
 
-export const WORLD_SIZE = 32;
+/**
+ * Width and depth of the world, in blocks.
+ *
+ * Measured at 64: about 22,000 blocks, of which roughly 9,000 are visible and
+ * drawn. Recomputing what is visible after each edit costs about 8 ms, which
+ * fits inside a frame. It rises to 33 ms at 128, which would stutter, so going
+ * larger needs the visibility pass to update only around the block that
+ * changed rather than rebuilding the whole world.
+ */
+export const WORLD_SIZE = 64;
 
-const GRASS = BLOCKS.find((block) => block.name === "grass")!.id;
-const DIRT = BLOCKS.find((block) => block.name === "dirt")!.id;
+const GRASS = BLOCK_IDS.grass;
+const DIRT = BLOCK_IDS.dirt;
 
 const NOISE_STEP = 0.05;
 const AMPLITUDE = 35;
@@ -29,12 +38,12 @@ function columnHeight(noise2D: (x: number, y: number) => number, x: number, z: n
  * surface down to the floor with dirt, which costs nothing to generate and is
  * what a player expects when they dig.
  */
-export function generateTerrain(seed: number): Map<BlockKey, number> {
+export function generateTerrain(seed: number, size: number = WORLD_SIZE): Map<BlockKey, number> {
   const noise2D = createNoise2D(alea(seed));
   const blocks = new Map<BlockKey, number>();
 
-  for (let x = 0; x < WORLD_SIZE; x += 1) {
-    for (let z = 0; z < WORLD_SIZE; z += 1) {
+  for (let x = 0; x < size; x += 1) {
+    for (let z = 0; z < size; z += 1) {
       const height = columnHeight(noise2D, x, z);
       blocks.set(toKey(x, height, z), GRASS);
       for (let y = height - 1; y >= 0; y -= 1) {

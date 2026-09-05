@@ -5,6 +5,7 @@ import * as THREE from "three";
 import Axe from "../Axe/index.jsx";
 import { useHeldKeys, useKeyPress } from "../../lib/useKeyboard.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
+import { useEditorUiStore } from "../../lib/editorUiStore.ts";
 import { BLOCKS } from "../../lib/voxel/blocks.ts";
 import { EYE_HEIGHT, type Body } from "../../lib/voxel/collision.ts";
 import {
@@ -83,6 +84,11 @@ export default function Player({ body }: Props) {
     input.headingZ = heading.z;
 
     stepPlayer(useWorldStore.getState().blocks, body, motion, input, delta);
+
+    // Only touches the store on a change, so this does not re-render per frame.
+    if (useEditorUiStore.getState().flying !== motion.flying) {
+      useEditorUiStore.getState().setFlying(motion.flying);
+    }
 
     if (body.y < VOID_HEIGHT) {
       const [x, y, z] = spawnPoint();

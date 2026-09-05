@@ -5,18 +5,23 @@ import * as THREE from "three";
 
 import BlockLayer from "./BlockLayer.tsx";
 import { BLOCKS } from "../../lib/voxel/blocks.ts";
-import { fromKey, toKey, type BlockKey } from "../../lib/voxel/coords.ts";
+import { type BlockKey } from "../../lib/voxel/coords.ts";
+import { buildRenderLayers } from "../../lib/voxel/render.ts";
 import { applyBlockTextureSettings } from "../../lib/blockTextures.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
-import {
-  PLAYER_HALF_WIDTH,
-  PLAYER_HEIGHT,
-  blockIndex,
-  type Body,
-} from "../../lib/voxel/collision.ts";
+import { blockOverlapsPlayer, type Body } from "../../lib/voxel/collision.ts";
 
 /** How far the player can reach to break or place. */
 const REACH = 7;
+
+/**
+ * Delay between repeats while a mouse button is held.
+ *
+ * Acting only on the initial press meant building a pillar required clicking
+ * inside the third of a second the jump leaves room in. Holding the button
+ * repeats, the way it does in the games this borrows from.
+ */
+const REPEAT_SECONDS = 0.16;
 
 const TEXTURE_URLS = Object.fromEntries(
   BLOCKS.map((block) => [block.name, block.textureUrl]),
@@ -51,37 +56,20 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     adjacent: [number, number, number];
   } | null>(null);
 
+  /** Which mouse button is held, and when it may next act. */
+  const heldButton = useRef<number | null>(null);
+  const nextActionAt = useRef(0);
+  /** Latest render-loop time, so the pointer handlers can schedule repeats. */
+  const clock = useRef(0);
+
   const textures = useTexture(TEXTURE_URLS);
   applyBlockTextureSettings(...Object.values(textures));
 
-  // Group block positions by type, once per edit rather than once per frame.
+  // Recomputed once per edit rather than once per frame.
   const layers = useMemo(() => {
-    const byType = new Map<number, number[]>();
-    for (const [key, id] of blocks) {
-      const [x, y, z] = fromKey(key);
-      // A block with all six neighbours present cannot be seen from anywhere,
-      // so there is no reason to hand it to the GPU. On a solid landscape this
-      // is most of the world.
-      if (
-        blocks.has(toKey(x + 1, y, z)) &&
-        blocks.has(toKey(x - 1, y, z)) &&
-        blocks.has(toKey(x, y + 1, z)) &&
-        blocks.has(toKey(x, y - 1, z)) &&
-        blocks.has(toKey(x, y, z + 1)) &&
-        blocks.has(toKey(x, y, z - 1))
-      ) {
-        continue;
-      }
-      let list = byType.get(id);
-      if (!list) {
-        list = [];
-        byType.set(id, list);
-      }
-      list.push(x, y, z);
-    }
-    return BLOCKS.filter((block) => byType.has(block.id)).map((block) => ({
-      block,
-      positions: new Float32Array(byType.get(block.id)!),
+    return buildRenderLayers(blocks).map((layer) => ({
+      block: BLOCKS.find((candidate) => candidate.id === layer.blockId)!,
+      positions: layer.positions,
     }));
   }, [blocks]);
 
@@ -101,8 +89,34 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   }, []);
   const screenCentre = useMemo(() => new THREE.Vector2(0, 0), []);
 
-  useFrame(() => {
+  // Kept in a ref so the pointer handlers can act without being re-created,
+  // and so useFrame can repeat the action while a button is held.
+  const act = useRef<(button: number) => void>(() => {});
+  act.current = (button: number) => {
+    const current = target.current;
+    if (!current) return;
+
+    if (button === 0) {
+      removeBlock(...current.hit);
+      return;
+    }
+
+    if (button === 2) {
+      const [x, y, z] = current.adjacent;
+      // Refuse to place a block inside the player, which would trap them.
+      if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
+      placeBlock(x, y, z);
+    }
+  };
+
+  useFrame((state) => {
     if (!editable || !groupRef.current) return;
+    clock.current = state.clock.elapsedTime;
+
+    if (heldButton.current !== null && clock.current >= nextActionAt.current) {
+      act.current(heldButton.current);
+      nextActionAt.current = clock.current + REPEAT_SECONDS;
+    }
 
     // Only the block layers are tested, so the axe in the player's hand and the
     // sky cannot swallow the ray the way scene-wide raycasting did.
@@ -148,31 +162,31 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     // Listening on the canvas covers both mouse buttons. React's onClick only
     // fires for the primary button, which is why placing a block never worked.
     const onPointerDown = (event: PointerEvent) => {
-      const current = target.current;
-      if (!current) return;
+      heldButton.current = event.button;
+      // Act now rather than waiting for the next frame. A quick click can send
+      // both press and release inside a single frame, and deferring meant such
+      // a click did nothing at all.
+      act.current(event.button);
+      nextActionAt.current = clock.current + REPEAT_SECONDS;
+    };
 
-      if (event.button === 0) {
-        removeBlock(...current.hit);
-        return;
-      }
-
-      if (event.button === 2) {
-        const [x, y, z] = current.adjacent;
-        // Refuse to place a block inside the player, which would trap them.
-        if (playerBody && overlapsPlayer(playerBody, x, y, z)) return;
-        placeBlock(x, y, z);
-      }
+    const stop = () => {
+      heldButton.current = null;
     };
 
     const onContextMenu = (event: Event) => event.preventDefault();
 
     canvas.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointerup", stop);
+    window.addEventListener("blur", stop);
     canvas.addEventListener("contextmenu", onContextMenu);
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", stop);
+      window.removeEventListener("blur", stop);
       canvas.removeEventListener("contextmenu", onContextMenu);
     };
-  }, [editable, gl, placeBlock, removeBlock, playerBody]);
+  }, [editable, gl]);
 
   return (
     <>
@@ -194,16 +208,5 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         </lineSegments>
       )}
     </>
-  );
-}
-
-function overlapsPlayer(body: Body, x: number, y: number, z: number): boolean {
-  return (
-    x >= blockIndex(body.x - PLAYER_HALF_WIDTH) &&
-    x <= blockIndex(body.x + PLAYER_HALF_WIDTH) &&
-    y >= blockIndex(body.y) &&
-    y <= blockIndex(body.y + PLAYER_HEIGHT) &&
-    z >= blockIndex(body.z - PLAYER_HALF_WIDTH) &&
-    z <= blockIndex(body.z + PLAYER_HALF_WIDTH)
   );
 }

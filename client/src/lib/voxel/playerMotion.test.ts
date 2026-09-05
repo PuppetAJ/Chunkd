@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createMotionState, stepPlayer, type MoveInput } from "./playerMotion.ts";
-import type { Body } from "./collision.ts";
+import { blockOverlapsPlayer, type Body } from "./collision.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 
 const STILL: MoveInput = {
@@ -166,4 +166,111 @@ test("sneaking is slower than walking", () => {
     stepPlayer(ground(), sneak, createMotionState(), { ...input, sneak: true }, 1 / 60);
   }
   assert.ok(sneak.z < walk.z, "sneaking should cover less ground");
+});
+
+test("at the top of a jump there is room to place a block underfoot", () => {
+  const body = standing();
+  const motion = createMotionState();
+  const blocks = ground();
+
+  let framesWithRoom = 0;
+  for (let i = 0; i < 60; i += 1) {
+    stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
+    // Standing on the block at y = 0, the cell to build into is y = 1.
+    if (!blockOverlapsPlayer(body, 0, 1, 0)) framesWithRoom += 1;
+  }
+
+  assert.ok(
+    framesWithRoom >= 12,
+    `only ${framesWithRoom} frames had room to place a block, too tight to hit`,
+  );
+});
+
+test("double tapping jump turns flight on and off", () => {
+  const body = standing();
+  const motion = createMotionState();
+  const blocks = ground();
+
+  const tap = () => {
+    stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
+    stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  };
+
+  tap();
+  assert.equal(motion.flying, false, "one tap should not start flight");
+  tap();
+  assert.equal(motion.flying, true, "a second quick tap should start flight");
+
+  tap();
+  assert.equal(motion.flying, true, "a lone tap should not stop flight");
+  tap();
+  assert.equal(motion.flying, false, "another quick pair should stop flight");
+});
+
+test("two slow taps jump twice rather than starting flight", () => {
+  const body = standing();
+  const motion = createMotionState();
+  const blocks = ground();
+
+  stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
+  stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  // Wait out the double-tap window, and let the jump finish.
+  for (let i = 0; i < 60; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
+
+  assert.equal(motion.flying, false, "slow taps should not start flight");
+});
+
+test("flying holds height with no keys, and rises and falls with them", () => {
+  const body = standing();
+  const motion = createMotionState();
+  const blocks = ground();
+  motion.flying = true;
+
+  const startY = body.y;
+  for (let i = 0; i < 60; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  assert.equal(body.y, startY, "should hover rather than fall");
+
+  // The first frame of a held jump is a fresh press, which would toggle flight
+  // off if it were within the double-tap window, so wait it out first.
+  for (let i = 0; i < 30; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  for (let i = 0; i < 30; i += 1) {
+    stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
+  }
+  assert.ok(body.y > startY + 3, `should have climbed, feet at ${body.y.toFixed(2)}`);
+
+  const high = body.y;
+  for (let i = 0; i < 20; i += 1) {
+    stepPlayer(blocks, body, motion, { ...STILL, sneak: true }, 1 / 60);
+  }
+  assert.ok(body.y < high, "sneak should descend while flying");
+});
+
+test("turning flight off mid-air drops the player", () => {
+  const body: Body = { x: 0, y: 12, z: 0, onGround: false };
+  const motion = createMotionState();
+  motion.flying = true;
+  const blocks = ground();
+
+  for (let i = 0; i < 30; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  assert.equal(body.y, 12, "should still be hovering");
+
+  motion.flying = false;
+  for (let i = 0; i < 120; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  assert.equal(body.y, 0.5, "should have fallen to the ground");
+});
+
+test("flying does not pass through blocks", () => {
+  const blocks = ground();
+  // A ceiling at y = 4, underside at 3.5.
+  for (let x = -8; x <= 8; x += 1) for (let z = -8; z <= 8; z += 1) blocks.set(toKey(x, 4, z), 1);
+  const body = standing();
+  const motion = createMotionState();
+  motion.flying = true;
+
+  for (let i = 0; i < 30; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
+  for (let i = 0; i < 120; i += 1) {
+    stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
+  }
+  assert.ok(body.y + 1.8 <= 3.5 + 1e-6, `head at ${(body.y + 1.8).toFixed(2)} went through the ceiling`);
 });

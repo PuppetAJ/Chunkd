@@ -1,3 +1,4 @@
+import { BLOCK_IDS } from "./blockIds.ts";
 import bricksUrl from "../../assets/textures/bricks.png";
 import cobblestoneUrl from "../../assets/textures/cobblestone.png";
 import dirtUrl from "../../assets/textures/dirt.png";
@@ -27,15 +28,15 @@ export interface BlockType {
 }
 
 export const BLOCKS: readonly BlockType[] = [
-  { id: 1, name: "dirt", label: "Dirt", textureUrl: dirtUrl, tint: "#7a5a05", transparent: false },
-  { id: 2, name: "grass", label: "Grass", textureUrl: grassUrl, tint: "#567d3c", transparent: false },
-  { id: 3, name: "glass", label: "Glass", textureUrl: glassUrl, tint: "#9fd3e0", transparent: true },
-  { id: 4, name: "cobblestone", label: "Cobblestone", textureUrl: cobblestoneUrl, tint: "#737373", transparent: false },
-  { id: 5, name: "log", label: "Log", textureUrl: logUrl, tint: "#6b542e", transparent: false },
-  { id: 6, name: "planks", label: "Planks", textureUrl: planksUrl, tint: "#856738", transparent: false },
-  { id: 7, name: "leaves", label: "Leaves", textureUrl: leavesUrl, tint: "#344d2c", transparent: true },
-  { id: 8, name: "bricks", label: "Bricks", textureUrl: bricksUrl, tint: "#8c5d50", transparent: false },
-  { id: 9, name: "stone_bricks", label: "Stone Bricks", textureUrl: stoneBricksUrl, tint: "#8a8a8a", transparent: false },
+  { id: BLOCK_IDS.dirt, name: "dirt", label: "Dirt", textureUrl: dirtUrl, tint: "#7a5a05", transparent: false },
+  { id: BLOCK_IDS.grass, name: "grass", label: "Grass", textureUrl: grassUrl, tint: "#567d3c", transparent: false },
+  { id: BLOCK_IDS.glass, name: "glass", label: "Glass", textureUrl: glassUrl, tint: "#9fd3e0", transparent: true },
+  { id: BLOCK_IDS.cobblestone, name: "cobblestone", label: "Cobblestone", textureUrl: cobblestoneUrl, tint: "#737373", transparent: false },
+  { id: BLOCK_IDS.log, name: "log", label: "Log", textureUrl: logUrl, tint: "#6b542e", transparent: false },
+  { id: BLOCK_IDS.planks, name: "planks", label: "Planks", textureUrl: planksUrl, tint: "#856738", transparent: false },
+  { id: BLOCK_IDS.leaves, name: "leaves", label: "Leaves", textureUrl: leavesUrl, tint: "#344d2c", transparent: true },
+  { id: BLOCK_IDS.bricks, name: "bricks", label: "Bricks", textureUrl: bricksUrl, tint: "#8c5d50", transparent: false },
+  { id: BLOCK_IDS.stoneBricks, name: "stone_bricks", label: "Stone Bricks", textureUrl: stoneBricksUrl, tint: "#8a8a8a", transparent: false },
 ];
 
 const BY_ID = new Map(BLOCKS.map((block) => [block.id, block]));

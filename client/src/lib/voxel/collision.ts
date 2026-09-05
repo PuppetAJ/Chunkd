@@ -145,3 +145,27 @@ export function moveBody(
 export function isSupported(blocks: Map<BlockKey, number>, body: Body): boolean {
   return collides(blocks, body.x, body.y - 0.02, body.z);
 }
+
+/**
+ * Would a block at these coordinates be inside the player?
+ *
+ * Used to refuse placing a block into the space the player occupies, which
+ * would trap them. Placing a block *under* your own feet is the standard way to
+ * build upwards, so this has to be exact rather than generous: it decides
+ * whether pillar jumping is possible at all.
+ */
+export function blockOverlapsPlayer(
+  body: Body,
+  x: number,
+  y: number,
+  z: number,
+): boolean {
+  return (
+    x >= blockIndex(body.x - PLAYER_HALF_WIDTH) &&
+    x <= blockIndex(body.x + PLAYER_HALF_WIDTH) &&
+    y >= blockIndex(body.y) &&
+    y <= blockIndex(body.y + PLAYER_HEIGHT) &&
+    z >= blockIndex(body.z - PLAYER_HALF_WIDTH) &&
+    z <= blockIndex(body.z + PLAYER_HALF_WIDTH)
+  );
+}
