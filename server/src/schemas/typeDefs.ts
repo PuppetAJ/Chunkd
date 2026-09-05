@@ -82,7 +82,7 @@ export const typeDefs = /* GraphQL */ `
     addFriend(friendId: ID!): User!
     deleteFriend(friendId: ID!): User!
 
-    saveBuild(name: String, data: String!, thumbnail: String): Build!
+    saveBuild(name: String, data: String!, thumbnail: String, format: Int): Build!
     deleteBuild(buildId: ID!): ID!
   }
 `;

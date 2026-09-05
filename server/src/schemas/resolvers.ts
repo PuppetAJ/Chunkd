@@ -301,7 +301,7 @@ export const resolvers = {
 
     saveBuild: async (
       _parent: unknown,
-      args: { name?: string | null; data: string; thumbnail?: string | null },
+      args: { name?: string | null; data: string; thumbnail?: string | null; format?: number | null },
       context: GraphQLContext,
     ) => {
       const auth = requireAuth(context);
@@ -316,7 +316,9 @@ export const resolvers = {
       return Build.create({
         owner: new Types.ObjectId(auth._id),
         name: args.name?.trim() || "Untitled build",
-        format: CURRENT_BUILD_FORMAT,
+        // The encoding lives in the client, so it reports its own version
+        // rather than the server keeping a second constant in step.
+        format: args.format ?? CURRENT_BUILD_FORMAT,
         data: args.data,
         thumbnail: args.thumbnail ?? undefined,
       });

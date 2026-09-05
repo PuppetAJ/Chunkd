@@ -12,7 +12,7 @@ import NoMatch from "./pages/NoMatch.jsx";
 // Three.js, the physics engine and its WebAssembly module together are larger
 // than everything else in the app combined. Loading these routes on demand keeps
 // them out of the bundle that the login and feed pages have to download.
-const Editor = lazy(() => import("./pages/Editor.jsx"));
+const Editor = lazy(() => import("./pages/Editor.tsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const SingleThought = lazy(() => import("./pages/SingleThought.jsx"));
 
