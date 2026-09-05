@@ -63,6 +63,23 @@ same as an email already in use. The server now reports a schema validation
 failure as bad input rather than an internal error, and both forms check the
 same rules in the browser first and show what the server actually said.
 
+One failed image used to take the whole editor down. Block textures were loaded
+with drei's `useTexture`, which throws when an image does not arrive, and nothing
+inside the Canvas catches that, so the throw reached the page-level error
+boundary, unmounted the Canvas and destroyed the WebGL context along with any
+unsaved build. They are now loaded by hand, retried three times, and fall back to
+a blank texture that still takes the block's tint, so a missing image costs one
+block its texture instead of costing someone their work.
+
+That move exposed a second thing worth knowing. react-three-fiber tags any
+texture assigned to a material's `map` as sRGB, on the assumption it is a
+photograph. These textures are masks, and reading a mask as sRGB roughly halves
+its brightness, which is what made the world render nearly black back in phase 3.
+The old code happened to survive because it re-asserted the colour space on every
+render, which quietly undid the tag each time. It is now re-asserted once in a
+layout effect in `BlockLayer`, after r3f has applied the prop, which is the only
+point at which it sticks.
+
 ### Known issues carried forward
 
 - Editor frame rate on real hardware has not been measured. The numbers recorded
