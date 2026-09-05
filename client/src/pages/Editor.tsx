@@ -17,6 +17,8 @@ import type { Body } from "../lib/voxel/collision.ts";
 
 export default function Editor() {
   const centre = WORLD_SIZE / 2;
+  // A little over half the diagonal, so the corners are still lit.
+  const shadowExtent = WORLD_SIZE * 0.8;
   const lightTarget = useMemo(() => new THREE.Object3D(), []);
 
   const seed = useWorldStore((state) => state.seed);
@@ -51,6 +53,7 @@ export default function Editor() {
       <Canvas
         className="z-10"
         id="editor"
+        shadows
         camera={{ fov: 70, near: 0.1, far: 400 }}
         // Rendering at the screen's own pixel density is what stops block edges
         // looking ragged on a retina display; capped at 2 so a very dense screen
@@ -72,13 +75,25 @@ export default function Editor() {
         <Suspense fallback={null}>
           <Preload all />
           <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
-          {/* Blocks carry their own face shading and ignore lights entirely, so
-              these are here for the tool in the player's hand. There is no
-              shadow map: on axis-aligned voxels it produced striped
-              self-shadowing and leaked light through the seams between blocks. */}
-          <ambientLight intensity={1.6} />
+          {/* Blocks carry their own face shading in the cube's vertex colours;
+              the sun is layered on top of that for cast shadows. Its camera is
+              aimed at the middle of the world, because it defaults to the origin
+              and that left the far half of the map unshadowed. */}
+          <ambientLight intensity={1.5} />
           <primitive object={lightTarget} position={[centre, 0, centre]} />
-          <directionalLight target={lightTarget} intensity={2} position={[centre + 60, 90, centre + 40]} />
+          <directionalLight
+            castShadow
+            target={lightTarget}
+            intensity={1.5}
+            position={[centre + 60, 90, centre + 40]}
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-near={1}
+            shadow-camera-far={260}
+            shadow-camera-left={-shadowExtent}
+            shadow-camera-right={shadowExtent}
+            shadow-camera-top={shadowExtent}
+            shadow-camera-bottom={-shadowExtent}
+          />
           <World editable playerBody={body} />
           <Player body={body} />
           <SaveControls />

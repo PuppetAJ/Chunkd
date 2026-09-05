@@ -53,6 +53,7 @@ export default function SavedBuild({ buildId }: Props) {
     <div id="save-container" className="mt-8">
       <div id="save-wrapper">
         <Canvas
+          shadows
           dpr={[1, 2]}
           gl={{ antialias: true }}
           camera={{ fov: 45, far: 600, position: [centre + WORLD_SIZE, WORLD_SIZE * 0.7, centre + WORLD_SIZE] }}
@@ -80,11 +81,22 @@ function BuildScene({
     <>
       <Preload all />
       <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
-      {/* Blocks carry their own face shading and are not lit by these; they
-          are here so any non-block mesh added later is still visible. */}
-      <ambientLight intensity={1.6} />
+      {/* Blocks carry their own face shading; the sun adds the cast shadows. */}
+      <ambientLight intensity={1.5} />
       <primitive object={lightTarget} position={[centre, 0, centre]} />
-      <directionalLight target={lightTarget} intensity={2} position={[centre + 60, 90, centre + 40]} />
+      <directionalLight
+        castShadow
+        target={lightTarget}
+        intensity={1.5}
+        position={[centre + 60, 90, centre + 40]}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-near={1}
+        shadow-camera-far={260}
+        shadow-camera-left={-WORLD_SIZE * 0.8}
+        shadow-camera-right={WORLD_SIZE * 0.8}
+        shadow-camera-top={WORLD_SIZE * 0.8}
+        shadow-camera-bottom={-WORLD_SIZE * 0.8}
+      />
       <OrbitControls target={[centre, 6, centre]} enablePan={false} maxDistance={WORLD_SIZE * 2.5} />
       <World blocks={world} />
     </>

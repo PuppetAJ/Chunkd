@@ -139,6 +139,8 @@ why `.node-version` matters: it must stay at 22.18 or newer.
 A jump clears a little over one block, which leaves room to place a block under
 your own feet and build upwards.
 
+Holding either mouse button repeats the action about six times a second.
+
 The hotbar holds nine blocks and there are far more than nine, so the inventory
 is how you choose which nine. Picking a block there puts it into whichever slot
 is currently selected.
