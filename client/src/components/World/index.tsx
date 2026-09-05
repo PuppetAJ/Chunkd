@@ -14,14 +14,29 @@ import { blockOverlapsPlayer, type Body } from "../../lib/voxel/collision.ts";
 /** How far the player can reach to break or place. */
 const REACH = 7;
 
+/** What the crosshair is currently on. */
+interface Target {
+  /** The block being looked at. */
+  hit: [number, number, number];
+  /** The empty cell on the face being looked at, where a new block would go. */
+  adjacent: [number, number, number];
+  /** Which way a block with a grain should lie if placed here. */
+  axis: number;
+}
+
 /**
  * Delay between repeats while a mouse button is held.
  *
  * Acting only on the initial press meant building a pillar required clicking
  * inside the third of a second the jump leaves room in. Holding the button
  * repeats, the way it does in the games this borrows from.
+ *
+ * This is wall-clock time rather than the render clock. It used to be scheduled
+ * from whatever time the last frame had recorded, so on a machine dropping
+ * frames that timestamp could already be older than the repeat delay, and a
+ * single quick click fired an extra action the moment the next frame ran.
  */
-const REPEAT_SECONDS = 0.16;
+const REPEAT_MS = 160;
 
 interface Props {
   /**
@@ -47,18 +62,11 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   // Where the crosshair is pointing. Written every frame and read by the click
   // handler, so it is a ref rather than state: putting it in state would
   // re-render the whole world sixty times a second.
-  const target = useRef<{
-    hit: [number, number, number];
-    adjacent: [number, number, number];
-    /** Which way a block with a grain should lie if placed here. */
-    axis: number;
-  } | null>(null);
+  const target = useRef<Target | null>(null);
 
-  /** Which mouse button is held, and when it may next act. */
+  /** Which mouse button is held, and the earliest time it may act again. */
   const heldButton = useRef<number | null>(null);
   const nextActionAt = useRef(0);
-  /** Latest render-loop time, so the pointer handlers can schedule repeats. */
-  const clock = useRef(0);
 
   // Suspends until every block texture is in. The promise is shared and never
   // rejects, so a missing image costs that one block its texture rather than
@@ -75,8 +83,6 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     });
   }, [blocks]);
 
-  // Nothing in the scene moves except the player, and the player casts no
-  // shadow, so the shadow map only needs redrawing when the world changes.
   const raycaster = useMemo(() => {
     const instance = new THREE.Raycaster();
     // Range is enforced here rather than by measuring distances afterwards.
@@ -88,12 +94,18 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   // rather than allocated every frame.
   const instanceMatrix = useMemo(() => new THREE.Matrix4(), []);
   const normal = useMemo(() => new THREE.Vector3(), []);
+  const blockCentre = useMemo(() => new THREE.Vector3(), []);
 
   // Kept in a ref so the pointer handlers can act without being re-created,
   // and so useFrame can repeat the action while a button is held.
+  const clearTarget = () => {
+    target.current = null;
+    if (highlightRef.current) highlightRef.current.visible = false;
+  };
+
   const act = useRef<(button: number) => void>(() => {});
   act.current = (button: number) => {
-    const current = target.current;
+    const current = findTarget();
     if (!current) return;
 
     if (button === 0) {
@@ -109,59 +121,79 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     }
   };
 
-  useFrame((state) => {
-    if (!editable || !groupRef.current) return;
-    clock.current = state.clock.elapsedTime;
-
-    if (heldButton.current !== null && clock.current >= nextActionAt.current) {
-      act.current(heldButton.current);
-      nextActionAt.current = clock.current + REPEAT_SECONDS;
-    }
+  /**
+   * Work out what the crosshair is on, right now, and remember it.
+   *
+   * Both the frame loop and the click handler call this. Clicking used to reuse
+   * whatever the last frame had found, which meant a click was only as good as
+   * the most recent frame: if that target had since been broken, or the frame
+   * loop had not caught up with an edit, the click quietly did nothing at all.
+   */
+  const findTarget = (): Target | null => {
+    if (!groupRef.current) return null;
 
     // Only the block layers are tested, so the axe in the player's hand and the
     // sky cannot swallow the ray the way scene-wide raycasting did.
     raycaster.setFromCamera(screenCentre, camera);
     const hits = raycaster.intersectObjects(groupRef.current.children, false);
     const hit = hits[0];
+    const mesh = hit?.object as THREE.InstancedMesh | undefined;
 
-    if (!hit || hit.instanceId === undefined || !hit.face) {
-      target.current = null;
-      if (highlightRef.current) highlightRef.current.visible = false;
-      return;
+    if (!hit || hit.instanceId === undefined || !hit.face || !mesh?.isInstancedMesh) {
+      // Every way out of here has to forget the previous target. Leaving it in
+      // place left the crosshair aimed at a block that had already been broken,
+      // so the first click worked and every one after it silently did nothing.
+      clearTarget();
+      return null;
     }
 
-    const positions = hit.object.userData["positions"] as Float32Array | undefined;
-    if (!positions) return;
-
-    const i = hit.instanceId;
+    // Position and rotation both come from the instance matrix the raycast
+    // itself walked. They used to come from two different places, the position
+    // from an array hung off the mesh and the rotation from the matrix, and
+    // those two could disagree for a frame after an edit, which aimed the
+    // crosshair at the wrong block.
+    mesh.getMatrixAt(hit.instanceId, instanceMatrix);
+    blockCentre.setFromMatrixPosition(instanceMatrix);
     const block: [number, number, number] = [
-      positions[i * 3]!,
-      positions[i * 3 + 1]!,
-      positions[i * 3 + 2]!,
+      Math.round(blockCentre.x),
+      Math.round(blockCentre.y),
+      Math.round(blockCentre.z),
     ];
+
     // The face normal comes back in the shared cube's own space. Most instances
     // are pure translations, for which that is already the world normal, but a
     // log lying on its side is a rotated instance and would report the wrong
     // face, so the instance's own rotation is applied.
-    (hit.object as THREE.InstancedMesh).getMatrixAt(i, instanceMatrix);
     normal.copy(hit.face.normal).transformDirection(instanceMatrix);
 
-    const adjacent: [number, number, number] = [
-      block[0] + Math.round(normal.x),
-      block[1] + Math.round(normal.y),
-      block[2] + Math.round(normal.z),
-    ];
-
-    target.current = {
+    const found: Target = {
       hit: block,
-      adjacent,
+      adjacent: [
+        block[0] + Math.round(normal.x),
+        block[1] + Math.round(normal.y),
+        block[2] + Math.round(normal.z),
+      ],
       axis: axisForFaceNormal(normal.x, normal.y, normal.z),
     };
 
+    target.current = found;
     if (highlightRef.current) {
       highlightRef.current.visible = true;
       highlightRef.current.position.set(block[0], block[1], block[2]);
     }
+    return found;
+  };
+
+  useFrame(() => {
+    if (!editable || !groupRef.current) return;
+
+    const now = performance.now();
+    if (heldButton.current !== null && now >= nextActionAt.current) {
+      act.current(heldButton.current);
+      nextActionAt.current = now + REPEAT_MS;
+    }
+
+    findTarget();
   });
 
   useEffect(() => {
@@ -176,23 +208,33 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       // both press and release inside a single frame, and deferring meant such
       // a click did nothing at all.
       act.current(event.button);
-      nextActionAt.current = clock.current + REPEAT_SECONDS;
+      nextActionAt.current = performance.now() + REPEAT_MS;
     };
 
     const stop = () => {
       heldButton.current = null;
     };
 
+    // Losing the pointer mid-drag, or having the lock taken away, has to count
+    // as a release. Otherwise the button stays "held" and keeps repeating.
+    const onPointerLockChange = () => {
+      if (!document.pointerLockElement) stop();
+    };
+
     const onContextMenu = (event: Event) => event.preventDefault();
 
     canvas.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("pointerup", stop);
+    window.addEventListener("pointercancel", stop);
     window.addEventListener("blur", stop);
+    document.addEventListener("pointerlockchange", onPointerLockChange);
     canvas.addEventListener("contextmenu", onContextMenu);
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointerup", stop);
+      window.removeEventListener("pointercancel", stop);
       window.removeEventListener("blur", stop);
+      document.removeEventListener("pointerlockchange", onPointerLockChange);
       canvas.removeEventListener("contextmenu", onContextMenu);
     };
   }, [editable, gl]);
