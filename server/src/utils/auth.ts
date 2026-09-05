@@ -76,3 +76,28 @@ export function notFound(message: string): GraphQLError {
     extensions: { code: "NOT_FOUND", http: { status: 404 } },
   });
 }
+
+/**
+ * Turn a Mongoose validation failure into a message worth showing someone.
+ *
+ * Mongoose reports these as a single error holding one entry per bad field,
+ * with the wording taken from the schema. Left alone it reached the browser as
+ * an INTERNAL_SERVER_ERROR reading "User validation failed: password: Password
+ * must be at least 8 characters", which the client then replaced with a generic
+ * "Signup failed", so nobody was ever told what to change.
+ *
+ * Returns null for anything that is not a validation failure, so callers can
+ * rethrow the original error untouched.
+ */
+export function asUserInputError(error: unknown): GraphQLError | null {
+  if (!error || typeof error !== "object") return null;
+  if ((error as { name?: string }).name !== "ValidationError") return null;
+
+  const fields = (error as { errors?: Record<string, { message?: string }> }).errors ?? {};
+  const messages: string[] = [];
+  for (const field of Object.values(fields)) {
+    if (field && typeof field.message === "string") messages.push(field.message);
+  }
+
+  return badRequest(messages.length > 0 ? messages.join(" ") : "Those details are not valid.");
+}

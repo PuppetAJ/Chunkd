@@ -6,8 +6,7 @@ import { LOGIN_USER } from "../utils/mutations.ts";
 import homeLogo from "../assets/CHUNKD.png";
 
 import { useAuthStore } from "../lib/auth.ts";
-// import Footer from "../components/Footer";
-
+import { emailError, requestErrorMessage } from "../lib/credentials.ts";
 
 const Login = () => {
 	const logIn = useAuthStore((state) => state.logIn);
@@ -15,25 +14,38 @@ const Login = () => {
 	const location = useLocation();
 	const apollo = useApolloClient();
 	const [formState, setFormState] = useState({ email: "", password: "" });
-	const [login, { error }] = useMutation(LOGIN_USER);
 
-	// update state based on form input changes
+	// The old form showed "Email & Password do not match!" for every failure,
+	// including ones that had nothing to do with the password, and swallowed the
+	// server's actual message into the console.
+	const [fieldErrors, setFieldErrors] = useState({});
+	const [submitError, setSubmitError] = useState("");
+
+	const [login, { loading }] = useMutation(LOGIN_USER);
+
 	const handleChange = (event) => {
 		const { name, value } = event.target;
-
-		setFormState({
-			...formState,
-			[name]: value,
-		});
+		setFormState({ ...formState, [name]: value });
+		setFieldErrors((previous) => ({ ...previous, [name]: null }));
+		setSubmitError("");
 	};
 
-	// submit form
 	const handleFormSubmit = async (event) => {
 		event.preventDefault();
+		setSubmitError("");
+
+		// Logging in does not re-check the password rules: an account made before
+		// they changed still has to be able to get in.
+		const problems = {
+			email: emailError(formState.email),
+			password: formState.password ? null : "Enter your password.",
+		};
+		setFieldErrors(problems);
+		if (problems.email || problems.password) return;
 
 		try {
 			const { data } = await login({
-				variables: { ...formState },
+				variables: { email: formState.email.trim(), password: formState.password },
 			});
 
 			logIn(data.login.token);
@@ -41,78 +53,82 @@ const Login = () => {
 			// signed-in view. The old code reloaded the whole page to achieve this.
 			await apollo.resetStore();
 			navigate(location.state?.from ?? "/", { replace: true });
-		} catch (e) {
-			console.error(e);
+		} catch (error) {
+			setSubmitError(requestErrorMessage(error));
+			// Keep the email so a wrong password does not mean retyping both.
+			setFormState((previous) => ({ ...previous, password: "" }));
 		}
-
-		// clear form values
-		setFormState({
-			email: "",
-			password: "",
-		});
 	};
 
-	//Returning JSX
+	const fieldClasses = (name) =>
+		`border rounded px-3 py-1 btn-minecraft ${fieldErrors[name] ? "border-red-400" : ""}`;
+
 	return (
 		<main id="login" className="flex-row grow justify-center container">
+			<div className="128">
+				<img src={homeLogo} alt="logo" />
+			</div>
+			<div className="px-6 py-3 rounded w-64">
+				<form onSubmit={handleFormSubmit} noValidate>
+					{submitError && (
+						<p role="alert" className="text-xs text-red-400 mb-2">
+							{submitError}
+						</p>
+					)}
 
-			
-		<div className="128">
-		<img src={homeLogo} alt="logo"></img>
-		</div>
-    <div className="px-6 py-3 rounded w-64">
-        <div className="flex flex-col items-center justify-center mb-4">
-        </div>
-		<form onSubmit={handleFormSubmit}>
-            <div className="flex flex-col my-2">
-				{error &&  <div className="text-xs text-red-400 flex justify-between items-center"><span>
-                    <b>Error: </b>
-                   Email & Password do not match!
-                    </span>
-               
-                    
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>}
+					<div className="flex flex-col my-2">
+						<input
+							className={fieldClasses("email")}
+							placeholder="Your email"
+							name="email"
+							type="email"
+							id="email"
+							autoComplete="email"
+							aria-invalid={Boolean(fieldErrors.email)}
+							value={formState.email}
+							onChange={handleChange}
+						/>
+						{fieldErrors.email && (
+							<p className="text-xs text-red-400 mt-1">{fieldErrors.email}</p>
+						)}
+					</div>
 
-				<input
-								className="border rounded px-3 py-1 btn-minecraft"
-								placeholder="Your email"
-								name="email"
-								type="email"
-								id="email"
-								value={formState.email}
-								onChange={handleChange}
-							/>
-               
-            </div>
-            <div className="flex flex-col my-3">
-				<input
-								className="border rounded px-3 py-1 btn-minecraft"
-								placeholder="Password"
-								name="password"
-								type="password"
-								id="password"
-								value={formState.password}
-								onChange={handleChange}
-							/>
-            </div>
-            <div className="flex flex-col items-center justify-center my-3">
-                <button className="btn-minecraft my-3 w-full border rounded">
-                    Submit
-                </button>
-               
-            </div>
-        </form>
-		
-    </div>
-	
+					<div className="flex flex-col my-3">
+						<input
+							className={fieldClasses("password")}
+							placeholder="Password"
+							name="password"
+							type="password"
+							id="password"
+							autoComplete="current-password"
+							aria-invalid={Boolean(fieldErrors.password)}
+							value={formState.password}
+							onChange={handleChange}
+						/>
+						{fieldErrors.password && (
+							<p className="text-xs text-red-400 mt-1">{fieldErrors.password}</p>
+						)}
+					</div>
+
+					<div className="flex flex-col items-center justify-center my-3">
+						<button
+							type="submit"
+							disabled={loading}
+							className="btn-minecraft my-3 w-full border rounded disabled:opacity-60"
+						>
+							{loading ? "Logging in..." : "Submit"}
+						</button>
+						<p className="text-xs text-gray-400">
+							Need an account?{" "}
+							<Link to="/signup" className="underline">
+								Sign up
+							</Link>
+						</p>
+					</div>
+				</form>
+			</div>
 		</main>
 	);
 };
 
 export default Login;
-
-
-
