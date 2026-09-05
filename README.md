@@ -126,12 +126,16 @@ why `.node-version` matters: it must stay at 22.18 or newer.
 |---|---|
 | W A S D | Move |
 | Space | Jump |
-| Shift | Walk slowly |
+| Double-tap space | Toggle flight |
+| Shift | Walk slowly, or descend while flying |
 | Mouse | Look, once you click to capture the pointer |
-| Left click | Break the block you are looking at |
-| Right click | Place the selected block |
+| Left click | Break a block. Hold to keep breaking |
+| Right click | Place a block. Hold to keep placing |
 | 1 to 9 | Choose a block type |
 | P | Save the current world |
+
+A jump clears a little over one block, which leaves room to place a block under
+your own feet and build upwards.
 
 ## Layout
 

@@ -1,4 +1,5 @@
 import { Suspense, useMemo } from "react";
+import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Preload, Sky } from "@react-three/drei";
 import { useQuery } from "@apollo/client/react";
@@ -51,7 +52,10 @@ export default function SavedBuild({ buildId }: Props) {
   return (
     <div id="save-container" className="mt-8">
       <div id="save-wrapper">
-        <Canvas shadows camera={{ fov: 45, position: [centre + 40, 34, centre + 40] }}>
+        <Canvas
+          shadows
+          camera={{ fov: 45, far: 600, position: [centre + WORLD_SIZE, WORLD_SIZE * 0.7, centre + WORLD_SIZE] }}
+        >
           {/* Block textures suspend while loading. Without a boundary here the
               suspension unmounts the Canvas and the viewer stays blank. */}
           <Suspense fallback={null}>
@@ -70,24 +74,27 @@ function BuildScene({
   world: Map<string, number>;
   centre: number;
 }) {
+  const lightTarget = useMemo(() => new THREE.Object3D(), []);
   return (
     <>
       <Preload all />
       <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
       <ambientLight intensity={2} />
+      <primitive object={lightTarget} position={[centre, 0, centre]} />
       <directionalLight
         castShadow
+        target={lightTarget}
         intensity={4}
-        position={[40, 60, 25]}
+        position={[centre + 60, 90, centre + 40]}
         shadow-mapSize={[2048, 2048]}
         shadow-camera-near={1}
-        shadow-camera-far={180}
-        shadow-camera-left={-45}
-        shadow-camera-right={45}
-        shadow-camera-top={45}
-        shadow-camera-bottom={-45}
+        shadow-camera-far={260}
+        shadow-camera-left={-WORLD_SIZE * 0.8}
+        shadow-camera-right={WORLD_SIZE * 0.8}
+        shadow-camera-top={WORLD_SIZE * 0.8}
+        shadow-camera-bottom={-WORLD_SIZE * 0.8}
       />
-      <OrbitControls target={[centre, 6, centre]} enablePan={false} />
+      <OrbitControls target={[centre, 6, centre]} enablePan={false} maxDistance={WORLD_SIZE * 2.5} />
       <World blocks={world} />
     </>
   );

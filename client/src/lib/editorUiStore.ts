@@ -13,10 +13,15 @@ interface EditorUiState {
   saveStatus: SaveStatus;
   saveMessage: string;
   setSaveStatus: (status: SaveStatus, message?: string) => void;
+  /** Mirrors the player's flight state so the interface can show it. */
+  flying: boolean;
+  setFlying: (flying: boolean) => void;
 }
 
 export const useEditorUiStore = create<EditorUiState>((set) => ({
   saveStatus: "idle",
   saveMessage: "",
   setSaveStatus: (saveStatus, saveMessage = "") => set({ saveStatus, saveMessage }),
+  flying: false,
+  setFlying: (flying) => set({ flying }),
 }));

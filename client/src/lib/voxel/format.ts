@@ -29,8 +29,12 @@ const buildSchema = z.object({
 export type SavedBuild = z.infer<typeof buildSchema>;
 
 /** Reduce a live world to the differences from its generated terrain. */
-export function serializeWorld(seed: number, blocks: Map<BlockKey, number>): string {
-  const original = generateTerrain(seed);
+export function serializeWorld(
+  seed: number,
+  blocks: Map<BlockKey, number>,
+  size: number = WORLD_SIZE,
+): string {
+  const original = generateTerrain(seed, size);
 
   const removed: [number, number, number][] = [];
   const added: [number, number, number, number][] = [];
@@ -48,7 +52,7 @@ export function serializeWorld(seed: number, blocks: Map<BlockKey, number>): str
 
   const build: SavedBuild = {
     v: BUILD_FORMAT_VERSION,
-    size: WORLD_SIZE,
+    size,
     seed,
     removed,
     added,

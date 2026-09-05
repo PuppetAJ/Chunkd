@@ -17,12 +17,21 @@ export const GRAVITY = -30;
  * Upward speed at the start of a jump.
  *
  * Peak height is JUMP_SPEED squared over twice gravity, so this reaches roughly
- * 1.18 blocks: enough to step onto a single block with margin to spare, and not
- * enough to reach two. The previous value of 8 aimed at 1.07 blocks but never
- * achieved it, because gravity was subtracted from the impulse before the
- * player had moved.
+ * 1.35 blocks. That matters for more than stepping up: to build a pillar you
+ * jump and place a block beneath your own feet, which is only possible while
+ * your feet are more than one block clear of the ground. This height gives
+ * about a third of a second in which that placement is legal.
  */
-export const JUMP_SPEED = 8.4;
+export const JUMP_SPEED = 9;
+
+/** Vertical speed while flying, in blocks per second. */
+export const FLY_SPEED = 9;
+
+/** Flying moves faster horizontally than walking, to cross the world. */
+export const FLY_HORIZONTAL_MULTIPLIER = 1.8;
+
+/** Two jump presses closer together than this toggle flight. */
+export const DOUBLE_TAP_SECONDS = 0.32;
 
 export const TERMINAL_VELOCITY = -50;
 
@@ -37,6 +46,12 @@ export interface MotionState {
    * touches down, so they never appear to land.
    */
   jumpHeld: boolean;
+  /** Creative flight: gravity off, jump rises, sneak descends. */
+  flying: boolean;
+  /** Seconds since this player started, used only to time the double tap. */
+  elapsed: number;
+  /** When the jump key was last pressed, for double-tap detection. */
+  lastJumpPressAt: number;
 }
 
 export interface MoveInput {
@@ -52,7 +67,14 @@ export interface MoveInput {
 }
 
 export function createMotionState(): MotionState {
-  return { verticalSpeed: 0, jumpHeld: false };
+  return {
+    verticalSpeed: 0,
+    jumpHeld: false,
+    flying: false,
+    elapsed: 0,
+    // Far enough in the past that the first press is never a double tap.
+    lastJumpPressAt: -Infinity,
+  };
 }
 
 export function stepPlayer(
@@ -63,11 +85,29 @@ export function stepPlayer(
   delta: number,
 ): void {
   const dt = Math.min(delta, MAX_TIMESTEP);
+  motion.elapsed += dt;
+
+  // A second jump press soon after the first toggles flight, the way creative
+  // mode does. The first press has already produced a jump by then, which is
+  // what makes the gesture feel like taking off.
+  const freshPress = input.jump && !motion.jumpHeld;
+  if (freshPress) {
+    if (motion.elapsed - motion.lastJumpPressAt < DOUBLE_TAP_SECONDS) {
+      motion.flying = !motion.flying;
+      motion.verticalSpeed = 0;
+      // Consume the pair, so a third tap starts a new one rather than
+      // toggling straight back.
+      motion.lastJumpPressAt = -Infinity;
+    } else {
+      motion.lastJumpPressAt = motion.elapsed;
+    }
+  }
 
   let vx = 0;
   let vz = 0;
   if (input.forward !== 0 || input.strafe !== 0) {
-    const speed = input.sneak ? SNEAK_SPEED : WALK_SPEED;
+    const base = input.sneak && !motion.flying ? SNEAK_SPEED : WALK_SPEED;
+    const speed = motion.flying ? base * FLY_HORIZONTAL_MULTIPLIER : base;
     const length = Math.hypot(input.forward, input.strafe);
     // Right is the heading turned a quarter turn: (-z, x).
     vx = ((input.forward * input.headingX + input.strafe * -input.headingZ) / length) * speed;
@@ -76,23 +116,26 @@ export function stepPlayer(
 
   // A jump needs a fresh press. Holding the key gives one jump, not a bounce
   // on every landing.
-  if (input.jump) {
-    if (!motion.jumpHeld && body.onGround) {
-      motion.verticalSpeed = JUMP_SPEED;
-      motion.jumpHeld = true;
-    }
-  } else {
-    motion.jumpHeld = false;
+  if (freshPress && !motion.flying && body.onGround) {
+    motion.verticalSpeed = JUMP_SPEED;
   }
+  motion.jumpHeld = input.jump;
 
-  // Integrate over the average of the speeds at the start and end of the frame.
-  // Using only the end speed, as before, meant one frame of gravity was applied
-  // before the jump had lifted the player at all, which both lowered the jump
-  // and made its height depend on the frame rate.
-  const startSpeed = motion.verticalSpeed;
-  const endSpeed = Math.max(TERMINAL_VELOCITY, startSpeed + GRAVITY * dt);
-  const dy = ((startSpeed + endSpeed) / 2) * dt;
-  motion.verticalSpeed = endSpeed;
+  let dy: number;
+  if (motion.flying) {
+    // No gravity while flying; the keys drive height directly.
+    motion.verticalSpeed = 0;
+    dy = ((input.jump ? FLY_SPEED : 0) - (input.sneak ? FLY_SPEED : 0)) * dt;
+  } else {
+    // Integrate over the average of the speeds at the start and end of the
+    // frame. Using only the end speed, as before, meant one frame of gravity
+    // was applied before the jump had lifted the player at all, which both
+    // lowered the jump and made its height depend on the frame rate.
+    const startSpeed = motion.verticalSpeed;
+    const endSpeed = Math.max(TERMINAL_VELOCITY, startSpeed + GRAVITY * dt);
+    dy = ((startSpeed + endSpeed) / 2) * dt;
+    motion.verticalSpeed = endSpeed;
+  }
 
   moveBody(blocks, body, vx * dt, dy, vz * dt);
 

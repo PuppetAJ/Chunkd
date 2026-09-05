@@ -1,4 +1,5 @@
 import { Suspense, useMemo } from "react";
+import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { PointerLockControls, Preload, Sky } from "@react-three/drei";
 
@@ -8,10 +9,17 @@ import SaveControls from "../components/SaveControls/index.tsx";
 import Hotbar from "../components/Hotbar/index.tsx";
 import SaveToast from "../components/SaveToast/index.tsx";
 import Crosshair from "../components/Crosshair/index.tsx";
+import FlightIndicator from "../components/FlightIndicator/index.tsx";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
+import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
 import type { Body } from "../lib/voxel/collision.ts";
 
 export default function Editor() {
+  const centre = WORLD_SIZE / 2;
+  // A little over half the diagonal, so the corners are still lit.
+  const shadowExtent = WORLD_SIZE * 0.8;
+  const lightTarget = useMemo(() => new THREE.Object3D(), []);
+
   const seed = useWorldStore((state) => state.seed);
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
@@ -48,17 +56,22 @@ export default function Editor() {
               ignored. sunPosition is what actually places the sun. */}
           <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
           <ambientLight intensity={2} />
+          {/* The sun's shadow camera is aimed at its target, which defaults to
+              the origin. With the world running from 0 to WORLD_SIZE, aiming at
+              the origin left the far half of the map outside the shadow map. */}
+          <primitive object={lightTarget} position={[centre, 0, centre]} />
           <directionalLight
             castShadow
+            target={lightTarget}
             intensity={4}
-            position={[40, 60, 25]}
+            position={[centre + 60, 90, centre + 40]}
             shadow-mapSize={[2048, 2048]}
             shadow-camera-near={1}
-            shadow-camera-far={180}
-            shadow-camera-left={-45}
-            shadow-camera-right={45}
-            shadow-camera-top={45}
-            shadow-camera-bottom={-45}
+            shadow-camera-far={260}
+            shadow-camera-left={-shadowExtent}
+            shadow-camera-right={shadowExtent}
+            shadow-camera-top={shadowExtent}
+            shadow-camera-bottom={-shadowExtent}
           />
           <World editable playerBody={body} />
           <Player body={body} />
@@ -68,6 +81,7 @@ export default function Editor() {
       </Canvas>
 
       <Crosshair />
+      <FlightIndicator />
       <Hotbar />
       <SaveToast />
     </>

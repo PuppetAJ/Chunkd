@@ -30,14 +30,16 @@ const GameControlsModal = ({ setModalOn }) => {
                         <h1 html4="textarea" className="minecraft text-3xl text-white mb-8 flex items-center border-b-2">Controls</h1>
 
                         <div className="minecraft p-2 py-6 text-gray-300">
-                            <p>Left-Click: Destroy Block</p>
-                            <p>Right-Click: Place Block</p>
+                            <p>Left-Click: Destroy Block (hold to keep going)</p>
+                            <p>Right-Click: Place Block (hold to keep going)</p>
                             <p>WASD / Arrows: Move</p>
                             <p>Space: Jump</p>
+                            <p>Double-Tap Space: Toggle Flight</p>
+                            <p>While Flying: Space Up, Shift Down</p>
                             <p># 1-9: Change Block Material</p>
                             <p>Hold Shift: Lower Speed</p>
                             <p>P: Save Build</p>
-                            <p>Esc: Menu</p>
+                            <p>Esc: Release Mouse</p>
                         </div>
 
 
