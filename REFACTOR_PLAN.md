@@ -12,6 +12,48 @@ The plan is ordered so each phase leaves the app in a runnable state. Do them as
 
 ---
 
+## Status
+
+| Phase | State |
+|---|---|
+| 0 Baseline and safety net | Done, folded into phase 1 |
+| 1 pnpm workspaces | Done |
+| 2 Server modernization | Done |
+| 3 Client toolchain (Vite, React 19, Tailwind 4) | Done |
+| 4 Editor performance rewrite | Next |
+| 5 Functionality fixes | Partly done as a side effect of phases 2 and 3 |
+| 6 UI and aesthetics | Not started |
+| 7 Quality, tests, deployment | Partly done: CI and an end-to-end suite exist |
+
+**Deviation from the original ordering.** Phase 1 planned to install the existing
+Create React App setup under pnpm before replacing it. That step was skipped.
+Create React App is deprecated and interacts poorly with pnpm's strict linking,
+so debugging a toolchain that was about to be deleted would have been wasted
+work. The client went straight to Vite instead. Phase 0's baseline walk was also
+folded into phase 1, replaced by the browser-driven suite in `e2e/smoke.mjs`,
+which is a better record of what works than a hand-written document.
+
+**Old commit tagged `v1-legacy`** if you ever need the original code.
+
+### Known issues carried into phase 4
+
+- The saved build format is still the old shape, only with the unserialisable
+  texture objects stripped out. A save is 24.7 KB rather than megabytes, but the
+  seed-based format described in 4a would take it under 10 KB.
+- Frustum culling is switched off on the terrain's instanced mesh as a
+  workaround. The proper fix is to compute a bounding volume that covers the
+  instances, which the rewrite in 4b will do naturally.
+- The editor still creates one React component per block, which is the root
+  performance problem this whole phase exists to solve.
+- Editor frame rate has not been measured. Doing it properly needs a real GPU
+  rather than the headless browser used for the functional checks.
+- `PointerLockControls` cannot be exercised headlessly, so mouse-look is the one
+  interaction the end-to-end suite does not cover.
+
+---
+
+---
+
 ## 0. Where the project is today (audit, Sept 2026)
 
 Last commit: December 2022. Nothing has been touched since. Local toolchain: Node 24, npm 11, pnpm 11.2, corepack 0.34.
@@ -103,7 +145,7 @@ Three separate `package-lock.json` files, a root `install` script that `cd`s int
 
 ## 2. Phases
 
-### Phase 0 — Baseline and safety net (½ day)
+### Phase 0 — Baseline and safety net — DONE (folded into phase 1)
 
 Goal: know exactly what works before touching anything.
 
@@ -116,7 +158,7 @@ Goal: know exactly what works before touching anything.
 
 **Done when:** app boots locally from a clean clone using documented steps, and `docs/BASELINE.md` exists.
 
-### Phase 1 — Migrate to pnpm workspaces (½ day)
+### Phase 1 — Migrate to pnpm workspaces — DONE
 
 Goal: pnpm is the foundation everything else builds on, and the migration is safest while the code is unchanged.
 
@@ -150,7 +192,7 @@ Goal: pnpm is the foundation everything else builds on, and the migration is saf
 
 **Done when:** `pnpm install && pnpm dev` works from a clean clone and CI is green on the build step.
 
-### Phase 2 — Server modernization (1–2 days)
+### Phase 2 — Server modernization — DONE
 
 Goal: modern, secure, testable API with an unchanged GraphQL contract (the client from Phase 1 must still work against it, so client and server can be upgraded independently).
 
@@ -169,7 +211,7 @@ Goal: modern, secure, testable API with an unchanged GraphQL contract (the clien
 
 **Done when:** `pnpm --filter server test` passes, the Phase 1 client works unchanged against the new server, and no secrets are in the repo.
 
-### Phase 3 — Client build migration: CRA → Vite, React 19, Tailwind 4, TypeScript (1–2 days)
+### Phase 3 — Client build migration: CRA → Vite, React 19, Tailwind 4, TypeScript — DONE
 
 Goal: modern toolchain with the *same* UI and behavior. No visual or feature changes in this phase, so regressions are easy to spot.
 
@@ -189,7 +231,7 @@ Goal: modern toolchain with the *same* UI and behavior. No visual or feature cha
 
 **Done when:** `pnpm --filter client build` produces a Vite bundle, every page from `docs/BASELINE.md` behaves identically, and the initial-load JS for `/` is a fraction of the CRA bundle (target: under 200 KB gzipped).
 
-### Phase 4 — Editor performance rewrite (2–4 days, the biggest chunk)
+### Phase 4 — Editor performance rewrite (2–4 days, the biggest chunk) — NEXT
 
 Goal: 60 FPS with a full 32×32 terrain plus hundreds of placed blocks, instant place/break, and a compact save format. This is a rewrite of `Terrain`, `Cube`, `Player`, `Save` around a single voxel store; the current three-way split (terrain instances vs. player cubes vs. save renderer) is the root of most problems.
 
@@ -273,34 +315,33 @@ Goal: keep the Minecraft/pixel identity, drop the 2022-bootcamp look. Design onc
 
 ---
 
-## 3. Decisions to confirm before starting
+## 3. Decisions (settled)
 
-These are the choices where the plan picked a default; change them here rather than mid-phase.
-
-| Decision | Default in this plan | Alternative |
+| Decision | Chosen | Notes |
 |---|---|---|
-| TypeScript | Yes, incremental | Stay JS (saves ~1 day, loses type-safety for the shared build format) |
-| GraphQL client | Apollo 3.x → 4.x later | urql (smaller), or TanStack Query + `graphql-request` |
-| Physics approach (4c) | `InstancedRigidBodies` first | Heightfield, or pure voxel raycast (no physics for blocks) |
-| Component library | shadcn/ui | Native `<dialog>` + a toast lib, headless-only |
-| bcrypt | `bcryptjs` | keep native `bcrypt` and allow-list its build script in pnpm |
-| Hosting | Render + Atlas | Fly.io, Railway, a VPS with the Dockerfile |
-| Old data | Migrate `savedBuilds` strings to `Build` docs | Drop legacy builds (only if there is no real user data worth keeping) |
+| TypeScript | Yes, but deliberately plain | Interfaces, annotations and unions only. No advanced type work. Every pattern used is documented in [docs/TYPESCRIPT.md](docs/TYPESCRIPT.md). UI components stay `.jsx` until they are rewritten. |
+| GraphQL client | Apollo Client (installed 4.x) | Hooks moved to `@apollo/client/react`, `setContext` became `SetContextLink`. |
+| Component library | shadcn/ui on Radix, plus Aceternity UI and React Bits | Visual target is a modern dark interface in the spirit of Sketchfab. |
+| bcrypt | `bcryptjs` | No native build step, so pnpm never has to be told to run it. |
+| Old data | Dropped, fresh database | No migration script needed, so the new `Build` model has no legacy compatibility path. |
+| Physics approach (4c) | Still open | Decide during the editor rewrite, after measuring. |
+| Hosting | Still open | Render, Fly.io or Railway, plus MongoDB Atlas. |
 
 ## 4. Success metrics (fill in before/after)
 
-| Metric | Baseline | Target | After |
+| Metric | Before | Target | After phases 1-3 |
 |---|---|---|---|
-| Editor FPS, terrain + 500 blocks (iGPU) | ? | ≥ 60 | |
-| Draw calls in editor | ? (≈ number of cubes × 6) | < 30 | |
-| Initial JS for `/` (gzip) | ? | < 200 KB | |
-| Three/rapier in initial chunk | yes | no | |
-| Size of one saved build | ? (tens–hundreds of KB) | < 10 KB | |
-| `express.json` body limit | 50 MB | 1 MB | |
-| Lighthouse Perf / A11y on `/` | ? | ≥ 90 / ≥ 95 | |
-| Routes fully functional | see `docs/BASELINE.md` | 100 % | |
-| CI | none | lint + typecheck + test + build + e2e | |
-| Secrets in repo | 1 (JWT) | 0 | |
+| Initial JS for `/` (gzip) | whole app in one bundle | < 200 KB | 141 KB |
+| Three/rapier in initial chunk | yes | no | no, lazy per route |
+| Draw calls in editor | ≈ blocks × 6 | < 30 | 9 |
+| Size of one saved build | megabytes (serialised textures) | < 10 KB | 24.7 KB |
+| `express.json` body limit | 50 MB | 1 MB | 1 MB |
+| Secrets in repo | 1 (JWT signing key) | 0 | 0 |
+| Lockfiles | 3 npm | 1 | 1 pnpm |
+| Editor renders at all | yes (on 2022 deps) | yes | yes, verified in a browser |
+| Automated checks | none | lint + typecheck + test + build + e2e | typecheck + build in CI, 23-check e2e locally |
+| Editor FPS, terrain + 500 blocks | not measured | ≥ 60 | not measured, needs a real GPU |
+| Lighthouse Perf / A11y on `/` | not measured | ≥ 90 / ≥ 95 | not measured |
 
 ## 5. Suggested order and rough effort
 
