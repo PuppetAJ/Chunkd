@@ -87,10 +87,6 @@ export default function BlockLayer({ block, positions, axes, textures }: Props) 
     // geometry, a single cube at the origin, and the renderer culls the entire
     // world as soon as the origin leaves the view.
     mesh.computeBoundingSphere();
-
-    // The instance buffer is reused across renders, so tell three about the
-    // positions this mesh actually holds for hit testing.
-    mesh.userData["positions"] = positions;
   }, [positions, axes, count]);
 
   return (

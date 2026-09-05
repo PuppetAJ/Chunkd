@@ -169,6 +169,39 @@ for (const [pitch, yaw] of [[-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.
 check("right click places a block", afterPlace.blocks === afterBreak.blocks + 1,
   `${afterBreak.blocks} -> ${afterPlace.blocks}`);
 
+// ------------------------------------------------ repeated clicks keep working
+// A stale aim target used to survive an edit, so the first click broke a block
+// and every one after it silently re-aimed at the hole it had just made.
+await page.evaluate(() => {
+  const store = window.__world.getState();
+  const camera = window.__r3f.camera;
+  const x = Math.round(camera.position.x);
+  const y = Math.round(camera.position.y);
+  const z = Math.round(camera.position.z);
+  store.setHotbarBlock(1, 4);
+  store.setSelectedSlot(1);
+  // A block of stone several deep directly ahead, so that breaking one always
+  // leaves another behind it and well inside reach.
+  for (let depth = 2; depth <= 7; depth += 1) {
+    for (let dy = -1; dy <= 1; dy += 1) {
+      for (let dx = -1; dx <= 1; dx += 1) store.placeBlock(x + dx, y + dy, z - depth);
+    }
+  }
+  camera.rotation.set(0, 0, 0, "YXZ");
+});
+await page.waitForTimeout(1200);
+
+const wallBefore = await page.evaluate(() => window.__world.getState().blocks.size);
+for (let i = 0; i < 5; i += 1) {
+  await page.mouse.down({ button: "left" });
+  await page.waitForTimeout(60);
+  await page.mouse.up({ button: "left" });
+  await page.waitForTimeout(400);
+}
+const wallAfter = await page.evaluate(() => window.__world.getState().blocks.size);
+check("five clicks in a row break five blocks", wallBefore - wallAfter === 5,
+  `${wallBefore} -> ${wallAfter}`);
+
 // ------------------------------------------------------- hotbar and inventory
 const selectedSlot = () => page.evaluate(() => window.__world.getState().selectedSlot);
 
