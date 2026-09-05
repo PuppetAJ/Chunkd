@@ -1,44 +1,59 @@
 # Block textures
 
-## What is in this folder
+## Where they come from
 
-Every file here is from "16x16 Block Texture Set" by ARoachIFoundOnMyPillow,
-released into the public domain under CC0 and downloaded from OpenGameArt:
+Every texture in this folder comes from **Faithful 32x**, version 26.2:
 
-https://opengameart.org/content/16x16-block-texture-set
+- Pack: https://faithfulpack.net/faithful32x
+- Licence: https://faithfulpack.net/license (Version 4, 31 July 2026)
+- Downloaded from the Faithful team's Modrinth listing, project `w0TnApzs`.
 
-CC0 asks for nothing in return, so this section is a record of where the art came
-from rather than a licence obligation. Every file is unmodified: none of it was
-drawn or generated for this project, and it can be checked by hashing these files
-against the pack's own `blocks.zip`.
+The Faithful licence permits using, modifying and distributing their work in
+"your own games or software", which is why these can live in the repository and
+ship in a deploy. It asks for four things in return, all of which this project
+does:
 
-Some of the file names are the pack author's own and look like placeholders,
-`sand_ugly.png` in particular. They are kept as they came so that the comparison
-above stays easy to make.
+1. Clear credit in an obvious place. It is in the site footer on every page, and
+   in the in-game controls panel, since the editor covers the footer.
+2. A clearly visible link to https://faithfulpack.net/.
+3. Honesty about exactly what is used: the block textures listed below, from
+   Faithful 32x, and nothing else. No GUI, item, entity or particle art is used.
+4. A link to the licence, which both credits above carry.
 
-## Using Ashen 16x, or another pack
+Note that the 26.2 pack download still bundles a stale `LICENSE.txt` from
+version 3 (2023), whose permissions are narrower and predate the clause allowing
+use in original games. Version 4 on the website is the current licence and is
+what this project relies on.
 
-Ashen 16x is the pack this project is meant to look best with:
+## What was changed
 
-https://www.curseforge.com/minecraft/texture-packs/ashen-16x
+55 of the 60 files are byte-for-byte copies of Faithful's, and can be checked by
+hashing them against the pack's own `assets/minecraft/textures/block` folder.
 
-It is **not** included here, and neither is Sphax PureBDCraft. Both are free to
-download, but both are All Rights Reserved and their authors forbid
-redistributing the files, edited or otherwise, so committing them or shipping
-them in a deploy would not be allowed. Ashen's terms do permit modifying the
-files for personal use, which is what the override below is for.
+Five are derived, because Minecraft stores them greyscale and colours them by
+biome at runtime, which a single-biome world cannot do. They were multiplied by
+Minecraft's own plains-biome colours:
 
-To use one on your own machine:
+| File | How it was made |
+|---|---|
+| `grass_block_top.png` | `grass_block_top` multiplied by `#91BD59` |
+| `grass_block_side.png` | `grass_block_side` with `grass_block_side_overlay` multiplied by `#91BD59` composited over it |
+| `oak_leaves.png` | `oak_leaves` multiplied by `#77AB2F` |
+| `birch_leaves.png` | `birch_leaves` multiplied by `#80A755` |
+| `spruce_leaves.png` | `spruce_leaves` multiplied by `#619961` |
 
-1. Download the pack from the link above.
-2. Put its block images in `client/public/texturepack/`, named to match the files
-   in this folder (`grass_top.png`, `oak_log_side.png`, and so on).
-3. Add this line to `client/.env.local`:
+`cherry_leaves.png` is not tinted, because Minecraft does not tint it either.
 
-   ```
-   VITE_TEXTURE_PACK=/texturepack
-   ```
+## Using a different texture pack
 
-Each block prefers the pack's image and falls back to the bundled one for
-anything the pack does not supply, so a partial pack works fine. That directory
-is ignored by git, so nothing licensed ends up in the repository.
+The file names here are Minecraft's own, so any Minecraft resource pack's
+`assets/minecraft/textures/block` folder can stand in. Put the images in
+`client/public/texturepack/` and set `VITE_TEXTURE_PACK=/texturepack` in
+`client/.env.local`. Each block prefers the pack's image and falls back to the
+bundled one, so a partial pack works.
+
+Two things to know. Packs whose licences forbid redistribution, such as Sphax
+PureBDCraft and Ashen 16x, can be used this way but must not be committed; the
+`texturepack` directory is ignored by git for that reason. And a raw pack will
+supply the greyscale grass and leaves described above, which will look grey
+until they are tinted the same way.

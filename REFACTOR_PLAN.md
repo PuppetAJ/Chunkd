@@ -92,12 +92,22 @@ more, so both artefacts are gone along with the whole shadow pass, and the
 canvas renders at the display's own pixel density so block edges stop looking
 ragged.
 
-The greyscale-mask-and-tint texture scheme is gone with it. The blocks are now
-the CC0 "16x16 Block Texture Set" from OpenGameArt, which are ordinary colour
-images, so they are tagged sRGB, which is simply correct, rather than being
-forced to NoColorSpace to stop the old masks going dark. Blocks can now have a
-different texture per face, which is what lets grass be green on top, banded on
-the sides and plain dirt underneath.
+The greyscale-mask-and-tint texture scheme is gone with it. Blocks now use
+ordinary colour images, so they are tagged sRGB, which is simply correct, rather
+than being forced to NoColorSpace to stop the old masks going dark. Blocks can
+also have a different texture per face, which is what lets grass be green on
+top, fringed on the sides and plain dirt underneath.
+
+The art itself went through two sources. It first moved to a CC0 set from
+OpenGameArt, chosen only because Sphax PureBDCraft and Ashen 16x both forbid
+redistribution and so could not be committed. It then moved to Faithful 32x,
+whose licence does permit use in original games provided the work is credited
+clearly with a visible link, which the footer and the controls panel now carry.
+The block list moved to Minecraft's own vocabulary at the same time, since that
+is what a Minecraft resource pack supplies: spruce and birch rather than pine
+and beech, deepslate rather than slate, calcite and tuff rather than marble and
+limestone. Block ids stayed put wherever a block survived, so saved builds still
+open.
 
 Blocks with a grain are placed along the face you build against. Orientation is
 packed into the world value above the block id's low byte, so the world stays a

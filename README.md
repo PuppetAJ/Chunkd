@@ -151,26 +151,26 @@ lies down.
 
 ## Block textures
 
-The bundled textures are the CC0 "16x16 Block Texture Set" by
-ARoachIFoundOnMyPillow, from
-[OpenGameArt](https://opengameart.org/content/16x16-block-texture-set).
+The blocks use [Faithful 32x](https://faithfulpack.net/faithful32x), under the
+[Faithful licence](https://faithfulpack.net/license) (version 4), which permits
+using and distributing their work in your own games provided you credit them
+clearly and link back. That credit is in the site footer and in the in-game
+controls panel. Full detail, including the five textures that are tinted copies
+rather than exact ones, is in
+[`client/src/assets/textures/CREDITS.md`](client/src/assets/textures/CREDITS.md).
 
-[Ashen 16x](https://www.curseforge.com/minecraft/texture-packs/ashen-16x) is the
-pack this is meant to look best with, but it is not bundled. It and Sphax
-PureBDCraft are free to download, and both are All Rights Reserved: their authors
-forbid redistributing the files, edited or otherwise, so neither can be committed
-here or shipped in a deploy. Ashen does permit modifying the files for personal
-use, which is what this override is for. Put its block images in
-`client/public/texturepack/` under the same names as the files in
-`client/src/assets/textures/`, then add this to `client/.env.local`:
+Because the file names are Minecraft's own, any Minecraft resource pack can
+stand in. Put its block images in `client/public/texturepack/` and add this to
+`client/.env.local`:
 
 ```
 VITE_TEXTURE_PACK=/texturepack
 ```
 
-Each block prefers the pack's image and falls back to the bundled one for
-anything the pack does not supply, so a partial pack works. That directory is
-ignored by git.
+Each block prefers the pack's image and falls back to the bundled one, so a
+partial pack works. That directory is ignored by git, which matters for packs
+whose licences forbid redistribution, such as Sphax PureBDCraft and Ashen 16x:
+they can be used locally this way but must never be committed.
 
 ## Layout
 
