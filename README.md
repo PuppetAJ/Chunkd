@@ -1,96 +1,106 @@
-<h2 align="center">
-  CHUNK'D<br/>
-  <a href="https://chunkd-aj.herokuapp.com/" target="_blank">CHUNK'D</a>
-</h2>
+<h2 align="center">CHUNK'D</h2>
 
-<center>
+<p align="center">
+Build voxel worlds in your browser, save them, and share them with other people.
+</p>
 
-This project was bootstrapped with [Create React App].
+## What it is
 
-## Table of Contents:
+A web app with two halves. The client is a React Three Fiber scene where you walk
+around a generated landscape and place or break blocks, plus a small social feed
+where builds get posted and discussed. The server is a GraphQL API over MongoDB
+that stores accounts, posts, comments, friendships and saved worlds.
 
-- [Description](#Description)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#Contributing)
-- [Tests](#Tests)
-- [License](#License)
-- [Questions?](#questions)
+## Stack
 
-## Description
+| Layer | Choice |
+|---|---|
+| Package manager | pnpm workspaces |
+| Client | React 19, Vite, Tailwind CSS v4, React Router |
+| 3D | three.js, React Three Fiber, drei, Rapier physics |
+| Data | Apollo Client against a GraphQL API |
+| Server | Express 5, Apollo Server 5, Mongoose, TypeScript run directly by Node |
+| Database | MongoDB |
 
-A MERN Stack application that allows a user to play and create in a 3D environment and share their builds to a community of other creators. Users are able to add friends and can comment and hold discussions about the game and their builds that they have shared.
+## Running it locally
 
-## Installation
+You need Node 22 or newer and pnpm. Docker is the easiest way to get MongoDB, but
+any MongoDB reachable over the network works.
 
-First clone this repo to your local directory and install dependencies by running:
+```sh
+pnpm install
+cp .env.example .env      # then edit it, see below
+pnpm db:up                # starts MongoDB in Docker
+pnpm seed                 # optional: fills the database with example content
+pnpm dev                  # client on :3000, API on :3001
+```
 
-### `npm i`
+Open http://localhost:3000.
 
-In the project directory, you can run:
+### Environment
 
-### `npm run dev`
+`.env` at the repository root configures the server. Copy `.env.example` and fill
+it in. The only value with no sensible default is `JWT_SECRET`, which signs login
+tokens. Generate one with:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```sh
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
 
-The page will reload when you make changes.
+The server validates its environment at startup and refuses to boot if anything
+required is missing, so a misconfigured deployment fails immediately rather than
+running in a broken state.
 
-## Usage
+### Seeded accounts
 
-![image](./assets/preview.jpg)
+`pnpm seed` creates 25 users and 60 posts. Every seeded account uses the password
+`chunkd-dev-password`, and each one's email address is its username followed by
+`@chunkd.test`.
 
-You may also view the project [HERE](https://chunkd-aj.herokuapp.com/)
+## Scripts
 
-As a new user, you need to sign up to create an account to log in. Once logged in, you may view posts with builds shared by other users, comment on those posts, and add the other users as friends. You may also enter the editor where you can view the controls needed to create your own build by placing and destroying blocks. Once in the editor, you can save a 3-D rendering of your build that you can then add to your own posts to share for other users to view and comment on.
+Run these from the repository root.
 
-## Technologies Used
+| Command | What it does |
+|---|---|
+| `pnpm dev` | Runs the client and the API together |
+| `pnpm build` | Builds the client for production |
+| `pnpm start` | Runs the API, serving the built client in production mode |
+| `pnpm seed` | Resets the database to example content |
+| `pnpm typecheck` | Type-checks both packages |
+| `pnpm test:e2e` | Drives a real browser through every route (needs `pnpm dev` running) |
+| `pnpm db:up` / `pnpm db:down` | Starts and stops the MongoDB container |
 
-This project was built using these technologies.
+## Controls
 
-- Three.js
-- React Three fiber
-- Noise.js
-- JWT
-- MongoDB
-- Express.js
-- React.js
-- Node.js
-- TailwindCss
-- CSS3
-- JS
+| Input | Action |
+|---|---|
+| W A S D | Move |
+| Space | Jump |
+| Shift | Walk slowly |
+| Mouse | Look, once you click to capture the pointer |
+| Left click | Break the block you are looking at |
+| Right click | Place the selected block |
+| 1 to 9 | Choose a block type |
+| P | Save the current world |
 
-## Features
+## Layout
 
-**📖 Multi-Page Layout**
-
-**🎨 Styled with Tailwind CSS**
-
-**📱 Fully Responsive**
-
-## Contributors
-
-Adrian Jimenez, Alexander Havers, Caleb Funderburk, Austin Reed, Dane Cronin
+```
+client/    React app. Vite, Tailwind, and the 3D editor.
+server/    GraphQL API. TypeScript, run directly by Node with no build step.
+e2e/       Browser smoke test covering every route.
+```
 
 ## Credits
-- Block textures were used from the minecraft Sphax PureBDCraft [texturepack](https://bdcraft.net/downloads/purebdcraft-minecraft/)
-- Starting code for the 3D editor was used from [this](https://codesandbox.io/s/vkgi6) code sandbox
+
+Originally built by Adrian Jimenez, Alexander Havers, Caleb Funderburk,
+Austin Reed and Dane Cronin.
+
+Block textures come from the Minecraft Sphax PureBDCraft
+[texture pack](https://bdcraft.net/downloads/purebdcraft-minecraft/). The
+starting point for the 3D editor was [this sandbox](https://codesandbox.io/s/vkgi6).
 
 ## License
 
-MIT License
-
-For more information go to: [MIT License](https://choosealicense.com/licenses/mit/)
-
-## Questions?
-
-_For any questions, please contact us through the information below:_
-
-GitHub:
-[Adrian Jimenez](https://github.com/PuppetAJ)
-[Alexander Havers](https://github.com/pseudoDjnn)
-[Caleb Funderburk](https://github.com/CalebFunderburk)
-[Austin Reed](https://github.com/AReed98)
-[DaneCronin](https://github.com/DaneCronin)
-
-Link to repo on [GitHub](https://github.com/PuppetAJ/ReactMC)
+MIT. See [LICENSE](LICENSE).

@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    // Vite compiles the code, so TypeScript is only used for checking.
+    "noEmit": true,
+
+    "target": "es2022",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    // Imports name the file they mean, extension included, the same way the
+    // server's do. Vite resolves them; TypeScript only needs permission to
+    // read them, which is safe here because it never emits JavaScript.
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+
+    // The app is being converted to TypeScript one area at a time. Files that
+    // are still .jsx keep working; they are simply not type-checked yet.
+    "allowJs": true,
+    "checkJs": false,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src", "vite.config.ts"]
+}

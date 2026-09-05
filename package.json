@@ -29,6 +29,10 @@
     "typecheck": "pnpm --recursive typecheck",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "clean": "pnpm --recursive exec rm -rf node_modules dist build && rm -rf node_modules"
+    "clean": "pnpm --recursive exec rm -rf node_modules dist build && rm -rf node_modules",
+    "test:e2e": "node e2e/smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
   }
 }
