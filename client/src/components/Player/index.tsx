@@ -72,6 +72,10 @@ export default function Player({ body }: Props) {
   useEffect(() => {
     const NOTCH = 100;
     const onWheel = (event: WheelEvent) => {
+      // A wheel event carrying ctrl is a pinch, not a scroll. It is refused
+      // elsewhere; here it just must not also move along the hotbar.
+      if (event.ctrlKey) return;
+
       // Changing direction starts again, so leftover distance from a scroll one
       // way cannot make the first step back happen early.
       if (Math.sign(event.deltaY) !== Math.sign(scrolled.current)) scrolled.current = 0;

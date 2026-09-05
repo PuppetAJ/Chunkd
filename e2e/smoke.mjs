@@ -209,6 +209,27 @@ const wallAfter = await page.evaluate(() => window.__world.getState().blocks.siz
 check("five clicks in a row break five blocks", wallBefore - wallAfter === 5,
   `${wallBefore} -> ${wallAfter}`);
 
+// --------------------------------------------------------------- zoom gestures
+// Zooming moves the crosshair away from where the player is aiming. The routes
+// a page can refuse are refused; a two-finger double tap on a Mac trackpad is
+// decided by the operating system and cannot be.
+const zoomProbe = await page.evaluate(() => {
+  const pinch = new WheelEvent("wheel", { deltaY: -120, ctrlKey: true, cancelable: true, bubbles: true });
+  document.body.dispatchEvent(pinch);
+  const gesture = new Event("gesturestart", { cancelable: true, bubbles: true });
+  document.dispatchEvent(gesture);
+  const scroll = new WheelEvent("wheel", { deltaY: 120, cancelable: true, bubbles: true });
+  document.body.dispatchEvent(scroll);
+  return {
+    pinch: pinch.defaultPrevented,
+    gesture: gesture.defaultPrevented,
+    scroll: scroll.defaultPrevented,
+  };
+});
+check("a trackpad pinch does not zoom the editor", zoomProbe.pinch);
+check("a Safari zoom gesture does not zoom the editor", zoomProbe.gesture);
+check("ordinary scrolling still gets through", !zoomProbe.scroll);
+
 // ------------------------------------------------------- hotbar and inventory
 const selectedSlot = () => page.evaluate(() => window.__world.getState().selectedSlot);
 
@@ -229,6 +250,16 @@ check("scrolling down moves along the hotbar", (await scrollTo(120, 2)) === 2, `
 check("scrolling up moves back", (await scrollTo(-120, 1)) === 1, `slot ${await selectedSlot()}`);
 // Scrolling up off the first slot should wrap to the last, not stop at zero.
 check("the hotbar wraps around", (await scrollTo(-120, 9)) === 9, `slot ${await selectedSlot()}`);
+
+const beforePinch = await selectedSlot();
+await page.evaluate(() =>
+  document.body.dispatchEvent(
+    new WheelEvent("wheel", { deltaY: 400, ctrlKey: true, cancelable: true, bubbles: true }),
+  ),
+);
+await page.waitForTimeout(400);
+check("a pinch does not scrub through the hotbar", (await selectedSlot()) === beforePinch,
+  `slot ${beforePinch} -> ${await selectedSlot()}`);
 
 await page.evaluate(() => window.__world.getState().setSelectedSlot(1));
 await page.keyboard.press("KeyE");
