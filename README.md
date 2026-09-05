@@ -155,10 +155,13 @@ The bundled textures are the CC0 "16x16 Block Texture Set" by
 ARoachIFoundOnMyPillow, from
 [OpenGameArt](https://opengameart.org/content/16x16-block-texture-set).
 
-Packs like Sphax PureBDCraft and Ashen 16x are free to download but their
-licences forbid redistributing the files, edited or otherwise, so they cannot be
-committed here or shipped in a deploy. To use one locally, put its block images
-in `client/public/texturepack/` under the same names as the files in
+[Ashen 16x](https://www.curseforge.com/minecraft/texture-packs/ashen-16x) is the
+pack this is meant to look best with, but it is not bundled. It and Sphax
+PureBDCraft are free to download, and both are All Rights Reserved: their authors
+forbid redistributing the files, edited or otherwise, so neither can be committed
+here or shipped in a deploy. Ashen does permit modifying the files for personal
+use, which is what this override is for. Put its block images in
+`client/public/texturepack/` under the same names as the files in
 `client/src/assets/textures/`, then add this to `client/.env.local`:
 
 ```
