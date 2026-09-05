@@ -9,16 +9,6 @@ jobs:
   check:
     runs-on: ubuntu-latest
 
-    env:
-      MONGODB_URI: mongodb://127.0.0.1:27017/chunkd-ci
-      JWT_SECRET: ci-only-secret-value-that-is-long-enough
-
-    services:
-      mongo:
-        image: mongo:7
-        ports:
-          - 27017:27017
-
     steps:
       - uses: actions/checkout@v4
 
@@ -29,6 +19,8 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
+      # Fails if the lockfile disagrees with any package.json, which catches a
+      # dependency added locally but never committed.
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm typecheck
