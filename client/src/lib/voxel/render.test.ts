@@ -3,7 +3,8 @@ import test from "node:test";
 
 import { BLOCK_IDS } from "./blockIds.ts";
 import { toKey, type BlockKey } from "./coords.ts";
-import { buildRenderLayers } from "./render.ts";
+import { buildRenderLayers, computeVisible, refreshVisibleAround } from "./render.ts";
+import { generateTerrain } from "./terrain.ts";
 
 /** A 3x3x3 cube of one block type, centred on the origin. */
 function solidCube(id: number): Map<BlockKey, number> {
@@ -64,4 +65,50 @@ test("layers come back sorted by block id", () => {
   ]);
   const ids = buildRenderLayers(blocks).map((layer) => layer.blockId);
   assert.deepEqual(ids, [...ids].sort((a, b) => a - b));
+});
+
+test("updating around a change matches working the whole world out again", () => {
+  // The visible set is now maintained as edits happen instead of being rebuilt,
+  // which is only safe while the cheap path and the thorough one agree. This
+  // plays out a long run of edits and checks they never diverge.
+  const blocks = generateTerrain(4242, 24);
+  const visible = computeVisible(blocks);
+
+  // A tiny deterministic generator, so a failure is always reproducible.
+  let state = 12345;
+  const random = (limit: number) => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    return state % limit;
+  };
+
+  const placeable = [BLOCK_IDS.stone, BLOCK_IDS.glass, BLOCK_IDS.oakLog, BLOCK_IDS.sand];
+
+  for (let step = 0; step < 400; step += 1) {
+    const x = random(24);
+    const y = random(20);
+    const z = random(24);
+    const key = toKey(x, y, z);
+
+    if (blocks.has(key) && random(2) === 0) blocks.delete(key);
+    else blocks.set(key, placeable[random(placeable.length)]!);
+
+    refreshVisibleAround(blocks, visible, x, y, z);
+
+    if (step % 40 === 0) {
+      const thorough = computeVisible(blocks);
+      assert.deepEqual(
+        [...visible.keys()].sort(),
+        [...thorough.keys()].sort(),
+        `visible set drifted at step ${step}`,
+      );
+    }
+  }
+
+  const thorough = computeVisible(blocks);
+  assert.deepEqual([...visible.keys()].sort(), [...thorough.keys()].sort());
+  assert.deepEqual(
+    [...visible.entries()].sort(),
+    [...thorough.entries()].sort(),
+    "the values must match too, not just which blocks are visible",
+  );
 });

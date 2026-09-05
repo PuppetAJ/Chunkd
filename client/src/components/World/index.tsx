@@ -5,7 +5,7 @@ import * as THREE from "three";
 import BlockLayer from "./BlockLayer.tsx";
 import { getBlock } from "../../lib/voxel/blocks.ts";
 import { type BlockKey } from "../../lib/voxel/coords.ts";
-import { buildRenderLayers } from "../../lib/voxel/render.ts";
+import { buildRenderLayers, groupVisible } from "../../lib/voxel/render.ts";
 import { axisForFaceNormal } from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
@@ -51,6 +51,7 @@ interface Props {
 
 export default function World({ blocks: providedBlocks, playerBody, editable = false }: Props) {
   const storeBlocks = useWorldStore((state) => state.blocks);
+  const storeVisible = useWorldStore((state) => state.visible);
   const blocks = providedBlocks ?? storeBlocks;
   const placeBlock = useWorldStore((state) => state.placeBlock);
   const removeBlock = useWorldStore((state) => state.removeBlock);
@@ -77,11 +78,15 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   // the table no longer knows about is dropped rather than crashing, so an old
   // build referring to a removed block still opens.
   const layers = useMemo(() => {
-    return buildRenderLayers(blocks).flatMap((layer) => {
+    // The editor's world keeps its own visible set up to date as blocks are
+    // placed, so only the grouping is redone here. The build viewer is handed a
+    // world it does not own, so that one is worked out in full, once.
+    const raw = providedBlocks ? buildRenderLayers(providedBlocks) : groupVisible(storeVisible);
+    return raw.flatMap((layer) => {
       const block = getBlock(layer.blockId);
       return block ? [{ block, positions: layer.positions, axes: layer.axes }] : [];
     });
-  }, [blocks]);
+  }, [providedBlocks, storeVisible]);
 
   const raycaster = useMemo(() => {
     const instance = new THREE.Raycaster();

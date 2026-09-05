@@ -4,6 +4,7 @@ import { AXIS_Y, packBlock } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { generateTerrain, randomSeed, spawnPointFor } from "./terrain.ts";
 import { deserializeWorld, serializeWorld } from "./format.ts";
+import { computeVisible, refreshVisibleAround, type VisibleBlocks } from "./render.ts";
 
 export const HOTBAR_SLOTS = 9;
 
@@ -19,6 +20,11 @@ export const HOTBAR_SLOTS = 9;
 interface WorldState {
   seed: number;
   blocks: Map<BlockKey, number>;
+  /**
+   * The subset of `blocks` that is actually drawn, kept up to date as edits
+   * happen rather than worked out again from the whole world each time.
+   */
+  visible: VisibleBlocks;
   /** Hotbar slot, 1 to HOTBAR_SLOTS. */
   selectedSlot: number;
   /**
@@ -42,21 +48,24 @@ interface WorldState {
 }
 
 const initialSeed = randomSeed();
+const initialBlocks = generateTerrain(initialSeed);
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   seed: initialSeed,
-  blocks: generateTerrain(initialSeed),
+  blocks: initialBlocks,
+  visible: computeVisible(initialBlocks),
   selectedSlot: 1,
   hotbar: [...DEFAULT_HOTBAR],
 
   newWorld: (seed = randomSeed()) => {
-    set({ seed, blocks: generateTerrain(seed) });
+    const blocks = generateTerrain(seed);
+    set({ seed, blocks, visible: computeVisible(blocks) });
   },
 
   loadBuild: (payload: string) => {
     const world = deserializeWorld(payload);
     if (!world) return false;
-    set({ seed: world.seed, blocks: world.blocks });
+    set({ seed: world.seed, blocks: world.blocks, visible: computeVisible(world.blocks) });
     return true;
   },
 
@@ -75,7 +84,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       // obviously correct without a revision counter.
       const blocks = new Map(state.blocks);
       blocks.set(key, value);
-      return { blocks };
+      const visible = new Map(state.visible);
+      refreshVisibleAround(blocks, visible, x, y, z);
+      return { blocks, visible };
     });
   },
 
@@ -85,7 +96,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       if (!state.blocks.has(key)) return state;
       const blocks = new Map(state.blocks);
       blocks.delete(key);
-      return { blocks };
+      const visible = new Map(state.visible);
+      refreshVisibleAround(blocks, visible, x, y, z);
+      return { blocks, visible };
     });
   },
 
