@@ -20,8 +20,8 @@ The plan is ordered so each phase leaves the app in a runnable state. Do them as
 | 1 pnpm workspaces | Done |
 | 2 Server modernization | Done |
 | 3 Client toolchain (Vite, React 19, Tailwind 4) | Done |
-| 4 Editor performance rewrite | Next |
-| 5 Functionality fixes | Partly done as a side effect of phases 2 and 3 |
+| 4 Editor performance rewrite | Done |
+| 5 Functionality fixes | Next; much of it already done as a side effect of phases 2 to 4 |
 | 6 UI and aesthetics | Not started |
 | 7 Quality, tests, deployment | Partly done: CI and an end-to-end suite exist |
 
@@ -35,20 +35,27 @@ which is a better record of what works than a hand-written document.
 
 **Old commit tagged `v1-legacy`** if you ever need the original code.
 
-### Known issues carried into phase 4
+### Decision taken in phase 4
 
-- The saved build format is still the old shape, only with the unserialisable
-  texture objects stripped out. A save is 24.7 KB rather than megabytes, but the
-  seed-based format described in 4a would take it under 10 KB.
-- Frustum culling is switched off on the terrain's instanced mesh as a
-  workaround. The proper fix is to compute a bounding volume that covers the
-  instances, which the rewrite in 4b will do naturally.
-- The editor still creates one React component per block, which is the root
-  performance problem this whole phase exists to solve.
-- Editor frame rate has not been measured. Doing it properly needs a real GPU
-  rather than the headless browser used for the functional checks.
+The physics engine was removed rather than batched. The scene has exactly one
+dynamic body, the player, and every other object is a static unit cube on an
+integer grid, so none of a rigid body engine's generality was being used while it
+cost 1.9 MB and a WebAssembly instantiation on every editor visit. Collision is
+now an axis-by-axis resolve of the player's box against the block map, which is
+what voxel games normally do.
+
+### Known issues carried forward
+
+- Editor frame rate on real hardware has not been measured. The numbers recorded
+  below come from a headless browser using software rasterisation, so they are
+  useful for comparing before against after but are not representative of a real
+  GPU.
 - `PointerLockControls` cannot be exercised headlessly, so mouse-look is the one
   interaction the end-to-end suite does not cover.
+- The site header and footer still render on the editor route, so the hotbar sits
+  on top of the footer. Phase 6 replaces the page shell.
+- Builds are all named "Untitled build". Naming them belongs with the save
+  dialog in phase 6.
 
 ---
 
@@ -231,7 +238,7 @@ Goal: modern toolchain with the *same* UI and behavior. No visual or feature cha
 
 **Done when:** `pnpm --filter client build` produces a Vite bundle, every page from `docs/BASELINE.md` behaves identically, and the initial-load JS for `/` is a fraction of the CRA bundle (target: under 200 KB gzipped).
 
-### Phase 4 — Editor performance rewrite (2–4 days, the biggest chunk) — NEXT
+### Phase 4 — Editor performance rewrite — DONE
 
 Goal: 60 FPS with a full 32×32 terrain plus hundreds of placed blocks, instant place/break, and a compact save format. This is a rewrite of `Terrain`, `Cube`, `Player`, `Save` around a single voxel store; the current three-way split (terrain instances vs. player cubes vs. save renderer) is the root of most problems.
 
@@ -274,7 +281,7 @@ Goal: 60 FPS with a full 32×32 terrain plus hundreds of placed blocks, instant 
 
 **Done when:** editor holds 60 FPS on a laptop iGPU with terrain + 500 placed blocks; place/break is immediate; a saved build is under 10 KB; profile page loads without a WebGL context until a build is opened. Record the after-numbers next to the baseline in `docs/BASELINE.md`.
 
-### Phase 5 — Functionality fixes and feature completion (1 day)
+### Phase 5 — Functionality fixes and feature completion — NEXT
 
 Everything from the bug list not already fixed by Phases 3–4:
 
@@ -329,18 +336,21 @@ Goal: keep the Minecraft/pixel identity, drop the 2022-bootcamp look. Design onc
 
 ## 4. Success metrics (fill in before/after)
 
-| Metric | Before | Target | After phases 1-3 |
+| Metric | Before | Target | After phases 1-4 |
 |---|---|---|---|
 | Initial JS for `/` (gzip) | whole app in one bundle | < 200 KB | 141 KB |
-| Three/rapier in initial chunk | yes | no | no, lazy per route |
-| Draw calls in editor | ≈ blocks × 6 | < 30 | 9 |
-| Size of one saved build | megabytes (serialised textures) | < 10 KB | 24.7 KB |
+| Editor route payload | 3,190 KB | smaller | 1,072 KB |
+| WebAssembly shipped | 1,376 KB | none | none |
+| Draw calls in editor | ≈ blocks × 6 | < 30 | 6 |
+| Blocks handed to the GPU | every block | only visible ones | 2,441 of 5,088 |
+| Triangles per frame | 122,148 | fewer | 29,328 |
+| Median frame time, software renderer | 158.6 ms | lower | 75.2 ms |
+| Size of one saved build | 25,805 B | < 10 KB | 68 B |
 | `express.json` body limit | 50 MB | 1 MB | 1 MB |
 | Secrets in repo | 1 (JWT signing key) | 0 | 0 |
 | Lockfiles | 3 npm | 1 | 1 pnpm |
-| Editor renders at all | yes (on 2022 deps) | yes | yes, verified in a browser |
-| Automated checks | none | lint + typecheck + test + build + e2e | typecheck + build in CI, 23-check e2e locally |
-| Editor FPS, terrain + 500 blocks | not measured | ≥ 60 | not measured, needs a real GPU |
+| Automated checks | none | lint + typecheck + test + build + e2e | typecheck + build in CI, 25-check e2e locally |
+| Editor FPS on real hardware | not measured | ≥ 60 | still not measured |
 | Lighthouse Perf / A11y on `/` | not measured | ≥ 90 / ≥ 95 | not measured |
 
 ## 5. Suggested order and rough effort
