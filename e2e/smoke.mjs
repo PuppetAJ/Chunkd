@@ -64,19 +64,31 @@ const scene = () =>
   page.evaluate(() => {
     const state = window.__r3f;
     if (!state) return null;
-    let instances = 0;
+    let drawn = 0;
     let meshes = 0;
     state.scene.traverse((object) => {
-      if (object.isInstancedMesh) instances += object.count;
+      if (object.isInstancedMesh) drawn += object.count;
       else if (object.isMesh) meshes++;
     });
-    return { instances, meshes, triangles: state.gl.info.render.triangles };
+    return {
+      // Blocks actually handed to the GPU. Fewer than the world holds, because
+      // fully buried blocks are skipped.
+      drawn,
+      // Blocks in the world. This is what breaking and placing changes.
+      blocks: window.__world.getState().blocks.size,
+      meshes,
+      triangles: state.gl.info.render.triangles,
+    };
   });
+
+const hotbarSlots = await page.locator('[aria-label$="slot 1"], [aria-label*="slot "]').count();
+check("the hotbar shows every block slot", hotbarSlots === 9, `${hotbarSlots} slots`);
 
 const before = await scene();
 check("editor exposes a live scene", before !== null);
-check("terrain generated blocks", (before?.instances ?? 0) > 500, JSON.stringify(before));
+check("terrain generated blocks", (before?.blocks ?? 0) > 500, JSON.stringify(before));
 check("the scene is actually being drawn", (before?.triangles ?? 0) > 1000, JSON.stringify(before));
+check("buried blocks are not drawn", before.drawn < before.blocks, `${before.drawn} drawn of ${before.blocks}`);
 
 // Aim straight down so the block underfoot is inside the player's reach.
 await page.evaluate(() => window.__r3f.camera.rotation.set(-Math.PI / 2, 0, 0));
@@ -89,24 +101,32 @@ await page.waitForTimeout(600);
 await page.mouse.click(cx, cy, { button: "left" });
 await page.waitForTimeout(1200);
 const afterBreak = await scene();
-check("left click breaks a block", afterBreak.instances === before.instances - 1,
-  `${before.instances} -> ${afterBreak.instances}`);
+check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
+  `${before.blocks} -> ${afterBreak.blocks}`);
 
-await page.mouse.move(cx + 3, cy + 3);
-await page.waitForTimeout(500);
-await page.mouse.click(cx + 3, cy + 3, { button: "right" });
-await page.waitForTimeout(1200);
-const afterPlace = await scene();
-check("right click places a block", afterPlace.meshes === afterBreak.meshes + 1,
-  `${afterBreak.meshes} -> ${afterPlace.meshes}`);
+// The world is randomly seeded, so a single fixed camera angle sometimes aims
+// somewhere a block cannot legally go: at the sky, or at a cell the player is
+// standing in. Sweep a few angles and accept the first that lands one.
+let afterPlace = afterBreak;
+for (const [pitch, yaw] of [[-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1]]) {
+  await page.evaluate(([p, y]) => window.__r3f.camera.rotation.set(p, y, 0), [pitch, yaw]);
+  await page.waitForTimeout(500);
+  await page.mouse.click(cx, cy, { button: "right" });
+  await page.waitForTimeout(900);
+  afterPlace = await scene();
+  if (afterPlace.blocks > afterBreak.blocks) break;
+}
+check("right click places a block", afterPlace.blocks === afterBreak.blocks + 1,
+  `${afterBreak.blocks} -> ${afterPlace.blocks}`);
 
 // P saves the world. The key state is sampled inside the render loop, so a
 // press has to last longer than a frame to be seen.
-await page.keyboard.down("p");
-await page.waitForTimeout(600);
-await page.keyboard.up("p");
-await page.waitForTimeout(3000);
-check("the save confirmation appears", (await page.locator("text=Build Saved").count()) > 0);
+await page.keyboard.press("p");
+// The confirmation clears itself after a couple of seconds, so look while it
+// is still on screen.
+await page.waitForTimeout(1500);
+check("the save confirmation appears", (await page.locator("text=/build saved/i").count()) > 0);
+await page.waitForTimeout(2000);
 
 // -------------------------------------------------------------------- profile
 await page.getByRole("link", { name: "My Profile" }).first().click();

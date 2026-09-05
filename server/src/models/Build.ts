@@ -22,7 +22,8 @@ export interface BuildDocument {
   updatedAt: Date;
 }
 
-export const CURRENT_BUILD_FORMAT = 1;
+/** Used only when a client does not say which encoding it wrote. */
+export const CURRENT_BUILD_FORMAT = 2;
 
 const buildSchema = new Schema<BuildDocument>(
   {
