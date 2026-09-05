@@ -87,6 +87,39 @@ Run these from the repository root.
 | `pnpm test:e2e` | Drives a real browser through every route (needs `pnpm dev` running) |
 | `pnpm db:up` / `pnpm db:down` | Starts and stops the MongoDB container |
 
+## Deploying
+
+In production the API also serves the built client, so this deploys as one
+service rather than a separate frontend and backend. `railway.json` pins the
+build and start commands and points Railway's healthcheck at `/health`, so a
+deploy does not depend on what the platform infers.
+
+Add a MongoDB, either Railway's template or a MongoDB Atlas cluster, then set
+these variables on the service:
+
+| Variable | Value |
+|---|---|
+| `NODE_ENV` | `production` |
+| `MONGODB_URI` | a reference to the database service, or an Atlas connection string |
+| `JWT_SECRET` | a generated value of at least 32 characters |
+| `CLIENT_ORIGIN` | the service's own public URL |
+
+`PORT` is supplied by the platform and read automatically.
+
+Three things are worth knowing before the first deploy:
+
+- `NODE_ENV` must be exactly `production`. Anything else and the server skips
+  serving the client entirely, so every page returns 404 while `/graphql` keeps
+  working. That combination is confusing to debug.
+- `JWT_SECRET` shorter than 32 characters fails environment validation and the
+  process exits during startup rather than serving with a weak key. This is
+  deliberate, but it looks like a crash loop.
+- The build needs devDependencies, because Vite lives there. Do not enable an
+  install flag that skips them.
+
+The server has no build step. Node runs its TypeScript sources directly, which is
+why `.node-version` matters: it must stay at 22.18 or newer.
+
 ## Controls
 
 | Input | Action |
