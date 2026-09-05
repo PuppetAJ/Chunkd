@@ -77,6 +77,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   // Recomputed once per edit rather than once per frame. A layer for a block id
   // the table no longer knows about is dropped rather than crashing, so an old
   // build referring to a removed block still opens.
+  // Nothing in the scene moves except the player, who casts no shadow, so the
+  // shadow map only needs redrawing when the world itself changes. Left on
+  // automatic it redrew every block twice a frame, forever.
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+  }, [gl, blocks, storeVisible]);
+
   const layers = useMemo(() => {
     // The editor's world keeps its own visible set up to date as blocks are
     // placed, so only the grouping is redone here. The build viewer is handed a

@@ -40,11 +40,17 @@ export default function BlockLayer({ block, positions, axes, textures }: Props) 
 
   const material = useMemo(() => {
     const build = (url: string) =>
-      new THREE.MeshBasicMaterial({
+      new THREE.MeshLambertMaterial({
         map: textures.get(url) ?? null,
         // The cube carries its face shading in its vertex colours, which this
-        // multiplies into the texture. Nothing here is lit by a scene light.
+        // multiplies into the texture. The sun adds cast shadows on top.
         vertexColors: true,
+        // Writing only back faces into the shadow map is what removes the need
+        // for a depth bias. Every block is a closed cube, so the recorded depth
+        // is its far side and a lit face can never be behind its own shadow.
+        // Biasing instead, as this used to, pushed the lookup outside the block
+        // and leaked daylight through the seams between blocks.
+        shadowSide: THREE.BackSide,
         // Glass is a frame around a hole. Discarding the hole outright, rather
         // than blending it, keeps the frame at full strength and leaves no draw
         // order to get wrong.
@@ -97,6 +103,10 @@ export default function BlockLayer({ block, positions, axes, textures }: Props) 
       ref={meshRef}
       args={[BLOCK_GEOMETRY, undefined, capacity]}
       material={material}
+      // Glass lets nearly all the light through, so casting from it would draw a
+      // solid black block on the ground.
+      castShadow={block.draw !== "cutout"}
+      receiveShadow
     />
   );
 }

@@ -104,6 +104,41 @@ packed into the world value above the block id's low byte, so the world stays a
 `Map<BlockKey, number>`, upright still stores exactly the id, and every build
 saved before orientation existed loads unchanged.
 
+Shadows came back once the reason they looked wrong was understood. The problem
+was never shadows as such, it was that a shadow map biased along the surface
+normal, which is the usual cure for a surface shadowing itself, pushes the
+lookup outside a block and leaks daylight through the seams. Every block is a
+closed cube, so writing only back faces into the shadow map removes the need for
+any bias at all: the depth recorded for a block is its far side, and a lit face
+can never be behind its own shadow. Blocks keep their baked face shading and the
+sun is layered on top for cast shadows.
+
+Placing and breaking stopped registering after the first click. The aim target
+was worked out once per frame and reused by the click, and every way out of that
+frame code returned without clearing it, so once the crosshair pointed at a
+block that had already been broken it stayed pointing there and every later
+click quietly did nothing. Clicks now work out their own target, so a click no
+longer depends on the frame loop having kept up. Two related faults went with
+it: the block's position came from an array hung off the mesh while its rotation
+came from the instance matrix, which could disagree for a frame after an edit,
+and hold-to-repeat was scheduled from the render clock, so on a machine dropping
+frames a single click fired an extra action immediately.
+
+Terrain is four octaves of noise rather than one, with a separate very low
+frequency sample deciding how hilly each region is, which is what gives flat
+ground in some places and rougher ground in others instead of the same lumps
+everywhere. Columns are soil over stone, with sand in the low ground and snow on
+the tops, and trees of four kinds are planted from the seed so they survive the
+round trip through a saved build.
+
+That made the world about two and a half times as many blocks, which turned the
+per-edit visibility pass from 8 ms into 23 ms, over a frame's budget. Placing a
+block can only change whether that block and its six neighbours are visible, so
+the visible set is now kept up to date around the change instead of being worked
+out again from the whole world. An edit costs about 4 ms, and a test checks the
+incremental result against a full recompute over a long run of random edits,
+because the cheap path is only safe while the two agree.
+
 ### Known issues carried forward
 
 - Editor frame rate on real hardware has not been measured. The numbers recorded
@@ -114,14 +149,12 @@ saved before orientation existed loads unchanged.
   interaction the end-to-end suite does not cover.
 - The site header and footer still render on the editor route, so the hotbar sits
   on top of the footer. Phase 6 replaces the page shell.
-- The world is 64 blocks square. Measured cost of recomputing what is visible
-  after each edit: 2 ms at 32, 8 ms at 64, 16 ms at 96, 34 ms at 128. Anything
-  past 64 needs that pass to update only around the block that changed instead
-  of rebuilding the world, which would then allow a much larger map.
+- The world is 64 blocks square. Visibility is now updated only around the block
+  that changed, so an edit costs about 4 ms regardless of world size; what still
+  scales with size is building the world in the first place, about 25 ms at 64.
+  A larger map is now mostly a question of that one-off cost.
 - Builds are all named "Untitled build". Naming them belongs with the save
   dialog in phase 6.
-- Terrain generation still only places grass and dirt. There are now around
-  fifty blocks, so biomes, stone strata and trees are worth having.
 - Blocks with a grain record their axis but not their facing, so there is no way
   yet to point a directional texture a particular way round the vertical axis.
 

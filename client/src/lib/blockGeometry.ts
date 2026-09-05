@@ -10,27 +10,31 @@ import { AXIS_X, AXIS_Z } from "./voxel/blockValue.ts";
  * normal, pushes the sample outside the block and leaks light through the seams
  * instead. Both were visible on the terrain.
  *
- * The games this borrows from do not cast shadows at all. They give each face a
- * fixed brightness according to which way it points, so a cube always reads as a
- * cube: bright on top, darker on the sides, darkest underneath. That is crisp at
- * any distance, costs nothing, has no artefacts to tune away, and lets the whole
- * shadow pass be switched off.
+ * The games this borrows from give each face a fixed brightness according to
+ * which way it points, so a cube always reads as a cube whatever the light is
+ * doing: bright on top, darker on the sides, darkest underneath. That is what
+ * this bakes in, and it is crisp at any distance with no artefacts to tune.
+ *
+ * The sun is then layered on top of it for cast shadows, which needs no bias:
+ * only back faces are written into the shadow map, so a lit face is never
+ * closer than its own recorded depth and cannot shadow itself.
  */
 /**
- * The brightnesses are the familiar 1, 0.8, 0.6 and 0.5, raised to 2.2.
+ * Face brightness, in the linear space vertex colours are multiplied in.
  *
- * Vertex colours are multiplied in linear space, but those familiar numbers
- * describe how the result should look after it has been converted back to sRGB
- * for the screen. Applying them directly gives a much flatter cube than
- * intended, because a linear 0.6 displays at around 0.8.
+ * The familiar values are 1, 0.8, 0.6 and 0.5, but those describe how the
+ * result should look after conversion back to sRGB for the screen, so they are
+ * raised to 2.2 here. They are also pulled up from a straight conversion,
+ * because the sun now contributes shading of its own on top of this and the two
+ * together would otherwise leave the shaded sides almost black.
  */
 const FACE_BRIGHTNESS = {
   top: 1,
-  bottom: 0.22,
+  bottom: 0.42,
   /** North and south, the faces along Z. */
-  northSouth: 0.6,
+  northSouth: 0.74,
   /** East and west, the faces along X. Darker, so adjacent sides differ. */
-  eastWest: 0.32,
+  eastWest: 0.55,
 };
 
 /** BoxGeometry orders its faces +X, -X, +Y, -Y, +Z, -Z, four vertices each. */

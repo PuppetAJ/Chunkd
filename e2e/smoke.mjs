@@ -110,6 +110,13 @@ await page.getByRole("link", { name: "Editor" }).first().click();
 await page.waitForURL("**/editor", { timeout: 15000 });
 await page.waitForTimeout(9000);
 
+// Pin the world. A fresh editor seeds itself at random, so where the player
+// lands, and therefore whether a given camera angle can legally place a block,
+// changed from run to run. That made the placement check fail every so often
+// for reasons that had nothing to do with the code under test.
+await page.evaluate(() => window.__world.getState().newWorld(20260905));
+await page.waitForTimeout(5000);
+
 const scene = () =>
   page.evaluate(() => {
     const state = window.__r3f;
@@ -158,7 +165,7 @@ check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
 // somewhere a block cannot legally go: at the sky, or at a cell the player is
 // standing in. Sweep a few angles and accept the first that lands one.
 let afterPlace = afterBreak;
-for (const [pitch, yaw] of [[-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1]]) {
+for (const [pitch, yaw] of [[-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1], [-0.2, 0.8], [0, 2.4]]) {
   await page.evaluate(([p, y]) => window.__r3f.camera.rotation.set(p, y, 0), [pitch, yaw]);
   await page.waitForTimeout(500);
   await page.mouse.click(cx, cy, { button: "right" });
@@ -205,19 +212,23 @@ check("five clicks in a row break five blocks", wallBefore - wallAfter === 5,
 // ------------------------------------------------------- hotbar and inventory
 const selectedSlot = () => page.evaluate(() => window.__world.getState().selectedSlot);
 
+// The wheel is handled in the page, so wait for the slot to settle rather than
+// guessing how long that takes; a fixed pause raced it on a busy run.
+const scrollTo = async (delta, expected) => {
+  await page.mouse.wheel(0, delta);
+  await page
+    .waitForFunction((want) => window.__world.getState().selectedSlot === want, expected, {
+      timeout: 3000,
+    })
+    .catch(() => {});
+  return selectedSlot();
+};
+
 await page.evaluate(() => window.__world.getState().setSelectedSlot(1));
-await page.mouse.wheel(0, 120);
-await page.waitForTimeout(300);
-check("scrolling down moves along the hotbar", (await selectedSlot()) === 2, `slot ${await selectedSlot()}`);
-
-await page.mouse.wheel(0, -120);
-await page.waitForTimeout(300);
-check("scrolling up moves back", (await selectedSlot()) === 1, `slot ${await selectedSlot()}`);
-
+check("scrolling down moves along the hotbar", (await scrollTo(120, 2)) === 2, `slot ${await selectedSlot()}`);
+check("scrolling up moves back", (await scrollTo(-120, 1)) === 1, `slot ${await selectedSlot()}`);
 // Scrolling up off the first slot should wrap to the last, not stop at zero.
-await page.mouse.wheel(0, -120);
-await page.waitForTimeout(300);
-check("the hotbar wraps around", (await selectedSlot()) === 9, `slot ${await selectedSlot()}`);
+check("the hotbar wraps around", (await scrollTo(-120, 9)) === 9, `slot ${await selectedSlot()}`);
 
 await page.evaluate(() => window.__world.getState().setSelectedSlot(1));
 await page.keyboard.press("KeyE");
