@@ -1,12 +1,11 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 import Axe from "../Axe/index.jsx";
 import { useHeldKeys, useKeyPress } from "../../lib/useKeyboard.ts";
-import { useWorldStore } from "../../lib/voxel/worldStore.ts";
+import { HOTBAR_SLOTS, useWorldStore } from "../../lib/voxel/worldStore.ts";
 import { useEditorUiStore } from "../../lib/editorUiStore.ts";
-import { BLOCKS } from "../../lib/voxel/blocks.ts";
 import { EYE_HEIGHT, type Body } from "../../lib/voxel/collision.ts";
 import {
   createMotionState,
@@ -54,15 +53,39 @@ export default function Player({ body }: Props) {
   );
 
   const setSelectedSlot = useWorldStore((state) => state.setSelectedSlot);
+  const cycleSelectedSlot = useWorldStore((state) => state.cycleSelectedSlot);
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   useKeyPress((code) => {
     // Digit1 to Digit9 choose a hotbar slot.
     if (code.startsWith("Digit")) {
       const slot = Number(code.slice(5));
-      if (slot >= 1 && slot <= BLOCKS.length) setSelectedSlot(slot);
+      if (slot >= 1 && slot <= HOTBAR_SLOTS) setSelectedSlot(slot);
     }
   });
+
+  // How much scrolling counts as one step along the hotbar. A mouse wheel sends
+  // one large event per notch, a trackpad a stream of small ones, so distance is
+  // accumulated rather than events counted. The threshold is one wheel notch, so
+  // a mouse moves exactly one slot per click of the wheel.
+  const scrolled = useRef(0);
+  useEffect(() => {
+    const NOTCH = 100;
+    const onWheel = (event: WheelEvent) => {
+      // Changing direction starts again, so leftover distance from a scroll one
+      // way cannot make the first step back happen early.
+      if (Math.sign(event.deltaY) !== Math.sign(scrolled.current)) scrolled.current = 0;
+
+      scrolled.current += event.deltaY;
+      while (Math.abs(scrolled.current) >= NOTCH) {
+        const direction = scrolled.current > 0 ? 1 : -1;
+        cycleSelectedSlot(direction);
+        scrolled.current -= direction * NOTCH;
+      }
+    };
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [cycleSelectedSlot]);
 
   useFrame((state, delta) => {
     const keys = held.current;

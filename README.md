@@ -131,11 +131,41 @@ why `.node-version` matters: it must stay at 22.18 or newer.
 | Mouse | Look, once you click to capture the pointer |
 | Left click | Break a block. Hold to keep breaking |
 | Right click | Place a block. Hold to keep placing |
-| 1 to 9 | Choose a block type |
+| 1 to 9 | Choose a hotbar slot |
+| Scroll wheel | Move along the hotbar, wrapping at both ends |
+| E | Open the block inventory |
 | P | Save the current world |
 
 A jump clears a little over one block, which leaves room to place a block under
 your own feet and build upwards.
+
+The hotbar holds nine blocks and there are far more than nine, so the inventory
+is how you choose which nine. Picking a block there puts it into whichever slot
+is currently selected.
+
+Logs and hay bales have a grain and are placed along the face you build against,
+so a log put on top of something stands upright while one put against a wall
+lies down.
+
+## Block textures
+
+The bundled textures are the CC0 "16x16 Block Texture Set" by
+ARoachIFoundOnMyPillow, from
+[OpenGameArt](https://opengameart.org/content/16x16-block-texture-set).
+
+Packs like Sphax PureBDCraft and Ashen 16x are free to download but their
+licences forbid redistributing the files, edited or otherwise, so they cannot be
+committed here or shipped in a deploy. To use one locally, put its block images
+in `client/public/texturepack/` under the same names as the files in
+`client/src/assets/textures/`, then add this to `client/.env.local`:
+
+```
+VITE_TEXTURE_PACK=/texturepack
+```
+
+Each block prefers the pack's image and falls back to the bundled one for
+anything the pack does not supply, so a partial pack works. That directory is
+ignored by git.
 
 ## Layout
 

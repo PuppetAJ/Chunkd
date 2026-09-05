@@ -1,9 +1,12 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { BlockType } from "../../lib/voxel/blocks.ts";
-import { applyBlockTextureSettings } from "../../lib/blockTextures.ts";
+import { applyBlockTextureSettings, type BlockTextures } from "../../lib/blockTextures.ts";
+import { BLOCK_GEOMETRY, rotationForAxis } from "../../lib/blockGeometry.ts";
 
 const matrix = new THREE.Matrix4();
+const position = new THREE.Vector3();
+const scale = new THREE.Vector3(1, 1, 1);
 
 /** Round up so the buffer is reallocated rarely rather than on every edit. */
 function capacityFor(count: number): number {
@@ -14,37 +17,67 @@ interface Props {
   block: BlockType;
   /** Flat x, y, z triples for every block of this type. */
   positions: Float32Array;
-  texture: THREE.Texture;
+  /** Which way each of those blocks is turned. */
+  axes: Uint8Array;
+  textures: BlockTextures;
 }
 
 /**
- * Every block of one type, drawn in a single call.
+ * Every block of one type, drawn in as few calls as the block allows.
  *
  * The previous version mounted a React component per block, twice over: one for
  * the mesh and one for its collider. Placing a block re-rendered all of them.
- * Here the block positions are written straight into an instance buffer, so the
- * whole world is one draw call per block type no matter how many blocks there
- * are.
+ * Here the positions are written straight into an instance buffer.
+ *
+ * A block whose six faces share one texture is a single draw call. Grass, logs
+ * and hay do not, so they get one material per face group, which is what lets
+ * grass have a green top, a banded side and a plain dirt underside.
  */
-export default function BlockLayer({ block, positions, texture }: Props) {
+export default function BlockLayer({ block, positions, axes, textures }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = positions.length / 3;
   const capacity = capacityFor(count);
 
-  // react-three-fiber tags any texture it assigns to a colour map as sRGB, which
-  // it does after the texture is loaded and configured. Reading these masks as
-  // sRGB halves their brightness, which is what once made the whole world render
-  // nearly black, so the tag is undone here, once the material holds the map.
+  const material = useMemo(() => {
+    const build = (url: string) =>
+      new THREE.MeshBasicMaterial({
+        map: textures.get(url) ?? null,
+        // The cube carries its face shading in its vertex colours, which this
+        // multiplies into the texture. Nothing here is lit by a scene light.
+        vertexColors: true,
+        // Glass is a frame around a hole. Discarding the hole outright, rather
+        // than blending it, keeps the frame at full strength and leaves no draw
+        // order to get wrong.
+        alphaTest: block.draw === "cutout" ? 0.5 : 0,
+      });
+
+    const uniform = block.top === block.side && block.side === block.bottom;
+    if (uniform) return build(block.top);
+
+    const top = build(block.top);
+    const side = build(block.side);
+    const bottom = build(block.bottom);
+    // BoxGeometry's face order: +X, -X, +Y, -Y, +Z, -Z.
+    return [side, side, top, bottom, side, side];
+  }, [block, textures]);
+
+  // Nearest filtering and the sRGB tag are set when the texture loads, but
+  // react-three-fiber rewrites the colour space of anything it assigns to a
+  // colour map, so they are re-asserted here, once the material holds the map.
   useLayoutEffect(() => {
-    applyBlockTextureSettings([texture]);
-  }, [texture]);
+    const maps = (Array.isArray(material) ? material : [material])
+      .map((one) => one.map)
+      .filter((map) => map !== null);
+    applyBlockTextureSettings(maps);
+  }, [material]);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
     if (!mesh) return;
 
     for (let i = 0; i < count; i += 1) {
-      matrix.setPosition(positions[i * 3]!, positions[i * 3 + 1]!, positions[i * 3 + 2]!);
+      position.set(positions[i * 3]!, positions[i * 3 + 1]!, positions[i * 3 + 2]!);
+      matrix.compose(position, rotationForAxis(axes[i] ?? 0), scale);
       mesh.setMatrixAt(i, matrix);
     }
 
@@ -58,7 +91,7 @@ export default function BlockLayer({ block, positions, texture }: Props) {
     // The instance buffer is reused across renders, so tell three about the
     // positions this mesh actually holds for hit testing.
     mesh.userData["positions"] = positions;
-  }, [positions, count]);
+  }, [positions, axes, count]);
 
   return (
     <instancedMesh
@@ -66,21 +99,8 @@ export default function BlockLayer({ block, positions, texture }: Props) {
       // rather than the exact count.
       key={capacity}
       ref={meshRef}
-      args={[undefined, undefined, capacity]}
-      castShadow={block.castsShadow}
-      receiveShadow
-    >
-      <boxGeometry />
-      <meshStandardMaterial
-        map={texture}
-        color={block.tint}
-        transparent={block.draw === "blend"}
-        opacity={block.draw === "blend" ? 0.85 : 1}
-        // Glass is a frame around a hole. Discarding the hole outright, rather
-        // than blending it, keeps the frame at full strength instead of washing
-        // it out against whatever happens to be behind it.
-        alphaTest={block.draw === "cutout" ? 0.5 : 0}
-      />
-    </instancedMesh>
+      args={[BLOCK_GEOMETRY, undefined, capacity]}
+      material={material}
+    />
   );
 }

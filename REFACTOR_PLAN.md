@@ -80,6 +80,30 @@ render, which quietly undid the tag each time. It is now re-asserted once in a
 layout effect in `BlockLayer`, after r3f has applied the prop, which is the only
 point at which it sticks.
 
+Lighting was rebuilt around the shape of the world rather than fought with.
+Terrain lit by a shadow-mapped sun looked wrong in two ways at once: every
+surface in a voxel world is axis aligned, so flat ground at a shallow sun angle
+shadowed itself in diagonal stripes, and the usual cure for that, biasing the
+shadow lookup along the surface normal, pushed the sample outside the block and
+leaked light through the seams instead. Blocks now carry their face shading in
+the vertex colours of the shared cube, bright on top and darker down the sides,
+which is what the games this borrows from do. There is no shadow map at all any
+more, so both artefacts are gone along with the whole shadow pass, and the
+canvas renders at the display's own pixel density so block edges stop looking
+ragged.
+
+The greyscale-mask-and-tint texture scheme is gone with it. The blocks are now
+the CC0 "16x16 Block Texture Set" from OpenGameArt, which are ordinary colour
+images, so they are tagged sRGB, which is simply correct, rather than being
+forced to NoColorSpace to stop the old masks going dark. Blocks can now have a
+different texture per face, which is what lets grass be green on top, banded on
+the sides and plain dirt underneath.
+
+Blocks with a grain are placed along the face you build against. Orientation is
+packed into the world value above the block id's low byte, so the world stays a
+`Map<BlockKey, number>`, upright still stores exactly the id, and every build
+saved before orientation existed loads unchanged.
+
 ### Known issues carried forward
 
 - Editor frame rate on real hardware has not been measured. The numbers recorded
@@ -96,6 +120,10 @@ point at which it sticks.
   of rebuilding the world, which would then allow a much larger map.
 - Builds are all named "Untitled build". Naming them belongs with the save
   dialog in phase 6.
+- Terrain generation still only places grass and dirt. There are now around
+  fifty blocks, so biomes, stone strata and trees are worth having.
+- Blocks with a grain record their axis but not their facing, so there is no way
+  yet to point a directional texture a particular way round the vertical axis.
 
 ---
 
