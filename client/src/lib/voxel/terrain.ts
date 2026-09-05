@@ -1,7 +1,9 @@
 import { createNoise2D } from "simplex-noise";
 import alea from "alea";
 import { toKey, type BlockKey } from "./coords.ts";
+import { collides } from "./collision.ts";
 import { BLOCK_IDS } from "./blockIds.ts";
+import { blockIdOf } from "./blockValue.ts";
 
 /**
  * Width and depth of the world, in blocks.
@@ -95,15 +97,19 @@ function subsoilBlock(height: number): number {
 interface TreeKind {
   log: number;
   leaves: number;
-  /** Conifers are tall and narrow with a pointed top. */
-  conifer: boolean;
 }
 
+/**
+ * The trees the generator plants.
+ *
+ * Spruce is deliberately absent. Its blocks are still in the inventory to build
+ * with, but the narrow conical conifer the generator grew from them looked wrong
+ * next to the rounded ones, so it is no longer planted.
+ */
 const TREE_KINDS: TreeKind[] = [
-  { log: BLOCK_IDS.oakLog, leaves: BLOCK_IDS.oakLeaves, conifer: false },
-  { log: BLOCK_IDS.birchLog, leaves: BLOCK_IDS.birchLeaves, conifer: false },
-  { log: BLOCK_IDS.cherryLog, leaves: BLOCK_IDS.cherryLeaves, conifer: false },
-  { log: BLOCK_IDS.spruceLog, leaves: BLOCK_IDS.spruceLeaves, conifer: true },
+  { log: BLOCK_IDS.oakLog, leaves: BLOCK_IDS.oakLeaves },
+  { log: BLOCK_IDS.birchLog, leaves: BLOCK_IDS.birchLeaves },
+  { log: BLOCK_IDS.cherryLog, leaves: BLOCK_IDS.cherryLeaves },
 ];
 
 /** Roughly one candidate per this many columns. */
@@ -111,7 +117,7 @@ const TREE_CHANCE = 1 / 70;
 /** Trees closer together than this look like a hedge rather than a wood. */
 const TREE_SPACING = 5;
 
-function plantBroadleaf(
+function plantTree(
   blocks: Map<BlockKey, number>,
   kind: TreeKind,
   x: number,
@@ -135,31 +141,6 @@ function plantBroadleaf(
       }
     }
   }
-}
-
-function plantConifer(
-  blocks: Map<BlockKey, number>,
-  kind: TreeKind,
-  x: number,
-  ground: number,
-  z: number,
-  trunk: number,
-): void {
-  for (let y = 1; y <= trunk; y += 1) blocks.set(toKey(x, ground + y, z), kind.log);
-
-  // Widest near the bottom, narrowing to a point, in two-layer steps.
-  let radius = 2;
-  for (let y = trunk - 4; y <= trunk; y += 1) {
-    for (let dx = -radius; dx <= radius; dx += 1) {
-      for (let dz = -radius; dz <= radius; dz += 1) {
-        if (Math.abs(dx) + Math.abs(dz) > radius + 1) continue;
-        const key = toKey(x + dx, ground + y, z + dz);
-        if (!blocks.has(key)) blocks.set(key, kind.leaves);
-      }
-    }
-    if (y % 2 === 0 && radius > 0) radius -= 1;
-  }
-  blocks.set(toKey(x, ground + trunk + 1, z), kind.leaves);
 }
 
 /**
@@ -219,9 +200,8 @@ export function generateTerrain(seed: number, size: number = WORLD_SIZE): Map<Bl
       if (tooClose) continue;
 
       const kind = TREE_KINDS[Math.floor(rng() * TREE_KINDS.length)]!;
-      const trunk = kind.conifer ? 6 + Math.floor(rng() * 3) : 4 + Math.floor(rng() * 2);
-      if (kind.conifer) plantConifer(blocks, kind, x, ground, z, trunk);
-      else plantBroadleaf(blocks, kind, x, ground, z, trunk);
+      const trunk = 4 + Math.floor(rng() * 2);
+      plantTree(blocks, kind, x, ground, z, trunk);
       planted.push([x, z]);
     }
   }
@@ -233,13 +213,65 @@ export function randomSeed(): number {
   return Math.floor(Math.random() * 2 ** 31);
 }
 
+/** Nothing generated reaches this high, so scanning down from it finds the top. */
+const SEARCH_CEILING = 80;
+
+/** Blocks a tree is made of. The player should not be dropped onto a treetop. */
+const TREE_BLOCK_IDS: ReadonlySet<number> = new Set(
+  TREE_KINDS.flatMap((kind) => [kind.log, kind.leaves]),
+);
+
+/** Columns starting at the middle and spiralling outward, as a square ring walk. */
+function* columnsFromMiddle(size: number): Generator<[number, number]> {
+  const middle = Math.floor(size / 2);
+  yield [middle, middle];
+  for (let ring = 1; ring < middle; ring += 1) {
+    for (let offset = -ring; offset <= ring; offset += 1) {
+      yield [middle + offset, middle - ring];
+      yield [middle + offset, middle + ring];
+      yield [middle - ring, middle + offset];
+      yield [middle + ring, middle + offset];
+    }
+  }
+}
+
 /**
- * A safe place to drop the player in, just above the surface at the middle of
- * the world. Spawning at a fixed height meant falling through the air, or worse,
- * spawning inside a hill.
+ * A safe place to drop the player in: standing on the ground near the middle of
+ * the world, in a column where they actually fit.
+ *
+ * This used to be worked out from the height field alone, which knows about the
+ * landscape but not about anything standing on it. Once the generator started
+ * planting trees that became a real problem: on about one seed in five the
+ * player appeared inside a canopy, and being inside a block meant collision was
+ * skipped, so they fell straight through the world. Dropping back through the
+ * void respawned them in the same place, so it never recovered.
+ *
+ * Working from the finished world instead means the check is simply whether the
+ * player's own box is clear.
  */
-export function spawnPointFor(seed: number): [number, number, number] {
-  const heightAt = createHeightField(seed);
-  const middle = Math.floor(WORLD_SIZE / 2);
-  return [middle + 0.5, heightAt(middle, middle) + 3, middle + 0.5];
+export function spawnPointFor(
+  blocks: Map<BlockKey, number>,
+  size: number = WORLD_SIZE,
+): [number, number, number] {
+  for (const [x, z] of columnsFromMiddle(size)) {
+    let ground = -1;
+    for (let y = SEARCH_CEILING; y >= 0; y -= 1) {
+      const block = blocks.get(toKey(x, y, z));
+      if (block === undefined) continue;
+      // Skip the whole column if its top is a tree, rather than standing the
+      // player on a canopy.
+      if (TREE_BLOCK_IDS.has(blockIdOf(block))) break;
+      ground = y;
+      break;
+    }
+    if (ground < 0) continue;
+
+    // A block at `ground` fills up to ground + 0.5, which is where feet rest.
+    const feet = ground + 0.5;
+    if (!collides(blocks, x + 0.5, feet, z + 0.5)) return [x + 0.5, feet, z + 0.5];
+  }
+
+  // Nowhere at all was clear, which should not happen; drop in above the middle.
+  const middle = Math.floor(size / 2);
+  return [middle + 0.5, SEARCH_CEILING, middle + 0.5];
 }
