@@ -54,6 +54,10 @@ what voxel games normally do.
   interaction the end-to-end suite does not cover.
 - The site header and footer still render on the editor route, so the hotbar sits
   on top of the footer. Phase 6 replaces the page shell.
+- The world is 64 blocks square. Measured cost of recomputing what is visible
+  after each edit: 2 ms at 32, 8 ms at 64, 16 ms at 96, 34 ms at 128. Anything
+  past 64 needs that pass to update only around the block that changed instead
+  of rebuilding the world, which would then allow a much larger map.
 - Builds are all named "Untitled build". Naming them belongs with the save
   dialog in phase 6.
 
@@ -341,15 +345,15 @@ Goal: keep the Minecraft/pixel identity, drop the 2022-bootcamp look. Design onc
 | Initial JS for `/` (gzip) | whole app in one bundle | < 200 KB | 141 KB |
 | Editor route payload | 3,190 KB | smaller | 1,072 KB |
 | WebAssembly shipped | 1,376 KB | none | none |
-| Draw calls in editor | ≈ blocks × 6 | < 30 | 6 |
-| Blocks handed to the GPU | every block | only visible ones | 2,441 of 5,088 |
-| Triangles per frame | 122,148 | fewer | 29,328 |
-| Median frame time, software renderer | 158.6 ms | lower | 75.2 ms |
+| Draw calls in editor | ≈ blocks × 6 | < 30 | 5 |
+| Blocks handed to the GPU | every block | only visible ones | 8,580 of 22,073 |
+| Triangles per frame | 122,148 | fewer | 102,996 at four times the world size |
+| Median frame time, software renderer | 158.6 ms | lower | 108.4 ms at four times the world size |
 | Size of one saved build | 25,805 B | < 10 KB | 68 B |
 | `express.json` body limit | 50 MB | 1 MB | 1 MB |
 | Secrets in repo | 1 (JWT signing key) | 0 | 0 |
 | Lockfiles | 3 npm | 1 | 1 pnpm |
-| Automated checks | none | lint + typecheck + test + build + e2e | typecheck + build in CI, 25-check e2e locally |
+| Automated checks | none | lint + typecheck + test + build + e2e | typecheck, 20 unit tests and build in CI; 25-check browser suite locally |
 | Editor FPS on real hardware | not measured | ≥ 60 | still not measured |
 | Lighthouse Perf / A11y on `/` | not measured | ≥ 90 / ≥ 95 | not measured |
 
