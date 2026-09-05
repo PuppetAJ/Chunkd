@@ -44,6 +44,25 @@ cost 1.9 MB and a WebAssembly instantiation on every editor visit. Collision is
 now an axis-by-axis resolve of the player's box against the block map, which is
 what voxel games normally do.
 
+### Fixes after phase 4
+
+Glass rendered badly in three separate ways, all found from one screenshot.
+It cast a solid black shadow, which is wrong for something you can see through;
+with no shadow bias its own frame shadowed itself in diagonal stripes; and being
+drawn as a blended surface washed the frame out against whatever was behind it.
+Glass now casts no shadow, both suns carry a normal bias, and glass is drawn as
+a cutout, which suits it because every pixel of its texture is either fully
+opaque or fully invisible. The visibility pass was also treating glass as
+something that hides what is behind it, so a block under a glass floor was
+skipped and you looked through the glass into a hole.
+
+Signing up and logging in appeared to be broken. Both worked; neither could say
+why it had failed. Every failure rendered one fixed sentence and the real error
+went to the console, so a password below the eight-character minimum looked the
+same as an email already in use. The server now reports a schema validation
+failure as bad input rather than an internal error, and both forms check the
+same rules in the browser first and show what the server actually said.
+
 ### Known issues carried forward
 
 - Editor frame rate on real hardware has not been measured. The numbers recorded

@@ -10,6 +10,7 @@ import {
   type UserDocument,
 } from "../models/index.ts";
 import {
+  asUserInputError,
   badRequest,
   forbidden,
   notFound,
@@ -138,6 +139,10 @@ export const resolvers = {
         if (error && typeof error === "object" && "code" in error && error.code === 11000) {
           throw badRequest("That username or email address is already taken.");
         }
+        // A password that is too short, or a username that is, is the person's
+        // to fix. Report it as such rather than as a server fault.
+        const invalid = asUserInputError(error);
+        if (invalid) throw invalid;
         throw error;
       }
     },
