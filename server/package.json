@@ -11,8 +11,7 @@
     "start": "node --env-file-if-exists=../.env src/server.ts",
     "seed": "node --env-file-if-exists=../.env src/seeders/seeds.ts",
     "build": "echo \"server needs no build step\"",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",
@@ -35,8 +34,6 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.4.1",
-    "mongodb-memory-server": "^11.2.0",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
+    "typescript": "^7.0.2"
   }
 }
