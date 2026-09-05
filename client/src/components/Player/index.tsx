@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -41,6 +41,7 @@ export default function Player({ body }: Props) {
   const held = useHeldKeys();
   const axeRef = useRef<THREE.Group>(null);
   const verticalSpeed = useRef(0);
+  const heading = useMemo(() => new THREE.Vector3(), []);
 
   const setSelectedSlot = useWorldStore((state) => state.setSelectedSlot);
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
@@ -69,14 +70,19 @@ export default function Player({ body }: Props) {
     let vx = 0;
     let vz = 0;
     if (forward !== 0 || strafe !== 0) {
+      // Pointer lock stores the view as a quaternion. Reading camera.rotation.y
+      // for the yaw was wrong: that Euler uses XYZ order, where Y is the
+      // clamped middle axis and stops meaning "heading" the moment the view
+      // tilts. So forward always pointed down the same world axis. The view
+      // direction itself, flattened, is unambiguous.
+      camera.getWorldDirection(heading);
+      heading.y = 0;
+      if (heading.lengthSq() < 1e-6) heading.set(0, 0, -1);
+      heading.normalize();
       const length = Math.hypot(forward, strafe);
-      // Only the yaw matters. Using the full camera rotation, as the old code
-      // did, made walking speed depend on how far up or down you were looking.
-      const yaw = camera.rotation.y;
-      const sin = Math.sin(yaw);
-      const cos = Math.cos(yaw);
-      vx = ((forward / length) * -sin + (strafe / length) * cos) * speed;
-      vz = ((forward / length) * -cos + (strafe / length) * -sin) * speed;
+      // Right-hand direction is forward turned a quarter turn: (-z, 0, x).
+      vx = ((forward * heading.x + strafe * -heading.z) / length) * speed;
+      vz = ((forward * heading.z + strafe * heading.x) / length) * speed;
     }
 
     if (pressed(KEYS.jump) && body.onGround) verticalSpeed.current = JUMP_SPEED;
@@ -112,11 +118,13 @@ export default function Player({ body }: Props) {
           0.1,
         );
       }
-      axe.rotation.copy(camera.rotation);
+      axe.quaternion.copy(camera.quaternion);
       axe.position.copy(camera.position);
-      axe.translateX(0.3);
-      axe.translateY(-0.35);
-      axe.translateZ(-0.9);
+      // Held low and close, so the handle runs off the bottom of the frame
+      // instead of the whole tool hanging in front of the camera.
+      axe.translateX(0.34);
+      axe.translateY(-0.62);
+      axe.translateZ(-0.55);
     }
   });
 

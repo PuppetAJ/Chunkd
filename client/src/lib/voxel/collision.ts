@@ -52,6 +52,19 @@ export interface Body {
 }
 
 /**
+ * Gap left between the player and any surface they stop against.
+ *
+ * Snapping the player's edge exactly onto a block boundary put that edge inside
+ * the block by the overlap test's definition, so after touching a wall every
+ * further move on every axis was reported as blocked and the player was stuck.
+ * A hair of clearance means "touching" is never "overlapping".
+ */
+const SKIN = 0.001;
+
+/** Largest move per sub-step. Anything faster is split so it cannot skip a block. */
+const MAX_STEP = 0.4;
+
+/**
  * Move `body` by the given amounts, stopping at whatever it runs into.
  *
  * Mutates the body in place because it runs every frame and allocating three
@@ -67,40 +80,57 @@ export function moveBody(
 ): void {
   body.onGround = false;
 
-  if (dy !== 0) {
-    const nextY = body.y + dy;
-    if (collides(blocks, body.x, nextY, body.z)) {
-      if (dy < 0) {
-        // Landed. Rest exactly on the surface of the block underfoot rather
-        // than wherever the frame happened to stop.
-        body.y = blockIndex(nextY) + 0.5;
-        body.onGround = true;
+  // Already inside something, most likely a block placed on top of the player
+  // or a bad spawn. Let them move freely out rather than pinning them in place.
+  if (collides(blocks, body.x, body.y, body.z)) {
+    body.x += dx;
+    body.y += dy;
+    body.z += dz;
+    return;
+  }
+
+  const largest = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+  const steps = Math.max(1, Math.ceil(largest / MAX_STEP));
+  const stepX = dx / steps;
+  const stepY = dy / steps;
+  const stepZ = dz / steps;
+
+  for (let i = 0; i < steps; i += 1) {
+    if (stepY !== 0) {
+      const nextY = body.y + stepY;
+      if (collides(blocks, body.x, nextY, body.z)) {
+        if (stepY < 0) {
+          // Landed. Rest exactly on the surface of the block underfoot rather
+          // than wherever the frame happened to stop.
+          body.y = blockIndex(nextY) + 0.5;
+          body.onGround = true;
+        } else {
+          // Hit a ceiling. Sit just below it.
+          body.y = blockIndex(nextY + PLAYER_HEIGHT) - 0.5 - PLAYER_HEIGHT - SKIN;
+        }
       } else {
-        // Hit a ceiling. Sit just below it.
-        body.y = blockIndex(nextY + PLAYER_HEIGHT) - 0.5 - PLAYER_HEIGHT;
+        body.y = nextY;
       }
-    } else {
-      body.y = nextY;
     }
-  }
 
-  if (dx !== 0) {
-    const nextX = body.x + dx;
-    if (collides(blocks, nextX, body.y, body.z)) {
-      const side = Math.sign(dx);
-      body.x = blockIndex(nextX + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH);
-    } else {
-      body.x = nextX;
+    if (stepX !== 0) {
+      const nextX = body.x + stepX;
+      if (collides(blocks, nextX, body.y, body.z)) {
+        const side = Math.sign(stepX);
+        body.x = blockIndex(nextX + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+      } else {
+        body.x = nextX;
+      }
     }
-  }
 
-  if (dz !== 0) {
-    const nextZ = body.z + dz;
-    if (collides(blocks, body.x, body.y, nextZ)) {
-      const side = Math.sign(dz);
-      body.z = blockIndex(nextZ + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH);
-    } else {
-      body.z = nextZ;
+    if (stepZ !== 0) {
+      const nextZ = body.z + stepZ;
+      if (collides(blocks, body.x, body.y, nextZ)) {
+        const side = Math.sign(stepZ);
+        body.z = blockIndex(nextZ + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+      } else {
+        body.z = nextZ;
+      }
     }
   }
 
