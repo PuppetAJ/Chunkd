@@ -58,15 +58,19 @@ export default function BlockLayer({ block, positions, texture }: Props) {
       key={capacity}
       ref={meshRef}
       args={[undefined, undefined, capacity]}
-      castShadow
+      castShadow={block.castsShadow}
       receiveShadow
     >
       <boxGeometry />
       <meshStandardMaterial
         map={texture}
         color={block.tint}
-        transparent={block.transparent}
-        opacity={block.transparent ? 0.85 : 1}
+        transparent={block.draw === "blend"}
+        opacity={block.draw === "blend" ? 0.85 : 1}
+        // Glass is a frame around a hole. Discarding the hole outright, rather
+        // than blending it, keeps the frame at full strength instead of washing
+        // it out against whatever happens to be behind it.
+        alphaTest={block.draw === "cutout" ? 0.5 : 0}
       />
     </instancedMesh>
   );

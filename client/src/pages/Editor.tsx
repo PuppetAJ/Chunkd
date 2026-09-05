@@ -66,6 +66,10 @@ export default function Editor() {
             intensity={4}
             position={[centre + 60, 90, centre + 40]}
             shadow-mapSize={[2048, 2048]}
+            // Without a bias a surface shadows itself wherever it faces the sun
+            // at a shallow angle, which showed up as diagonal stripes on blocks.
+            shadow-normalBias={0.05}
+            shadow-bias={-0.0005}
             shadow-camera-near={1}
             shadow-camera-far={260}
             shadow-camera-left={-shadowExtent}

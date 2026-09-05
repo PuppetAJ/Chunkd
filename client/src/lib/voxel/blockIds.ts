@@ -21,3 +21,19 @@ export const BLOCK_IDS = {
 } as const;
 
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
+
+/**
+ * Blocks you can see through.
+ *
+ * This matters to the renderer's culling pass, which skips any block whose six
+ * neighbours are all present. A neighbour only hides a face if it is opaque, so
+ * a dirt block under a glass floor still has to be drawn: without this set it
+ * was culled and you looked through the glass into a hole.
+ *
+ * It lives here rather than in blocks.ts so the culling pass stays free of
+ * image imports and can still be tested outside a browser.
+ */
+export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([
+  BLOCK_IDS.glass,
+  BLOCK_IDS.leaves,
+]);
