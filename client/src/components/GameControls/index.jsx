@@ -36,7 +36,9 @@ const GameControlsModal = ({ setModalOn }) => {
                             <p>Space: Jump</p>
                             <p>Double-Tap Space: Toggle Flight</p>
                             <p>While Flying: Space Up, Shift Down</p>
-                            <p># 1-9: Change Block Material</p>
+                            <p># 1-9: Choose Hotbar Slot</p>
+                            <p>Scroll Wheel: Move Along The Hotbar</p>
+                            <p>E: Open The Block Inventory</p>
                             <p>Hold Shift: Lower Speed</p>
                             <p>P: Save Build</p>
                             <p>Esc: Release Mouse</p>

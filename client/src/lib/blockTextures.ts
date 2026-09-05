@@ -1,5 +1,5 @@
-import { DataTexture, NearestFilter, NoColorSpace, TextureLoader, type Texture } from "three";
-import { BLOCKS } from "./voxel/blocks.ts";
+import { DataTexture, NearestFilter, SRGBColorSpace, TextureLoader, type Texture } from "three";
+import { TEXTURE_URLS } from "./voxel/blocks.ts";
 
 /**
  * Loading the block textures, once, in a way that cannot take the editor down.
@@ -18,61 +18,107 @@ const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 250;
 
 /**
- * The block textures are greyscale masks that get tinted by each material's
- * colour, not full-colour images.
+ * Every texture file in the assets folder, as a path to its built URL.
  *
- * three.js r152 turned on colour management, which reads any texture tagged as
- * sRGB into linear space. Doing that to a mask darkens it by roughly a factor of
- * two, and the tint colour gets the same treatment, so the two together made the
- * whole world render almost black. Tagging these as plain data keeps the mask
- * values as authored, which is what they are.
+ * The block table imports the files it needs by name, which is what catches a
+ * typo at build time. This map exists alongside those imports for one reason:
+ * it is the only way to recover a texture's original file name from the
+ * fingerprinted URL a production build gives it, and the texture pack override
+ * below needs that name.
+ */
+const SOURCE_FILES = import.meta.glob("../assets/textures/*.png", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
+
+const NAME_BY_URL = new Map(
+  Object.entries(SOURCE_FILES).map(([path, url]) => [
+    url,
+    path.slice(path.lastIndexOf("/") + 1).replace(/\.png$/, ""),
+  ]),
+);
+
+/**
+ * Where to look for replacement textures, if anywhere.
  *
- * NearestFilter on magnification is what keeps the blocks looking like pixel art
- * instead of a blur when you stand next to them. It matters most to glass: its
- * texture is a frame around fully transparent pixels, and blending across that
- * edge both thins the frame and drags its colour toward the transparent black
- * behind it.
+ * Packs like Sphax PureBDCraft and Ashen are free to download but their licences
+ * forbid redistributing the files, so they cannot live in this repository. Set
+ * VITE_TEXTURE_PACK to a folder you have put them in and each block will prefer
+ * the pack's image, falling back to the bundled one whenever the pack does not
+ * have that particular texture. Unset, this costs nothing at all.
+ */
+const PACK_BASE: string = import.meta.env["VITE_TEXTURE_PACK"] ?? "";
+
+function overrideUrlFor(url: string): string | null {
+  if (!PACK_BASE) return null;
+  const name = NAME_BY_URL.get(url);
+  return name ? `${PACK_BASE.replace(/\/$/, "")}/${name}.png` : null;
+}
+
+/**
+ * These are ordinary colour images authored to be looked at, so sRGB is the
+ * correct tag: three then reads them into linear space to shade with and
+ * converts back on output, and the colours come out as drawn. The previous
+ * texture set was greyscale masks that were tinted at runtime, which is why this
+ * used to force the opposite, and leaving that in place washed everything out.
  *
- * This has to be re-applied after react-three-fiber assigns the texture to a
- * material's `map`, because r3f tags anything it puts there as sRGB. That is the
- * right guess for a photograph and the wrong one for a mask, so BlockLayer calls
- * this again once the material exists.
+ * NearestFilter is what keeps 16 by 16 art looking like pixel art rather than a
+ * blur when you stand next to it, on both magnification and minification. Using
+ * mipmaps here would average a block's edge pixels into its neighbours, which is
+ * especially visible on glass, whose texture is a frame around nothing.
  */
 export function applyBlockTextureSettings(textures: Texture[]): void {
   for (const texture of textures) {
-    texture.colorSpace = NoColorSpace;
+    texture.colorSpace = SRGBColorSpace;
     texture.magFilter = NearestFilter;
+    texture.minFilter = NearestFilter;
+    texture.generateMipmaps = false;
     texture.needsUpdate = true;
   }
 }
 
-/** A single white pixel, so a block whose image is missing still takes its tint. */
+/** A single white pixel, so a block whose image is missing still renders. */
 function blankTexture(): Texture {
   const texture = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
   texture.needsUpdate = true;
   return texture;
 }
 
-function loadTexture(url: string, attempt = 1): Promise<Texture> {
+function loadOnce(url: string): Promise<Texture | null> {
   return new Promise((resolve) => {
     new TextureLoader().load(
       url,
       (texture) => resolve(texture),
       undefined,
-      () => {
-        if (attempt < MAX_ATTEMPTS) {
-          setTimeout(() => resolve(loadTexture(url, attempt + 1)), RETRY_DELAY_MS * attempt);
-          return;
-        }
-        console.error(`Could not load ${url} after ${MAX_ATTEMPTS} attempts; drawing that block untextured.`);
-        resolve(blankTexture());
-      },
+      () => resolve(null),
     );
   });
 }
 
-/** Block name to its texture. */
-export type BlockTextures = Record<string, Texture>;
+async function loadTexture(url: string): Promise<Texture> {
+  // A pack only has to supply the textures it wants to replace, so a miss here
+  // is ordinary and falls through to the bundled image without complaint.
+  const override = overrideUrlFor(url);
+  if (override) {
+    const replaced = await loadOnce(override);
+    if (replaced) return replaced;
+  }
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    const texture = await loadOnce(url);
+    if (texture) return texture;
+    if (attempt < MAX_ATTEMPTS) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * attempt));
+    }
+  }
+
+  console.error(`Could not load ${url} after ${MAX_ATTEMPTS} attempts; drawing that block untextured.`);
+  return blankTexture();
+}
+
+/** Texture URL to the loaded texture. */
+export type BlockTextures = Map<string, Texture>;
 
 let pending: Promise<BlockTextures> | null = null;
 
@@ -84,13 +130,11 @@ let pending: Promise<BlockTextures> | null = null;
  * into the nearest error boundary, and that is exactly the crash this avoids.
  */
 export function loadBlockTextures(): Promise<BlockTextures> {
-  pending ??= Promise.all(BLOCKS.map((block) => loadTexture(block.textureUrl))).then((loaded) => {
+  pending ??= Promise.all(TEXTURE_URLS.map((url) => loadTexture(url))).then((loaded) => {
     applyBlockTextureSettings(loaded);
-    const byName: BlockTextures = {};
-    BLOCKS.forEach((block, index) => {
-      byName[block.name] = loaded[index]!;
-    });
-    return byName;
+    const byUrl: BlockTextures = new Map();
+    TEXTURE_URLS.forEach((url, index) => byUrl.set(url, loaded[index]!));
+    return byUrl;
   });
   return pending;
 }

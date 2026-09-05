@@ -169,6 +169,62 @@ for (const [pitch, yaw] of [[-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.
 check("right click places a block", afterPlace.blocks === afterBreak.blocks + 1,
   `${afterBreak.blocks} -> ${afterPlace.blocks}`);
 
+// ------------------------------------------------------- hotbar and inventory
+const selectedSlot = () => page.evaluate(() => window.__world.getState().selectedSlot);
+
+await page.evaluate(() => window.__world.getState().setSelectedSlot(1));
+await page.mouse.wheel(0, 120);
+await page.waitForTimeout(300);
+check("scrolling down moves along the hotbar", (await selectedSlot()) === 2, `slot ${await selectedSlot()}`);
+
+await page.mouse.wheel(0, -120);
+await page.waitForTimeout(300);
+check("scrolling up moves back", (await selectedSlot()) === 1, `slot ${await selectedSlot()}`);
+
+// Scrolling up off the first slot should wrap to the last, not stop at zero.
+await page.mouse.wheel(0, -120);
+await page.waitForTimeout(300);
+check("the hotbar wraps around", (await selectedSlot()) === 9, `slot ${await selectedSlot()}`);
+
+await page.evaluate(() => window.__world.getState().setSelectedSlot(1));
+await page.keyboard.press("KeyE");
+await page.waitForTimeout(600);
+check("E opens the inventory", (await page.getByRole("heading", { name: "Blocks" }).count()) > 0);
+
+// Picking a block from the inventory fills the selected slot.
+await page.getByRole("button", { name: "Obsidian" }).first().click();
+await page.waitForTimeout(300);
+const slotOne = await page.evaluate(() => window.__world.getState().hotbar[0]);
+check("choosing a block puts it in the selected slot", slotOne === 25, `id ${slotOne}`);
+
+await page.keyboard.press("Escape");
+await page.waitForTimeout(500);
+check("Escape closes the inventory", (await page.getByRole("heading", { name: "Blocks" }).count()) === 0);
+
+// ------------------------------------------------------- directional placing
+// A log placed against a side face lies down; one placed on a top face stands
+// up. Orientation lives in the stored value, above the block id's low byte.
+const axisAt = await page.evaluate(() => {
+  const store = window.__world.getState();
+  const OAK_LOG = 5;
+  store.setHotbarBlock(1, OAK_LOG);
+  store.setSelectedSlot(1);
+  // Somewhere empty and well clear of the player.
+  const x = 5, y = 40, z = 5;
+  store.placeBlock(x, y, z, 0);
+  store.placeBlock(x + 2, y, z, 1);
+  store.placeBlock(x + 4, y, z, 2);
+  const read = (bx) => {
+    const value = window.__world.getState().blocks.get(`${bx},${y},${z}`);
+    return { id: value & 0xff, axis: (value >> 8) & 0b11 };
+  };
+  return [read(x), read(x + 2), read(x + 4)];
+});
+check("a log placed on a top face stands upright", axisAt[0].axis === 0, JSON.stringify(axisAt[0]));
+check("a log placed against an east face lies east to west", axisAt[1].axis === 1, JSON.stringify(axisAt[1]));
+check("a log placed against a north face lies north to south", axisAt[2].axis === 2, JSON.stringify(axisAt[2]));
+check("orientation does not disturb the block id", axisAt.every((one) => one.id === 5), JSON.stringify(axisAt));
+
 // P saves the world. The key state is sampled inside the render loop, so a
 // press has to last longer than a frame to be seen.
 await page.keyboard.press("p");

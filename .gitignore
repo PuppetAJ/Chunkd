@@ -37,3 +37,8 @@ test-results/
 .cache/
 .vite/
 .eslintcache
+
+# Texture packs such as Sphax PureBDCraft or Ashen are free to download but
+# their licences forbid redistributing the files, so they must not be committed.
+# Drop one here and point VITE_TEXTURE_PACK at it to use it locally.
+client/public/texturepack/

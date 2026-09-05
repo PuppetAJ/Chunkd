@@ -3,9 +3,10 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 import BlockLayer from "./BlockLayer.tsx";
-import { BLOCKS } from "../../lib/voxel/blocks.ts";
+import { getBlock } from "../../lib/voxel/blocks.ts";
 import { type BlockKey } from "../../lib/voxel/coords.ts";
 import { buildRenderLayers } from "../../lib/voxel/render.ts";
+import { axisForFaceNormal } from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
 import { blockOverlapsPlayer, type Body } from "../../lib/voxel/collision.ts";
@@ -49,6 +50,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const target = useRef<{
     hit: [number, number, number];
     adjacent: [number, number, number];
+    /** Which way a block with a grain should lie if placed here. */
+    axis: number;
   } | null>(null);
 
   /** Which mouse button is held, and when it may next act. */
@@ -62,22 +65,18 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   // costing the whole editor its WebGL context.
   const textures = use(loadBlockTextures());
 
-  // Recomputed once per edit rather than once per frame.
+  // Recomputed once per edit rather than once per frame. A layer for a block id
+  // the table no longer knows about is dropped rather than crashing, so an old
+  // build referring to a removed block still opens.
   const layers = useMemo(() => {
-    return buildRenderLayers(blocks).map((layer) => ({
-      block: BLOCKS.find((candidate) => candidate.id === layer.blockId)!,
-      positions: layer.positions,
-    }));
+    return buildRenderLayers(blocks).flatMap((layer) => {
+      const block = getBlock(layer.blockId);
+      return block ? [{ block, positions: layer.positions, axes: layer.axes }] : [];
+    });
   }, [blocks]);
 
   // Nothing in the scene moves except the player, and the player casts no
   // shadow, so the shadow map only needs redrawing when the world changes.
-  // Leaving it on automatic redrew every block, twice per frame, forever.
-  useEffect(() => {
-    gl.shadowMap.autoUpdate = false;
-    gl.shadowMap.needsUpdate = true;
-  }, [gl, blocks]);
-
   const raycaster = useMemo(() => {
     const instance = new THREE.Raycaster();
     // Range is enforced here rather than by measuring distances afterwards.
@@ -85,6 +84,10 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     return instance;
   }, []);
   const screenCentre = useMemo(() => new THREE.Vector2(0, 0), []);
+  // Scratch values for turning a hit face into a world-space normal, reused
+  // rather than allocated every frame.
+  const instanceMatrix = useMemo(() => new THREE.Matrix4(), []);
+  const normal = useMemo(() => new THREE.Vector3(), []);
 
   // Kept in a ref so the pointer handlers can act without being re-created,
   // and so useFrame can repeat the action while a button is held.
@@ -102,7 +105,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       const [x, y, z] = current.adjacent;
       // Refuse to place a block inside the player, which would trap them.
       if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
-      placeBlock(x, y, z);
+      placeBlock(x, y, z, current.axis);
     }
   };
 
@@ -136,15 +139,24 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       positions[i * 3 + 1]!,
       positions[i * 3 + 2]!,
     ];
-    // Instances are pure translations, so the face normal is already in world
-    // space and points at the neighbouring cell.
+    // The face normal comes back in the shared cube's own space. Most instances
+    // are pure translations, for which that is already the world normal, but a
+    // log lying on its side is a rotated instance and would report the wrong
+    // face, so the instance's own rotation is applied.
+    (hit.object as THREE.InstancedMesh).getMatrixAt(i, instanceMatrix);
+    normal.copy(hit.face.normal).transformDirection(instanceMatrix);
+
     const adjacent: [number, number, number] = [
-      block[0] + Math.round(hit.face.normal.x),
-      block[1] + Math.round(hit.face.normal.y),
-      block[2] + Math.round(hit.face.normal.z),
+      block[0] + Math.round(normal.x),
+      block[1] + Math.round(normal.y),
+      block[2] + Math.round(normal.z),
     ];
 
-    target.current = { hit: block, adjacent };
+    target.current = {
+      hit: block,
+      adjacent,
+      axis: axisForFaceNormal(normal.x, normal.y, normal.z),
+    };
 
     if (highlightRef.current) {
       highlightRef.current.visible = true;
@@ -188,12 +200,13 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   return (
     <>
       <group ref={groupRef}>
-        {layers.map(({ block, positions }) => (
+        {layers.map(({ block, positions, axes }) => (
           <BlockLayer
             key={block.id}
             block={block}
             positions={positions}
-            texture={textures[block.name]!}
+            axes={axes}
+            textures={textures}
           />
         ))}
       </group>

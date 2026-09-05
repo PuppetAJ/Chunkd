@@ -21,6 +21,23 @@
   box-sizing: border-box;
 }
 
+/* Double tapping anywhere used to zoom the page, which is easy to trigger by
+   accident while building and leaves the view at the wrong scale with no
+   obvious way back. "manipulation" keeps ordinary panning and pinch to zoom but
+   drops the double-tap gesture. */
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Inside the editor the canvas handles its own input, so no browser gesture
+   should reach it, and text selection from a stray drag is never wanted. */
+canvas {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 html,
 body,
 #root {
