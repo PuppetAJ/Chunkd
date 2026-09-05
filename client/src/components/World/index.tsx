@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useRef } from "react";
+import { use, useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 
 import BlockLayer from "./BlockLayer.tsx";
 import { BLOCKS } from "../../lib/voxel/blocks.ts";
 import { type BlockKey } from "../../lib/voxel/coords.ts";
 import { buildRenderLayers } from "../../lib/voxel/render.ts";
-import { applyBlockTextureSettings } from "../../lib/blockTextures.ts";
+import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
 import { blockOverlapsPlayer, type Body } from "../../lib/voxel/collision.ts";
 
@@ -22,10 +21,6 @@ const REACH = 7;
  * repeats, the way it does in the games this borrows from.
  */
 const REPEAT_SECONDS = 0.16;
-
-const TEXTURE_URLS = Object.fromEntries(
-  BLOCKS.map((block) => [block.name, block.textureUrl]),
-) as Record<string, string>;
 
 interface Props {
   /**
@@ -62,8 +57,10 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   /** Latest render-loop time, so the pointer handlers can schedule repeats. */
   const clock = useRef(0);
 
-  const textures = useTexture(TEXTURE_URLS);
-  applyBlockTextureSettings(...Object.values(textures));
+  // Suspends until every block texture is in. The promise is shared and never
+  // rejects, so a missing image costs that one block its texture rather than
+  // costing the whole editor its WebGL context.
+  const textures = use(loadBlockTextures());
 
   // Recomputed once per edit rather than once per frame.
   const layers = useMemo(() => {
@@ -196,7 +193,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
             key={block.id}
             block={block}
             positions={positions}
-            texture={textures[block.name] as THREE.Texture}
+            texture={textures[block.name]!}
           />
         ))}
       </group>

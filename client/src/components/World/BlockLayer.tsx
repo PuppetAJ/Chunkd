@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 import type { BlockType } from "../../lib/voxel/blocks.ts";
+import { applyBlockTextureSettings } from "../../lib/blockTextures.ts";
 
 const matrix = new THREE.Matrix4();
 
@@ -29,6 +30,14 @@ export default function BlockLayer({ block, positions, texture }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = positions.length / 3;
   const capacity = capacityFor(count);
+
+  // react-three-fiber tags any texture it assigns to a colour map as sRGB, which
+  // it does after the texture is loaded and configured. Reading these masks as
+  // sRGB halves their brightness, which is what once made the whole world render
+  // nearly black, so the tag is undone here, once the material holds the map.
+  useLayoutEffect(() => {
+    applyBlockTextureSettings([texture]);
+  }, [texture]);
 
   useLayoutEffect(() => {
     const mesh = meshRef.current;
