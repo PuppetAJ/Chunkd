@@ -44,6 +44,15 @@ const GameControlsModal = ({ setModalOn }) => {
                             <p>Esc: Release Mouse</p>
                         </div>
 
+                        {/* The footer carries this too, but the editor covers the
+                            footer, and Faithful's licence asks for the credit to
+                            be somewhere obvious wherever their work is used. */}
+                        <p className="text-xs text-gray-400 text-center max-w-sm">
+                            Block textures from{" "}
+                            <a className="underline" href="https://faithfulpack.net/faithful32x" target="_blank" rel="noreferrer">Faithful 32x</a>, used under the{" "}
+                            <a className="underline" href="https://faithfulpack.net/license" target="_blank" rel="noreferrer">Faithful licence</a>.
+                        </p>
+
 
                     </div>
 

@@ -44,10 +44,11 @@ test("a block behind glass is still drawn", () => {
   assert.equal(drawnPositions(blocks).has("0,0,0"), true);
 });
 
-test("leaves are opaque in this texture set, so they do hide what is behind", () => {
+test("a block behind leaves is still drawn", () => {
+  // Faithful's leaves have gaps in them, so they do not hide what is behind.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), BLOCK_IDS.oakLeaves);
-  assert.equal(drawnPositions(blocks).has("0,0,0"), false);
+  assert.equal(drawnPositions(blocks).has("0,0,0"), true);
 });
 
 test("glass buried in solid blocks is not drawn", () => {
@@ -59,7 +60,7 @@ test("glass buried in solid blocks is not drawn", () => {
 
 test("layers come back sorted by block id", () => {
   const blocks = new Map<BlockKey, number>([
-    [toKey(0, 0, 0), BLOCK_IDS.cobblestoneBricks],
+    [toKey(0, 0, 0), BLOCK_IDS.stoneBricks],
     [toKey(2, 0, 0), BLOCK_IDS.dirt],
     [toKey(4, 0, 0), BLOCK_IDS.glass],
   ]);

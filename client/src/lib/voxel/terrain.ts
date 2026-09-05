@@ -101,9 +101,9 @@ interface TreeKind {
 
 const TREE_KINDS: TreeKind[] = [
   { log: BLOCK_IDS.oakLog, leaves: BLOCK_IDS.oakLeaves, conifer: false },
-  { log: BLOCK_IDS.beechLog, leaves: BLOCK_IDS.beechLeaves, conifer: false },
-  { log: BLOCK_IDS.mapleLog, leaves: BLOCK_IDS.mapleLeaves, conifer: false },
-  { log: BLOCK_IDS.pineLog, leaves: BLOCK_IDS.pineLeaves, conifer: true },
+  { log: BLOCK_IDS.birchLog, leaves: BLOCK_IDS.birchLeaves, conifer: false },
+  { log: BLOCK_IDS.cherryLog, leaves: BLOCK_IDS.cherryLeaves, conifer: false },
+  { log: BLOCK_IDS.spruceLog, leaves: BLOCK_IDS.spruceLeaves, conifer: true },
 ];
 
 /** Roughly one candidate per this many columns. */

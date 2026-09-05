@@ -20,54 +20,54 @@ export const BLOCK_IDS = {
   oakPlanks: 6,
   oakLeaves: 7,
   mudBricks: 8,
-  cobblestoneBricks: 9,
+  stoneBricks: 9,
 
   // Ground.
   sand: 10,
   gravel: 11,
   mud: 12,
-  crackedMud: 13,
+  packedMud: 13,
   farmland: 14,
   snow: 15,
   snowyGrass: 16,
-  glacierIce: 17,
+  blueIce: 17,
 
   // Stone.
   stone: 18,
   granite: 19,
   diorite: 20,
-  marble: 21,
-  limestone: 22,
-  slate: 23,
+  andesite: 21,
+  calcite: 22,
+  deepslate: 23,
   basalt: 24,
   obsidian: 25,
   amethyst: 26,
-  serpentine: 27,
-  schist: 28,
-  gabbro: 29,
-  rhyolite: 30,
+  tuff: 27,
+  dripstone: 28,
+  blackstone: 29,
+  endStone: 30,
   mossyCobblestone: 31,
 
   // Worked stone.
   sandstone: 32,
-  sandstoneBricks: 33,
-  carvedSandstone: 34,
-  graniteBricks: 35,
-  marbleBricks: 36,
-  limestoneBricks: 37,
-  serpentineBricks: 38,
-  slateTiles: 39,
+  cutSandstone: 33,
+  chiseledSandstone: 34,
+  polishedGranite: 35,
+  polishedAndesite: 36,
+  bricks: 37,
+  polishedDiorite: 38,
+  deepslateTiles: 39,
 
   // Wood.
-  pineLog: 40,
-  pinePlanks: 41,
-  pineLeaves: 42,
-  beechLog: 43,
-  beechPlanks: 44,
-  beechLeaves: 45,
-  mapleLog: 46,
-  maplePlanks: 47,
-  mapleLeaves: 48,
+  spruceLog: 40,
+  sprucePlanks: 41,
+  spruceLeaves: 42,
+  birchLog: 43,
+  birchPlanks: 44,
+  birchLeaves: 45,
+  cherryLog: 46,
+  cherryPlanks: 47,
+  cherryLeaves: 48,
 
   // Farm.
   hayBale: 49,
@@ -86,4 +86,10 @@ export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
  * It lives here rather than in blocks.ts so the culling pass stays free of
  * image imports and can still be tested outside a browser.
  */
-export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([BLOCK_IDS.glass]);
+export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([
+  BLOCK_IDS.glass,
+  BLOCK_IDS.oakLeaves,
+  BLOCK_IDS.spruceLeaves,
+  BLOCK_IDS.birchLeaves,
+  BLOCK_IDS.cherryLeaves,
+]);
