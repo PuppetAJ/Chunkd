@@ -24,18 +24,32 @@ that stores accounts, posts, comments, friendships and saved worlds.
 
 ## Running it locally
 
-You need Node 22 or newer and pnpm. Docker is the easiest way to get MongoDB, but
-any MongoDB reachable over the network works.
+You need Node 22 or newer and pnpm.
 
 ```sh
 pnpm install
 cp .env.example .env      # then edit it, see below
-pnpm db:up                # starts MongoDB in Docker
+pnpm db:up                # starts MongoDB in a container
 pnpm seed                 # optional: fills the database with example content
 pnpm dev                  # client on :3000, API on :3001
 ```
 
 Open http://localhost:3000.
+
+### The database
+
+`pnpm db:up` runs `docker compose up -d`, which starts MongoDB 7 in a container
+and stores its data in a named volume, so the data survives restarts.
+`pnpm db:down` stops the container and leaves the volume in place.
+
+Any Docker-compatible engine works, not just Docker Desktop. OrbStack and Colima
+both provide the same `docker` command. Start the engine before running `db:up`;
+with OrbStack that is `orb start`.
+
+If you would rather not run a container at all, nothing in the app requires one.
+The server connects to whatever `MONGODB_URI` points at, so a MongoDB installed
+through Homebrew or a hosted MongoDB Atlas cluster works just as well. In that
+case skip `pnpm db:up` and set `MONGODB_URI` accordingly.
 
 ### Environment
 
