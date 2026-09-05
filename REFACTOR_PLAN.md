@@ -149,6 +149,18 @@ out again from the whole world. An edit costs about 4 ms, and a test checks the
 incremental result against a full recompute over a long run of random edits,
 because the cheap path is only safe while the two agree.
 
+Walking around while a world loaded dropped the player through the ground. Two
+faults compounded. The spawn point was worked out from the height field, which
+knows the landscape but not what is standing on it, so once trees existed the
+player appeared inside a canopy on about one seed in five. Being inside a block
+then turned collision off entirely, on the reasoning that someone buried by a
+placed block should be able to walk out rather than be pinned, and with collision
+off gravity carried them straight down and out of the world. Falling past the
+void limit respawned them in the same place, so it never recovered. The spawn is
+now chosen from the finished world by checking the player's own box fits, and
+being stuck now pushes upward out of the obstruction instead of disabling
+collision.
+
 ### Known issues carried forward
 
 - Editor frame rate on real hardware has not been measured. The numbers recorded
@@ -167,6 +179,12 @@ because the cheap path is only safe while the two agree.
   dialog in phase 6.
 - Blocks with a grain record their axis but not their facing, so there is no way
   yet to point a directional texture a particular way round the vertical axis.
+- Culling is per block, not per face. Blocks buried on all six sides are skipped,
+  which removes 78% of the world, but each block that is drawn sends all six of
+  its faces even where they are pressed against a neighbour. Measured on a fresh
+  world: 76,224 faces drawn, of which 21,568 can actually be seen. Half the waste
+  is back faces, which the GPU discards for free; the other half is real. Meshing
+  only the exposed faces would cut the triangle count by roughly two thirds.
 
 ---
 

@@ -21,7 +21,7 @@ export function blockIndex(worldCoordinate: number): number {
 }
 
 /** Is the player's box, with its feet at (x, y, z), inside any block? */
-function collides(
+export function collides(
   blocks: Map<BlockKey, number>,
   x: number,
   y: number,
@@ -61,6 +61,9 @@ export interface Body {
  */
 const SKIN = 0.001;
 
+/** How fast the player rises out of a block they are stuck inside, per step. */
+const PUSH_OUT_SPEED = 0.08;
+
 /** Largest move per sub-step. Anything faster is split so it cannot skip a block. */
 const MAX_STEP = 0.4;
 
@@ -80,12 +83,14 @@ export function moveBody(
 ): void {
   body.onGround = false;
 
-  // Already inside something, most likely a block placed on top of the player
-  // or a bad spawn. Let them move freely out rather than pinning them in place.
+  // Already inside something, most likely a block placed on top of the player.
+  // Turning collision off entirely here, which is what this used to do, meant
+  // gravity carried them straight down through the ground and out of the world.
+  // Rise out of it instead, and let them walk out horizontally while they do.
   if (collides(blocks, body.x, body.y, body.z)) {
     body.x += dx;
-    body.y += dy;
     body.z += dz;
+    body.y += Math.max(dy, PUSH_OUT_SPEED);
     return;
   }
 

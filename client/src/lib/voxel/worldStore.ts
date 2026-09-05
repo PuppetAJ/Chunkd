@@ -128,7 +128,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   selectedBlockId: () => get().hotbar[get().selectedSlot - 1] ?? DEFAULT_BLOCK_ID,
 
-  spawnPoint: () => spawnPointFor(get().seed),
+  spawnPoint: () => spawnPointFor(get().blocks),
 }));
 
 /** Every block, in the order the inventory shows them. */
