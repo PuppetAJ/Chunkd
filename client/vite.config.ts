@@ -1,9 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+
+  // Mirrors the "@/*" path alias in tsconfig.json so shadcn/ui's generated
+  // components resolve at build time as well as during type checking.
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
 
   // Vite copies known asset types through the build untouched. 3D models are
   // not on its default list, so importing the axe model has to be declared.

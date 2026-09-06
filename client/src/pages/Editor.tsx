@@ -1,4 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
+import { ChevronLeft, Keyboard } from "lucide-react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { PointerLockControls, Preload, Sky } from "@react-three/drei";
@@ -11,6 +13,8 @@ import Inventory from "../components/Inventory/index.tsx";
 import SaveToast from "../components/SaveToast/index.tsx";
 import Crosshair from "../components/Crosshair/index.tsx";
 import FlightIndicator from "../components/FlightIndicator/index.tsx";
+import GameControlsModal from "../components/GameControls/index.jsx";
+import { Button } from "../components/ui/button.tsx";
 import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
 import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
@@ -26,6 +30,10 @@ export default function Editor() {
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  // The site header used to carry a "Controls" button that appeared only on
+  // this route. The editor no longer renders the header, so the button and the
+  // way back out of the editor both belong to this overlay now.
+  const [controlsOpen, setControlsOpen] = useState(false);
 
   // Zooming the page moves the crosshair away from where the player is aiming.
   useSuppressZoomGestures(true);
@@ -106,11 +114,32 @@ export default function Editor() {
         {!inventoryOpen && <PointerLockControls />}
       </Canvas>
 
+      {/* The bar ignores the pointer so a click meant for the world is not
+          swallowed by empty space; only the buttons themselves take clicks. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-start justify-between gap-2 p-3">
+        <Button asChild variant="secondary" size="sm" className="pointer-events-auto">
+          <Link to="/">
+            <ChevronLeft />
+            Leave
+          </Link>
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          className="pointer-events-auto"
+          onClick={() => setControlsOpen(true)}
+        >
+          <Keyboard />
+          Controls
+        </Button>
+      </div>
+
       <Crosshair />
       <FlightIndicator />
       <Hotbar />
       <SaveToast />
       {inventoryOpen && <Inventory onClose={() => setInventoryOpen(false)} />}
+      {controlsOpen && <GameControlsModal setModalOn={setControlsOpen} />}
     </>
   );
 }
