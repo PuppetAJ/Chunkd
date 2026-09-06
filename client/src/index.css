@@ -286,11 +286,6 @@
    Pages not yet redesigned
    ------------------------------------------------------------------------- */
 
-#dropdown {
-  width: 300px;
-  height: 30px;
-}
-
 #login {
   background-image: url("./assets/darkBG.jpg");
   background-color: #17161a;

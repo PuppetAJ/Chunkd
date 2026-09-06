@@ -35,7 +35,7 @@ const user = {
 
 // ---------------------------------------------------------------- public pages
 await page.goto(BASE, { waitUntil: "networkidle" });
-check("feed renders for signed-out visitors", (await page.locator("text=Explore Recent Builds").count()) > 0);
+check("feed renders for signed-out visitors", (await page.locator("text=Recent builds").count()) > 0);
 check("signed-out header offers Log in", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
 
 await page.goto(`${BASE}/definitely-not-a-page`, { waitUntil: "networkidle" });
@@ -355,8 +355,25 @@ check("posting closes the dialog", (await page.locator('textarea[name="thoughtTe
 await page.goto(BASE, { waitUntil: "networkidle" });
 await page.waitForTimeout(2000);
 check("the new post appears on the feed", (await page.locator("text=End-to-end test build").count()) > 0);
+// Read the rendered text, not the markup: each post carries a <time> element
+// whose datetime attribute is deliberately the raw ISO string, because that is
+// the machine-readable half that assistive technology and search engines use.
+// Editing a post is one of the mutations the API has always had and the UI
+// never offered. The author's own posts carry an actions menu; other people's
+// do not.
+await page.getByRole("button", { name: "Post actions" }).first().click();
+await page.getByRole("menuitem", { name: "Edit post" }).click();
+await page.fill('textarea[aria-label="Edit post text"]', "End-to-end test build, edited");
+await page.getByRole("button", { name: "Save" }).click();
+await page.waitForTimeout(1500);
+check("a post can be edited in place", (await page.locator("text=End-to-end test build, edited").count()) > 0);
+
+await page.reload({ waitUntil: "networkidle" });
+await page.waitForTimeout(1500);
+check("the edit survives a reload", (await page.locator("text=End-to-end test build, edited").count()) > 0);
+
 check("timestamps are formatted rather than raw ISO",
-  !/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(await page.content()));
+  !/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(await page.locator("body").innerText()));
 
 await page.getByRole("link").filter({ hasText: /the discussion/ }).first().click();
 await page.waitForTimeout(4000);

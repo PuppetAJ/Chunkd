@@ -3,7 +3,7 @@ import { Route, Routes } from "react-router";
 import SiteLayout from "./components/SiteLayout.tsx";
 import RequireAuth from "./components/RequireAuth.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
-import Home from "./pages/Home.jsx";
+import Home from "./pages/Home.tsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
 import NoMatch from "./pages/NoMatch.jsx";
