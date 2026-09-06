@@ -473,7 +473,7 @@ Goal: keep the Minecraft/pixel identity, drop the 2022-bootcamp look. Design onc
 - [x] **Polish**: consistent focus rings, reduced-motion support, `prefers-color-scheme` respected (dark is default), page transitions kept subtle, favicon/manifest refreshed with the CHUNK'D logo, meta/OG tags.
 - [x] Accessibility pass: semantic landmarks, labeled buttons (icon-only buttons need `aria-label`), keyboard-navigable menus/dialogs, color contrast ≥ 4.5:1 (the current gray-on-dark text fails).
 
-**Done when:** every page has a before/after screenshot in `docs/`, Lighthouse Accessibility ≥ 95 and Performance ≥ 90 on `/`. Met: screenshots are in `docs/screenshots/`, and Lighthouse against the production build scores Accessibility 100 and Performance 93. `pnpm test:a11y` reports no WCAG 2.1 A or AA violations on any page.
+**Done when:** every page has a before/after screenshot in `docs/`, Lighthouse Accessibility ≥ 95 and Performance ≥ 90 on `/`. Screenshots are in `docs/screenshots/`. Lighthouse against the production build scores Accessibility 100, Best practices 100, SEO 100 and Performance 89. Accessibility clears its bar; performance sits one point under it, because the animated campfire mark was reinstated afterwards and two forty-frame loops cost about four points. `pnpm test:a11y` reports no WCAG 2.1 A or AA violations on any page.
 
 ### Phase 7 — Quality, tests, deployment (1 day)
 

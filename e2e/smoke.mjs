@@ -38,6 +38,24 @@ await page.goto(BASE, { waitUntil: "networkidle" });
 check("feed renders for signed-out visitors", (await page.locator("text=Recent builds").count()) > 0);
 check("signed-out header offers Log in", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
 
+// The campfire mark is two stacked animations that cross-fade: soul fire at
+// rest, ordinary fire on hover. Comparing pixels would race the animation, so
+// this reads the opacities the hover is actually driving.
+const flameOpacity = () =>
+  page.$$eval("header a img", (images) =>
+    images.map((image) => Number(getComputedStyle(image).opacity.slice(0, 4))),
+  );
+const atRest = await flameOpacity();
+check("both campfires are loaded, one of them hidden", atRest.length === 2, JSON.stringify(atRest));
+check("soul fire shows at rest", atRest[0] === 1 && atRest[1] === 0, JSON.stringify(atRest));
+
+await page.locator("header a").first().hover();
+await page.waitForTimeout(500);
+const hovered = await flameOpacity();
+check("hovering the brand swaps to ordinary fire", hovered[0] === 0 && hovered[1] === 1, JSON.stringify(hovered));
+await page.mouse.move(0, 300);
+await page.waitForTimeout(400);
+
 await page.goto(`${BASE}/definitely-not-a-page`, { waitUntil: "networkidle" });
 check("unknown routes show the 404 page", (await page.locator("text=couldn't find that page").count()) > 0);
 

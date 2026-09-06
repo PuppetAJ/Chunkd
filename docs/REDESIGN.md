@@ -40,10 +40,17 @@ Lighthouse against the production build, `client/dist` served statically:
 
 | Category | Score |
 |---|---|
-| Performance | 93 |
+| Performance | 89 |
 | Accessibility | 100 |
 | Best practices | 100 |
 | SEO | 100 |
+
+Performance was 93 before the animated campfire mark came back. Two forty-frame
+WebP loops cost about four points, and that is a deliberate trade: the mark is
+part of the site's character and the alternative was a still image. It is served
+at the size it is drawn (64px in the header, 96px on the auth pages), the hover
+flame is fetched at low priority so it stays off the critical path, and anyone
+who has asked for reduced motion gets a single frame instead.
 
 `pnpm test:a11y` runs axe-core over the feed, profile, login, signup, 404 and
 the editor's pause screen and reports no WCAG 2.1 A or AA violations. It needs
