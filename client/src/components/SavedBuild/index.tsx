@@ -12,6 +12,11 @@ import { WORLD_SIZE } from "../../lib/voxel/terrain.ts";
 
 interface Props {
   buildId: string;
+  /**
+   * Turn the build slowly on its own. Used by the landing page, where the
+   * viewer is something to look at rather than something to operate.
+   */
+  autoRotate?: boolean;
 }
 
 /** Where a build sits in space, and how far away the camera has to stay. */
@@ -73,7 +78,7 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
  * second copy of the block-drawing code to keep in step. It fetches the block
  * data itself, which is why listing builds elsewhere costs nothing.
  */
-export default function SavedBuild({ buildId }: Props) {
+export default function SavedBuild({ buildId, autoRotate = false }: Props) {
   const { loading, error, data } = useQuery(QUERY_BUILD, {
     variables: { id: buildId },
     skip: !buildId,
@@ -129,14 +134,22 @@ export default function SavedBuild({ buildId }: Props) {
         {/* Block textures suspend while loading. Without a boundary here the
             suspension unmounts the Canvas and the viewer stays blank. */}
         <Suspense fallback={null}>
-          <BuildScene world={world.blocks} bounds={bounds} />
+          <BuildScene world={world.blocks} bounds={bounds} autoRotate={autoRotate} />
         </Suspense>
       </Canvas>
     </div>
   );
 }
 
-function BuildScene({ world, bounds }: { world: Map<BlockKey, number>; bounds: Bounds }) {
+function BuildScene({
+  world,
+  bounds,
+  autoRotate,
+}: {
+  world: Map<BlockKey, number>;
+  bounds: Bounds;
+  autoRotate: boolean;
+}) {
   const lightTarget = useMemo(() => new THREE.Object3D(), []);
   const [cx, cy, cz] = bounds.centre;
   const extent = bounds.radius;
@@ -161,7 +174,7 @@ function BuildScene({ world, bounds }: { world: Map<BlockKey, number>; bounds: B
         shadow-camera-top={extent}
         shadow-camera-bottom={-extent}
       />
-      <BuildControls bounds={bounds} />
+      <BuildControls bounds={bounds} autoRotate={autoRotate} />
       <World blocks={world} />
     </>
   );
@@ -180,7 +193,7 @@ function BuildScene({ world, bounds }: { world: Map<BlockKey, number>; bounds: B
  * inverted straight back to rotating, so shift and drag did nothing but turn
  * the model.
  */
-function BuildControls({ bounds }: { bounds: Bounds }) {
+function BuildControls({ bounds, autoRotate }: { bounds: Bounds; autoRotate: boolean }) {
   // ComponentRef asks React what this component's ref holds, which avoids
   // naming three's OrbitControls class here; it lives in a package this app
   // does not depend on directly.
@@ -196,6 +209,9 @@ function BuildControls({ bounds }: { bounds: Bounds }) {
     <OrbitControls
       ref={controls}
       target={bounds.centre}
+      autoRotate={autoRotate}
+      // Slow enough to read as a presentation rather than a spin.
+      autoRotateSpeed={0.4}
       enablePan
       // Panning moves the target across the screen rather than along the ground
       // plane, which is what someone dragging a model expects.

@@ -103,8 +103,12 @@ Run these from the repository root.
 
 ## Usage
 
-There is a demo account on the login and signup pages, so the app can be tried
-without signing up for anything. Everyone shares it, and it cannot change its
+Signed out, the front page explains what the app is and shows builds people
+have made, rather than a feed of posts from strangers. Signing in replaces it
+with the feed.
+
+There is a demo account on the front page and on both auth pages, so the app
+can be tried without signing up for anything. Everyone shares it, and it cannot change its
 own username, email or password, because that would lock the next visitor out.
 Everything else works: build a world, save it, post it, comment on other posts.
 
