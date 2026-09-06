@@ -32,16 +32,24 @@ export default function SavedBuild({ buildId }: Props) {
   if (!buildId) return null;
 
   if (loading) {
-    return <div className="p-4 text-center text-gray-300">Loading build...</div>;
+    return (
+      <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+        Loading build...
+      </div>
+    );
   }
 
   if (error || !payload) {
-    return <div className="p-4 text-center text-gray-400">This build is no longer available.</div>;
+    return (
+      <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+        This build is no longer available.
+      </div>
+    );
   }
 
   if (!world) {
     return (
-      <div className="p-4 text-center text-gray-400">
+      <div className="flex h-full w-full items-center justify-center p-4 text-center text-sm text-muted-foreground">
         This build was saved in an older format and can no longer be opened.
       </div>
     );
@@ -49,10 +57,11 @@ export default function SavedBuild({ buildId }: Props) {
 
   const centre = WORLD_SIZE / 2;
 
+  // The component fills whatever box it is given. It used to carry its own
+  // fixed 50%-of-the-page sizing, which was wrong everywhere it was reused.
   return (
-    <div id="save-container" className="mt-8">
-      <div id="save-wrapper">
-        <Canvas
+    <div className="h-full w-full overflow-hidden rounded-lg border border-border bg-background">
+      <Canvas
           shadows
           dpr={[1, 2]}
           gl={{ antialias: true }}
@@ -63,8 +72,7 @@ export default function SavedBuild({ buildId }: Props) {
           <Suspense fallback={null}>
             <BuildScene world={world.blocks} centre={centre} />
           </Suspense>
-        </Canvas>
-      </div>
+      </Canvas>
     </div>
   );
 }
