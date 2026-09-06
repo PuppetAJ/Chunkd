@@ -76,7 +76,9 @@ export default function Header() {
         <div className="ml-auto flex items-center gap-2">
           {isLoggedIn ? (
             <>
-              <Button asChild size="sm" className="hidden sm:inline-flex">
+              {/* Outline rather than filled: the page itself usually owns the one
+                  filled button on screen, and two competing primaries read as noise. */}
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
                 <Link to="/editor">
                   <Pickaxe />
                   New build

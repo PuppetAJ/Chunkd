@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@apollo/client/react";
 import { useAuthStore } from "../lib/auth.ts";
 import ThoughtList from "../components/ThoughtList";
 import FriendList from "../components/FriendList";
-import PostModal from "../components/PostModal";
+import NewPostDialog from "../components/NewPostDialog/index.tsx";
 import { QUERY_USER, QUERY_ME } from "../utils/queries.ts";
 import { ADD_FRIEND, DELETE_FRIEND } from "../utils/mutations.ts";
 
@@ -111,7 +111,7 @@ const Profile = () => {
               <span className="flex ml-3">Add Post</span>
             </button>
 
-            {modalOn && <PostModal setModalOn={setModalOn} />}
+            <NewPostDialog open={modalOn} onOpenChange={setModalOn} />
           </div>
         )}
 
