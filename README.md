@@ -11,7 +11,7 @@ walk around a generated landscape and place or break blocks, plus a social feed
 where builds get posted and discussed. The server is a GraphQL API over MongoDB
 that stores accounts, posts, comments, follows and saved worlds.
 
-![A saved build shared on a post](./assets/preview.jpg)
+![A saved build, shared on a post and opened in 3D](./assets/preview.webp)
 
 ## Stack
 
