@@ -1,7 +1,6 @@
 import { Suspense, lazy } from "react";
 import { Route, Routes } from "react-router";
-import Header from "./components/Header/index.jsx";
-import Footer from "./components/Footer/index.jsx";
+import SiteLayout from "./components/SiteLayout.tsx";
 import RequireAuth from "./components/RequireAuth.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import Home from "./pages/Home.jsx";
@@ -16,52 +15,57 @@ const Editor = lazy(() => import("./pages/Editor.tsx"));
 const Profile = lazy(() => import("./pages/Profile.jsx"));
 const SingleThought = lazy(() => import("./pages/SingleThought.jsx"));
 
-function RouteFallback() {
-  return <div className="minecraft m-auto p-8 text-center text-gray-300">Loading...</div>;
-}
-
 export default function App() {
   return (
-    <>
-      <Header />
-      <ErrorBoundary>
-        <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/thought/:id" element={<SingleThought />} />
+    <Routes>
+      {/* Everything except the editor is a page inside the site shell. */}
+      <Route element={<SiteLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/thought/:id" element={<SingleThought />} />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/profile/:username"
+          element={
+            <RequireAuth>
+              <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route path="*" element={<NoMatch />} />
+      </Route>
 
-          <Route
-            path="/editor"
-            element={
-              <RequireAuth>
+      {/* The editor owns the whole window: it is pointer-locked, full-bleed and
+          draws its own overlay, so it sits outside the shell rather than
+          fighting a sticky header and a footer for the same pixels. */}
+      <Route
+        path="/editor"
+        element={
+          <RequireAuth>
+            <ErrorBoundary>
+              <Suspense fallback={<EditorLoading />}>
                 <Editor />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <RequireAuth>
-                <Profile />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/profile/:username"
-            element={
-              <RequireAuth>
-                <Profile />
-              </RequireAuth>
-            }
-          />
+              </Suspense>
+            </ErrorBoundary>
+          </RequireAuth>
+        }
+      />
+    </Routes>
+  );
+}
 
-          <Route path="*" element={<NoMatch />} />
-        </Routes>
-        </Suspense>
-      </ErrorBoundary>
-      <Footer />
-    </>
+function EditorLoading() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-background">
+      <p className="font-display text-lg text-muted-foreground">Generating world...</p>
+    </div>
   );
 }

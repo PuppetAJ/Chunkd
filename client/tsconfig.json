@@ -22,6 +22,16 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
+    // shadcn/ui generates components that import each other as "@/components/…".
+    // The alias points that prefix at src/, and vite.config.ts repeats it so the
+    // bundler resolves it the same way TypeScript does. Our own files keep using
+    // relative paths; this exists so generated components work unmodified.
+    // (TypeScript 7 removed baseUrl; "paths" is now resolved relative to this
+    // file, which is what we want anyway.)
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true

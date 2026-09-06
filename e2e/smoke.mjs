@@ -36,7 +36,7 @@ const user = {
 // ---------------------------------------------------------------- public pages
 await page.goto(BASE, { waitUntil: "networkidle" });
 check("feed renders for signed-out visitors", (await page.locator("text=Explore Recent Builds").count()) > 0);
-check("signed-out header offers Login", (await page.getByRole("link", { name: "Login" }).count()) > 0);
+check("signed-out header offers Log in", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
 
 await page.goto(`${BASE}/definitely-not-a-page`, { waitUntil: "networkidle" });
 check("unknown routes show the 404 page", (await page.locator("text=couldn't find that page").count()) > 0);
@@ -109,6 +109,21 @@ check("login succeeds with the right password", page.url() === `${BASE}/`);
 await page.getByRole("link", { name: "Editor" }).first().click();
 await page.waitForURL("**/editor", { timeout: 15000 });
 await page.waitForTimeout(9000);
+
+// The editor is routed outside the site shell so the hotbar is not drawn over
+// the footer and the sticky header does not eat the top of the canvas.
+check("the editor renders no site header", (await page.locator("header").count()) === 0);
+check("the editor renders no site footer", (await page.locator("footer").count()) === 0);
+const editorCanvas = await page.locator("#editor canvas").boundingBox();
+check("the canvas fills the window", editorCanvas !== null && editorCanvas.y === 0, JSON.stringify(editorCanvas));
+check("the editor offers a way back out", (await page.getByRole("link", { name: "Leave" }).count()) > 0);
+
+// The controls used to hang off the site header, which the editor no longer has.
+await page.getByRole("button", { name: "Controls" }).click();
+await page.waitForTimeout(400);
+check("the editor's own Controls button opens the help", (await page.locator("text=Left-Click").count()) > 0);
+await page.getByRole("button", { name: "Back" }).click();
+await page.waitForTimeout(300);
 
 // Pin the world. A fresh editor seeds itself at random, so where the player
 // lands, and therefore whether a given camera angle can legally place a block,
@@ -310,7 +325,12 @@ check("the save confirmation appears", (await page.locator("text=/build saved/i"
 await page.waitForTimeout(2000);
 
 // -------------------------------------------------------------------- profile
-await page.getByRole("link", { name: "My Profile" }).first().click();
+// The editor is outside the site shell now, so there is no header to click.
+// Leaving it is how you get back to the rest of the site.
+await page.getByRole("link", { name: "Leave" }).click();
+await page.waitForURL(`${BASE}/`, { timeout: 15000 });
+check("Leave returns from the editor to the feed", page.url() === `${BASE}/`);
+await page.getByRole("link", { name: "My builds" }).first().click();
 await page.waitForURL("**/profile", { timeout: 15000 });
 await page.waitForTimeout(2500);
 check("profile page loads", (await page.locator("text=Welcome to Your Profile").count()) > 0);
@@ -350,9 +370,11 @@ await page.waitForTimeout(2500);
 check("a comment can be added", (await page.locator("text=Nice work").count()) > 0);
 
 // ---------------------------------------------------------------------- logout
-await page.getByRole("button", { name: "Logout" }).click();
+// Logging out moved into the account menu in the header.
+await page.getByRole("button", { name: "Account menu" }).click();
+await page.getByRole("menuitem", { name: "Log out" }).click();
 await page.waitForTimeout(1500);
-check("logout returns to the signed-out header", (await page.getByRole("link", { name: "Login" }).count()) > 0);
+check("logout returns to the signed-out header", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
 
 await browser.close();
 
