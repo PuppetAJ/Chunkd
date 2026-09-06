@@ -4,8 +4,9 @@
  * A seeded database used to contain posts and no builds at all, so a fresh
  * install showed a feed with nothing to look at. These are real worlds: each
  * one is generated from a seed, has a structure placed in it, and is saved
- * through the same path a player uses, so the thumbnails are genuine captures
- * rather than stock images.
+ * through the same path a player uses. The thumbnails are captured from the
+ * build viewer rather than from inside the game, so they match the studio the
+ * site shows a build in.
  *
  * It has to run in a browser because terrain generation, the save format and
  * the thumbnail capture all live in the client. Start the app first:
@@ -66,7 +67,14 @@ const RECIPES = [
 ];
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+const context = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+// Thumbnails have to be taken in the same scene the site shows a build in.
+await context.addInitScript(() =>
+  localStorage.setItem(
+    "viewer-settings",
+    JSON.stringify({ environment: "studio", grid: true, light: "even" }),
+  ),
+);
 const page = await context.newPage();
 
 const user = "showcase" + Date.now().toString().slice(-6);
@@ -77,6 +85,7 @@ await page.fill("#password", "showcase-password");
 await page.getByRole("button", { name: "Create account" }).click();
 await page.waitForURL(`${BASE}/`, { timeout: 20000 });
 
+// ---------------------------------------------------------------- build them
 await page.goto(`${BASE}/editor`, { waitUntil: "networkidle" });
 await page.getByRole("button", { name: "Click to play" }).click();
 await page.waitForTimeout(600);
@@ -86,48 +95,55 @@ const builds = [];
 for (const recipe of RECIPES) {
   await page.evaluate((s) => window.__world.getState().newWorld(s), recipe.seed);
   await page.waitForTimeout(4500);
-
-  const centre = await page.evaluate(buildInWorld, recipe.key);
+  await page.evaluate(buildInWorld, recipe.key);
   await page.waitForTimeout(2500);
 
-  // A short climb clears the undergrowth without ending up looking straight
-  // down. The structure is already about twenty blocks away, which is what
-  // gives the thumbnail its distance.
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(90);
-  await page.keyboard.press("Space");
-  await page.waitForTimeout(300);
-  await page.keyboard.down("Space");
-  await page.waitForTimeout(2400);
-  await page.keyboard.up("Space");
-  await page.waitForTimeout(700);
-  await page.evaluate(([cx, cy, cz]) => {
-    const c = window.__r3f.camera.position;
-    const dx = cx - c.x, dy = cy - c.y, dz = cz - c.z;
-    window.__r3f.camera.rotation.set(Math.atan2(dy, Math.hypot(dx, dz)), Math.atan2(-dx, -dz), 0, "YXZ");
-  }, centre);
-  await page.waitForTimeout(2000);
-
-  // P captures the view and hands it to the naming dialog, which is where the
-  // thumbnail can be read back. Cancelling leaves the world untouched.
-  await page.keyboard.press("p");
-  await page.waitForTimeout(1500);
-  const thumbnail = await page.getAttribute("[role=dialog] img", "src");
   const data = await page.evaluate(() => window.__world.getState().serialize());
-  await page.getByRole("button", { name: "Cancel" }).click();
-  await page.waitForTimeout(600);
 
-  builds.push({
-    name: recipe.name,
-    caption: recipe.caption,
-    format: 2,
-    data,
-    thumbnail,
-  });
-  console.log(
-    `${recipe.key.padEnd(11)} ${(data.length / 1024).toFixed(1)} kB world, ` +
-      `${(thumbnail.length / 1024).toFixed(0)} kB thumbnail`,
-  );
+  // Saving it for real is what puts it somewhere the viewer can open it.
+  await page.keyboard.press("p");
+  await page.waitForTimeout(1200);
+  await page.fill("#buildName", recipe.name);
+  await page.getByRole("button", { name: "Save build" }).click();
+  await page.waitForTimeout(2500);
+
+  builds.push({ name: recipe.name, caption: recipe.caption, format: 2, data, thumbnail: "" });
+  console.log(`built ${recipe.key.padEnd(11)} ${(data.length / 1024).toFixed(1)} kB`);
+}
+
+// ------------------------------------------------------------- photograph them
+await page.keyboard.press("Escape");
+await page.waitForTimeout(400);
+await page.getByRole("link", { name: "Leave the editor" }).click();
+await page.waitForURL(`${BASE}/`, { timeout: 15000 });
+await page.goto(`${BASE}/profile`, { waitUntil: "networkidle" });
+await page.waitForTimeout(2500);
+
+// The chrome belongs to the page, not to the picture.
+await page.addStyleTag({ content: "[data-viewer-chrome]{display:none !important}" });
+
+for (const build of builds) {
+  const card = page.locator("li").filter({ hasText: build.name }).first();
+  await card.getByRole("button", { name: "Open" }).click();
+  // Long enough for the world to deserialize and every texture to arrive.
+  await page.waitForTimeout(9000);
+
+  // The viewer frames the whole island with room to spare, which leaves the
+  // build small in a thumbnail. Zoom in so it fills the picture.
+  const canvas = page.locator("[role=dialog] canvas").first();
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  for (let i = 0; i < 4; i += 1) {
+    await page.mouse.wheel(0, -120);
+    await page.waitForTimeout(200);
+  }
+  await page.waitForTimeout(1200);
+
+  const shot = await canvas.screenshot({ type: "jpeg", quality: 78 });
+  build.thumbnail = `data:image/jpeg;base64,${shot.toString("base64")}`;
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(800);
+  console.log(`shot  ${build.name.padEnd(18)} ${(build.thumbnail.length / 1024).toFixed(0)} kB`);
 }
 
 await browser.close();

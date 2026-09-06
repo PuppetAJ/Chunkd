@@ -160,6 +160,14 @@ Logs and hay bales have a grain and are placed along the face you build against.
 A log put on top of something stands upright, and one put against a wall lies
 down.
 
+### The build viewer
+
+A saved build opens in a dark studio on a floor grid, which is what the rest of
+the site looks like. The settings button in the corner switches it to the
+daylight sky the world was built under, turns the grid off, and changes the
+lighting. The choice is remembered in the browser and applies everywhere a
+build is shown.
+
 ## How builds are saved
 
 A saved build stores the world seed and the blocks you changed, not the world

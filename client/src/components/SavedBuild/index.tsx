@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
-import { Grid, OrbitControls, Preload } from "@react-three/drei";
+import { Grid, OrbitControls, Preload, Sky } from "@react-three/drei";
 import { useQuery } from "@apollo/client/react";
 
 import World from "../World/index.tsx";
@@ -9,6 +9,12 @@ import { QUERY_BUILD } from "../../utils/queries.ts";
 import { deserializeWorld } from "../../lib/voxel/format.ts";
 import { fromKey, type BlockKey } from "../../lib/voxel/coords.ts";
 import { WORLD_SIZE } from "../../lib/voxel/terrain.ts";
+import {
+  LIGHTING,
+  LIGHT_SCALE,
+  useViewerSettings,
+} from "../../lib/viewerSettingsStore.ts";
+import ViewerSettingsMenu from "./ViewerSettingsMenu.tsx";
 
 interface Props {
   buildId: string;
@@ -87,6 +93,12 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
  * data itself, which is why listing builds elsewhere costs nothing.
  */
 export default function SavedBuild({ buildId, autoRotate = false, showName = true }: Props) {
+  // The chrome sits on the canvas, so its colours have to follow whatever the
+  // canvas is showing. Light text vanished against the daylight sky.
+  const environment = useViewerSettings((state) => state.environment);
+  const onLightSky = environment === "daylight";
+  const labelClass = onLightSky ? "text-neutral-700" : "text-muted-foreground";
+  const titleClass = onLightSky ? "text-neutral-900" : "text-foreground/90";
   const { loading, error, data } = useQuery(QUERY_BUILD, {
     variables: { id: buildId },
     skip: !buildId,
@@ -150,18 +162,30 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
       {/* Chrome drawn over the canvas rather than under it, so the viewer reads
           as a piece of the page instead of an embedded object. It never takes
           the pointer, because every gesture here belongs to the controls. */}
-      <div className="pointer-events-none absolute inset-0 p-3 sm:p-4">
+      <div
+        // Named so the thumbnail generator can hide it, and so a test can find
+        // it without matching on class names.
+        data-viewer-chrome
+        className="pointer-events-none absolute inset-0 p-3 sm:p-4"
+      >
         {showName && build?.name && (
           <div>
-            <p className="font-mono text-[0.625rem] tracking-[0.2em] text-muted-foreground uppercase">
+            <p className={`font-mono text-[0.625rem] tracking-[0.2em] uppercase ${labelClass}`}>
               Saved build
             </p>
-            <p className="mt-0.5 font-display text-lg text-foreground/90">{build.name}</p>
+            <p className={`mt-0.5 font-display text-lg ${titleClass}`}>{build.name}</p>
           </div>
         )}
-        <p className="absolute right-3 bottom-3 font-mono text-[0.625rem] tracking-[0.15em] text-muted-foreground uppercase sm:right-4 sm:bottom-4">
+        <p
+          className={`absolute right-3 bottom-3 font-mono text-[0.625rem] tracking-[0.15em] uppercase sm:right-4 sm:bottom-4 ${labelClass}`}
+        >
           Drag to orbit &middot; shift drag to pan &middot; scroll to zoom
         </p>
+
+        {/* The only thing in the overlay that takes a click. */}
+        <div className="pointer-events-auto absolute top-3 right-3 sm:top-4 sm:right-4">
+          <ViewerSettingsMenu onLightSky={onLightSky} />
+        </div>
       </div>
     </div>
   );
@@ -180,36 +204,55 @@ function BuildScene({
   const [cx, cy, cz] = bounds.centre;
   const extent = bounds.radius;
 
+  const environment = useViewerSettings((state) => state.environment);
+  const showGrid = useViewerSettings((state) => state.grid);
+  const light = useViewerSettings((state) => state.light);
+
+  const studio = environment === "studio";
+  const scale = LIGHT_SCALE[light];
+  const { ambient, key, fill } = LIGHTING[environment];
+
   return (
     <>
       <Preload all />
-      {/* A dark studio rather than a sky. The bright sky was the one element on
-          the page fighting the rest of the interface, and a build reads better
-          as an object on a floor than as a piece of landscape in daylight. */}
-      <color attach="background" args={["#0d0c10"]} />
-      <Grid
-        // Sits just under the lowest block, so a build stands on the floor
-        // rather than hovering over it or sinking into it.
-        position={[cx, bounds.minY, cz]}
-        infiniteGrid
-        cellSize={1}
-        cellThickness={0.5}
-        cellColor="#26252c"
-        sectionSize={8}
-        sectionThickness={1}
-        sectionColor="#413f4d"
-        fadeDistance={extent * 10}
-        fadeStrength={1.5}
-      />
-      {/* Blocks carry their own face shading; the sun adds the cast shadows.
-          Ambient is higher than the editor's because there is no sky bouncing
-          light back, so without it the shaded faces went to near black. */}
-      <ambientLight intensity={2.1} />
+
+      {studio ? (
+        <>
+          {/* A dark room rather than a sky. The bright sky was the one element
+              on the page fighting the rest of the interface, and a build reads
+              better as an object on a floor than as landscape in daylight. */}
+          <color attach="background" args={["#0d0c10"]} />
+          {showGrid && (
+            <Grid
+              // Just under the lowest block, so a build stands on the floor
+              // rather than hovering over it or sinking into it.
+              position={[cx, bounds.minY, cz]}
+              infiniteGrid
+              cellSize={1}
+              cellThickness={0.5}
+              cellColor="#26252c"
+              sectionSize={8}
+              sectionThickness={1}
+              sectionColor="#413f4d"
+              fadeDistance={extent * 10}
+              fadeStrength={1.5}
+            />
+          )}
+        </>
+      ) : (
+        <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
+      )}
+
+      {/* Blocks carry their own face shading in the cube's vertex colours. The
+          key light is layered on top of that for cast shadows, and in the
+          studio a dim fill from the opposite side keeps the unlit faces from
+          going flat black. */}
+      <ambientLight intensity={ambient * scale} />
       <primitive object={lightTarget} position={[cx, cy, cz]} />
       <directionalLight
         castShadow
         target={lightTarget}
-        intensity={1.5}
+        intensity={key * scale}
         position={[cx + extent, cy + extent * 1.6, cz + extent * 0.7]}
         shadow-mapSize={[2048, 2048]}
         shadow-camera-near={1}
@@ -219,6 +262,17 @@ function BuildScene({
         shadow-camera-top={extent}
         shadow-camera-bottom={-extent}
       />
+      {fill > 0 && (
+        <directionalLight
+          target={lightTarget}
+          intensity={fill * scale}
+          // Cool, and from behind and below, which is what a dark room does to
+          // the side of an object the key light never reaches.
+          color="#9fb6ff"
+          position={[cx - extent * 1.2, cy - extent * 0.2, cz - extent]}
+        />
+      )}
+
       <BuildControls bounds={bounds} autoRotate={autoRotate} />
       <World blocks={world} />
     </>

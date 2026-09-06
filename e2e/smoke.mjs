@@ -657,6 +657,30 @@ check(
   (await page.locator('a[href^="/thought/"] img').count()) > 0,
 );
 
+// ------------------------------------------------------------ viewer settings
+// The viewer carries its own scene controls, and the choice is a preference
+// rather than a property of one build, so it has to survive a reload.
+const firstBuildLink = await page.locator('a[href^="/thought/"]').first().getAttribute("href");
+await page.goto(BASE + firstBuildLink, { waitUntil: "networkidle" });
+await page.waitForTimeout(6000);
+check("the viewer offers its own settings", (await page.getByRole("button", { name: "Viewer settings" }).count()) > 0);
+check("the viewer names the build it is showing", (await page.locator("[data-viewer-chrome]").count()) > 0);
+
+await page.getByRole("button", { name: "Viewer settings" }).click();
+await page.waitForTimeout(400);
+check("the settings offer a daylight scene", (await page.getByRole("menuitemradio", { name: "Daylight" }).count()) > 0);
+await page.getByRole("menuitemradio", { name: "Daylight" }).click();
+await page.waitForTimeout(800);
+const savedScene = await page.evaluate(() => localStorage.getItem("viewer-settings"));
+check("choosing a scene is remembered", /daylight/.test(savedScene ?? ""), String(savedScene));
+
+await page.reload({ waitUntil: "networkidle" });
+await page.waitForTimeout(5000);
+const afterReload = await page.evaluate(() => localStorage.getItem("viewer-settings"));
+check("the scene survives a reload", /daylight/.test(afterReload ?? ""), String(afterReload));
+// Back to the default, so nothing later in the run inherits it.
+await page.evaluate(() => localStorage.removeItem("viewer-settings"));
+
 // ------------------------------------------------------------- the demo account
 // The point of the demo button is that someone can look round without signing
 // up, so these run on from the signed-out state above.
