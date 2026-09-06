@@ -171,10 +171,14 @@ function BuildScene({ world, bounds }: { world: Map<BlockKey, number>; bounds: B
  * Orbit, zoom and pan, with the camera kept outside the build.
  *
  * `minDistance` is the sphere that contains every block, so zooming stops just
- * before the near plane would cross into solid ground. Panning is bound to
- * shift and drag: three's OrbitControls has no modifier mapping of its own, so
- * the left button is re-pointed at panning while shift is down and put back
- * when it is released.
+ * before the near plane would cross into solid ground.
+ *
+ * Panning needs no code of its own. three's OrbitControls already pans when
+ * shift is held and the left button is bound to rotating: it inverts whatever
+ * the button is bound to while a modifier is down. An earlier version of this
+ * component rebound the left button to panning on shift, which three then
+ * inverted straight back to rotating, so shift and drag did nothing but turn
+ * the model.
  */
 function BuildControls({ bounds }: { bounds: Bounds }) {
   // ComponentRef asks React what this component's ref holds, which avoids
@@ -182,29 +186,10 @@ function BuildControls({ bounds }: { bounds: Bounds }) {
   // does not depend on directly.
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
 
+  // The controls are otherwise unreachable from outside the canvas, and a test
+  // needs them to tell a pan from a rotate.
   useEffect(() => {
-    const setLeftButton = (mode: number) => {
-      const instance = controls.current;
-      if (instance) instance.mouseButtons.LEFT = mode;
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Shift") setLeftButton(THREE.MOUSE.PAN);
-    };
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (event.key === "Shift") setLeftButton(THREE.MOUSE.ROTATE);
-    };
-    // Alt-tabbing away with shift held would otherwise leave it stuck on pan.
-    const reset = () => setLeftButton(THREE.MOUSE.ROTATE);
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("blur", reset);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("blur", reset);
-    };
+    if (import.meta.env.DEV) window.__viewer = controls.current ?? undefined;
   }, []);
 
   return (

@@ -458,6 +458,33 @@ const commentOrder = await page.evaluate(() => {
 check("the comment box sits above the comments", commentOrder !== "list first", commentOrder);
 check("the attached build renders in a canvas", (await page.locator("canvas").count()) > 0);
 
+// Rotating leaves the orbit target alone; panning moves it. That is the only
+// way to tell the two apart from outside the canvas, and telling them apart is
+// the point: shift and drag used to rotate, because rebinding the mouse button
+// cancelled out three's own built-in shift handling.
+const orbitTarget = () => page.evaluate(() => window.__viewer?.target?.toArray() ?? null);
+const dragBy = async (shift) => {
+  const box = await page.locator("canvas").first().boundingBox();
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  const before = await orbitTarget();
+  if (shift) await page.keyboard.down("Shift");
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 180, y + 50, { steps: 20 });
+  await page.mouse.up();
+  if (shift) await page.keyboard.up("Shift");
+  await page.waitForTimeout(600);
+  const after = await orbitTarget();
+  if (!before || !after) return null;
+  return Math.hypot(after[0] - before[0], after[1] - before[1], after[2] - before[2]);
+};
+
+const rotated = await dragBy(false);
+check("dragging orbits the build without moving the target", rotated === 0, `${rotated}`);
+const panned = await dragBy(true);
+check("shift and drag pans the build", panned !== null && panned > 0.5, `${panned}`);
+
 // ------------------------------------------------------------------ commenting
 await page.fill('textarea[aria-label="Write a comment"]', "Nice work");
 await page.getByRole("button", { name: "Comment" }).click();
