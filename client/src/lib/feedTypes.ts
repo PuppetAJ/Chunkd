@@ -11,7 +11,8 @@
  * the server might omit at random.
  */
 
-export interface FriendSummary {
+/** Enough of a user to link to them and draw their avatar. */
+export interface UserSummary {
   _id: string;
   username: string;
 }

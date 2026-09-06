@@ -175,6 +175,13 @@ the rest of the site.
   bottom. A profile's own posts and builds are still fetched all at once,
   nested inside the profile query; that only matters for someone with hundreds
   of either.
+- Friends were replaced by following. The `friends` array was always one-way —
+  adding someone wrote to your document and nobody else's — so it was renamed
+  to `following` and given the reverse view it was missing. Followers are a
+  query rather than a stored list: everyone whose `following` holds you, which
+  is what the index on that field is for. `pnpm --filter server
+  migrate:following` renames the field on existing documents and is safe to run
+  more than once.
 - Comments are a flat list. The Reaction subdocument has an author and a body
   but no parent, so there is no way to reply to a particular person. Adding one
   `replyTo` field to that subdocument would be enough to thread them.

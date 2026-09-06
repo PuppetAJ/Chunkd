@@ -4,16 +4,16 @@ import { Loader2, Plus } from "lucide-react";
 
 import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries.ts";
 import { useAuthStore } from "../lib/auth.ts";
-import { FEED_PAGE_SIZE, type FriendSummary, type Thought } from "../lib/feedTypes.ts";
-import FriendList from "../components/FriendList/index.tsx";
+import { FEED_PAGE_SIZE, type UserSummary, type Thought } from "../lib/feedTypes.ts";
+import FollowList from "../components/FollowList/index.tsx";
 import ThoughtList from "../components/ThoughtList/index.tsx";
 import NewPostDialog from "../components/NewPostDialog/index.tsx";
 import { Button } from "../components/ui/button.tsx";
 
 interface MeBasic {
   username: string;
-  friendCount: number;
-  friends: FriendSummary[];
+  followingCount: number;
+  following: UserSummary[];
 }
 
 export default function Home() {
@@ -107,10 +107,10 @@ export default function Home() {
           below the feed rather than squeezing it. */}
       {loggedIn && me && (
         <aside className="lg:sticky lg:top-20 lg:self-start">
-          <FriendList
+          <FollowList
             username={me.username}
-            friendCount={me.friendCount}
-            friends={me.friends ?? []}
+            count={me.followingCount}
+            people={me.following ?? []}
           />
         </aside>
       )}

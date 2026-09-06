@@ -92,9 +92,21 @@ export const resolvers = {
   // feed does not drag down every friend and build of every author.
 
   User: {
-    friendCount: (parent: UserDocument) => parent.friends.length,
+    followingCount: (parent: UserDocument) => parent.following.length,
 
-    friends: async (parent: UserDocument) => User.find({ _id: { $in: parent.friends } }),
+    // Followers are not stored. They are everyone whose `following` list holds
+    // this user, which is what the index on that field is for.
+    //
+    // `.exec()` inside an async resolver matters: without it the resolver hands
+    // GraphQL a Mongoose Query, which is thenable, and a Query refuses to run
+    // twice. Awaiting it here runs it exactly once and returns a plain number.
+    followerCount: async (parent: UserDocument) =>
+      User.countDocuments({ following: parent._id }).exec(),
+
+    following: async (parent: UserDocument) =>
+      User.find({ _id: { $in: parent.following } }).exec(),
+
+    followers: async (parent: UserDocument) => User.find({ following: parent._id }).exec(),
 
     thoughts: async (parent: UserDocument) =>
       Thought.find({ author: parent._id }).sort({ createdAt: -1 }),
@@ -345,24 +357,22 @@ export const resolvers = {
       return { token: signToken(user), user };
     },
 
-    addFriend: async (
-      _parent: unknown,
-      args: { friendId: string },
-      context: GraphQLContext,
-    ) => {
+    follow: async (_parent: unknown, args: { userId: string }, context: GraphQLContext) => {
       const auth = requireAuth(context);
-      const friendId = toObjectId(args.friendId, "Friend id");
+      const userId = toObjectId(args.userId, "User id");
 
-      if (friendId.toString() === auth._id) {
-        throw badRequest("You cannot add yourself as a friend.");
+      if (userId.toString() === auth._id) {
+        throw badRequest("You cannot follow yourself.");
       }
 
-      const friendExists = await User.exists({ _id: friendId });
-      if (!friendExists) throw notFound("That user no longer exists.");
+      const exists = await User.exists({ _id: userId });
+      if (!exists) throw notFound("That user no longer exists.");
 
+      // $addToSet rather than $push, so following twice is not an error and
+      // does not put them in the list twice.
       const user = await User.findByIdAndUpdate(
         auth._id,
-        { $addToSet: { friends: friendId } },
+        { $addToSet: { following: userId } },
         { new: true },
       );
       if (!user) throw notFound("Your account no longer exists.");
@@ -370,15 +380,11 @@ export const resolvers = {
     },
 
     // This existed only as a commented-out block in the original resolvers.
-    deleteFriend: async (
-      _parent: unknown,
-      args: { friendId: string },
-      context: GraphQLContext,
-    ) => {
+    unfollow: async (_parent: unknown, args: { userId: string }, context: GraphQLContext) => {
       const auth = requireAuth(context);
       const user = await User.findByIdAndUpdate(
         auth._id,
-        { $pull: { friends: toObjectId(args.friendId, "Friend id") } },
+        { $pull: { following: toObjectId(args.userId, "User id") } },
         { new: true },
       );
       if (!user) throw notFound("Your account no longer exists.");

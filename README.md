@@ -84,6 +84,7 @@ Run these from the repository root.
 | `pnpm build` | Builds the client for production |
 | `pnpm start` | Runs the API, serving the built client in production mode |
 | `pnpm seed` | Resets the database to example content |
+| `pnpm --filter server migrate:following` | One-off: renames the old `friends` field to `following` |
 | `pnpm typecheck` | Type-checks both packages |
 | `pnpm test:e2e` | Drives a real browser through every route (needs `pnpm dev` running) |
 | `pnpm test:a11y` | Runs axe-core over every page and fails on any WCAG 2.1 A or AA violation (needs `pnpm dev` running) |

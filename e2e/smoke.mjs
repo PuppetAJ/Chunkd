@@ -516,9 +516,9 @@ if (firstPage === 10) {
   check("scrolling to the bottom loads more posts", secondPage > firstPage, `${firstPage} then ${secondPage}`);
 }
 
-// ------------------------------------------------------------------- friends
-// Someone else's profile. addFriend is immediate rather than a request, so the
-// button flips to "Remove friend" and a toast says what happened.
+// ----------------------------------------------------------------- following
+// Someone else's profile. Following is one-way and immediate, so the button
+// flips to "Unfollow" and a toast says what happened.
 const otherAuthor = await page
   .locator("article a[href^='/profile/']")
   .filter({ hasNotText: user.username })
@@ -528,16 +528,29 @@ const otherAuthor = await page
 if (otherAuthor && !otherAuthor.endsWith(user.username)) {
   await page.goto(BASE + otherAuthor, { waitUntil: "networkidle" });
   await page.waitForTimeout(2000);
-  check("someone else's profile offers Add friend", (await page.getByRole("button", { name: "Add friend" }).count()) > 0);
+  check("someone else's profile offers Follow", (await page.getByRole("button", { name: "Follow" }).count()) > 0);
 
-  await page.getByRole("button", { name: "Add friend" }).click();
-  await page.waitForTimeout(2000);
-  check("adding a friend is confirmed on screen", (await page.locator("text=/to your friends/").count()) > 0);
-  check("the button flips to Remove friend", (await page.getByRole("button", { name: "Remove friend" }).count()) > 0);
+  await page.getByRole("button", { name: "Follow" }).click();
+  await page.waitForTimeout(2500);
+  check("following is confirmed on screen", (await page.locator("text=/now following/").count()) > 0);
+  check("the button flips to Unfollow", (await page.getByRole("button", { name: "Unfollow" }).count()) > 0);
 
   await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(2500);
+  check("the follow survives a reload", (await page.getByRole("button", { name: "Unfollow" }).count()) > 0);
+
+  // Following is one-way: they are in your Following tab, and you are in their
+  // Followers tab, with nothing having been accepted by anyone.
+  await page.getByRole("tab", { name: "Followers" }).click();
+  await page.waitForTimeout(600);
+  check("the person you followed lists you as a follower", (await page.locator(`text=${user.username}`).count()) > 0);
+
+  await page.goto(`${BASE}/profile`, { waitUntil: "networkidle" });
   await page.waitForTimeout(2000);
-  check("the friendship survives a reload", (await page.getByRole("button", { name: "Remove friend" }).count()) > 0);
+  await page.getByRole("tab", { name: "Following", exact: true }).click();
+  await page.waitForTimeout(600);
+  const followedName = otherAuthor.replace("/profile/", "");
+  check("they appear in your Following tab", (await page.locator(`text=${followedName}`).count()) > 0);
 }
 
 // ------------------------------------------------------------------ settings
