@@ -14,6 +14,7 @@ import NoMatch from "./pages/NoMatch.tsx";
 const Editor = lazy(() => import("./pages/Editor.tsx"));
 const Profile = lazy(() => import("./pages/Profile.tsx"));
 const SingleThought = lazy(() => import("./pages/SingleThought.tsx"));
+const Settings = lazy(() => import("./pages/Settings.tsx"));
 
 export default function App() {
   return (
@@ -37,6 +38,14 @@ export default function App() {
           element={
             <RequireAuth>
               <Profile />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <RequireAuth>
+              <Settings />
             </RequireAuth>
           }
         />

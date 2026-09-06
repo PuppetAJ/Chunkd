@@ -110,7 +110,9 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
           <div className="h-[60vh] min-h-64">
             {openBuild && <SavedBuild buildId={openBuild._id} />}
           </div>
-          <p className="text-xs text-muted-foreground">Drag to orbit, scroll to zoom.</p>
+          <p className="text-xs text-muted-foreground">
+            Drag to orbit &middot; shift and drag to pan &middot; scroll to zoom
+          </p>
         </DialogContent>
       </Dialog>
 

@@ -5,7 +5,7 @@ import * as THREE from "three";
 import Axe from "../Axe/index.jsx";
 import { useHeldKeys, useKeyPress } from "../../lib/useKeyboard.ts";
 import { HOTBAR_SLOTS, useWorldStore } from "../../lib/voxel/worldStore.ts";
-import { useEditorUiStore } from "../../lib/editorUiStore.ts";
+import { isEditorPaused, useEditorUiStore } from "../../lib/editorUiStore.ts";
 import { EYE_HEIGHT, type Body } from "../../lib/voxel/collision.ts";
 import {
   createMotionState,
@@ -57,6 +57,7 @@ export default function Player({ body }: Props) {
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   useKeyPress((code) => {
+    if (isEditorPaused()) return;
     // Digit1 to Digit9 choose a hotbar slot.
     if (code.startsWith("Digit")) {
       const slot = Number(code.slice(5));
@@ -75,6 +76,7 @@ export default function Player({ body }: Props) {
       // A wheel event carrying ctrl is a pinch, not a scroll. It is refused
       // elsewhere; here it just must not also move along the hotbar.
       if (event.ctrlKey) return;
+      if (isEditorPaused()) return;
 
       // Changing direction starts again, so leftover distance from a scroll one
       // way cannot make the first step back happen early.
@@ -92,6 +94,23 @@ export default function Player({ body }: Props) {
   }, [cycleSelectedSlot]);
 
   useFrame((state, delta) => {
+    // While paused nothing about the player changes: no walking, no falling, no
+    // drifting to a stop. The camera is still placed each frame so the view
+    // behind the dialog stays exactly where it was.
+    if (isEditorPaused()) {
+      // Keys released while the dialog had focus never reached the world, so
+      // clearing them here stops the player walking off the moment play
+      // resumes.
+      held.current.clear();
+      // Movement has no inertia: speed is derived from the held keys every
+      // frame, so an empty key set is a standing player. Vertical speed is left
+      // alone on purpose, so pausing mid-fall resumes the fall rather than
+      // cancelling it.
+      motion.jumpHeld = false;
+      camera.position.set(body.x, body.y + EYE_HEIGHT, body.z);
+      return;
+    }
+
     const keys = held.current;
     const pressed = (codes: string[]) => codes.some((code) => keys.has(code));
 

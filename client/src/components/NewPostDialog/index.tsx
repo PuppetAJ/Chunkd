@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 
 import { ADD_THOUGHT } from "../../utils/mutations.ts";
 import { QUERY_THOUGHTS, QUERY_ME } from "../../utils/queries.ts";
+import { FEED_PAGE_SIZE } from "../../lib/feedTypes.ts";
 import { requestErrorMessage } from "../../lib/credentials.ts";
 import type { BuildSummary } from "../../lib/feedTypes.ts";
 import { Button } from "../ui/button.tsx";
@@ -42,37 +43,14 @@ export default function NewPostDialog({ open, onOpenChange }: Props) {
   const { loading, data } = useQuery(QUERY_ME);
   const builds: BuildSummary[] = (data as { me?: { builds?: BuildSummary[] } })?.me?.builds ?? [];
 
+  // The feed is paged and the profile's list is nested inside another query,
+  // so a new post is easier to get right by asking for both again than by
+  // splicing it into two different cache shapes by hand.
   const [addThought, { loading: submitting }] = useMutation(ADD_THOUGHT, {
-    update(cache, { data: mutationData }) {
-      const created = (mutationData as { addThought?: unknown })?.addThought;
-      if (!created) return;
-
-      // Both of these can legitimately miss: the cache only holds a query once
-      // something has actually run it. A miss is not an error.
-      try {
-        const existing = cache.readQuery({ query: QUERY_ME }) as { me?: { thoughts: unknown[] } };
-        if (existing?.me) {
-          cache.writeQuery({
-            query: QUERY_ME,
-            data: { me: { ...existing.me, thoughts: [created, ...existing.me.thoughts] } },
-          });
-        }
-      } catch {
-        // No cached profile yet.
-      }
-
-      try {
-        const existing = cache.readQuery({ query: QUERY_THOUGHTS }) as { thoughts?: unknown[] };
-        if (existing?.thoughts) {
-          cache.writeQuery({
-            query: QUERY_THOUGHTS,
-            data: { thoughts: [created, ...existing.thoughts] },
-          });
-        }
-      } catch {
-        // No cached feed yet.
-      }
-    },
+    refetchQueries: [
+      { query: QUERY_THOUGHTS, variables: { limit: FEED_PAGE_SIZE, offset: 0 } },
+      { query: QUERY_ME },
+    ],
   });
 
   const close = () => {

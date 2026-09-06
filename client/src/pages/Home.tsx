@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@apollo/client/react";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 
 import { QUERY_THOUGHTS, QUERY_ME_BASIC } from "../utils/queries.ts";
 import { useAuthStore } from "../lib/auth.ts";
-import type { FriendSummary, Thought } from "../lib/feedTypes.ts";
+import { FEED_PAGE_SIZE, type FriendSummary, type Thought } from "../lib/feedTypes.ts";
 import FriendList from "../components/FriendList/index.tsx";
 import ThoughtList from "../components/ThoughtList/index.tsx";
 import NewPostDialog from "../components/NewPostDialog/index.tsx";
@@ -20,12 +20,44 @@ export default function Home() {
   const loggedIn = useAuthStore((state) => state.isLoggedIn);
   const [posting, setPosting] = useState(false);
 
-  const { loading, data } = useQuery(QUERY_THOUGHTS);
+  const { loading, data, fetchMore } = useQuery(QUERY_THOUGHTS, {
+    variables: { limit: FEED_PAGE_SIZE, offset: 0 },
+  });
   // Asking who "me" is only makes sense with a token to ask on behalf of.
   const { data: userData } = useQuery(QUERY_ME_BASIC, { skip: !loggedIn });
 
   const thoughts: Thought[] = (data as { thoughts?: Thought[] } | undefined)?.thoughts ?? [];
   const me = (userData as { me?: MeBasic } | undefined)?.me ?? null;
+
+  // A short page that comes back means there is nothing after it, so the feed
+  // stops asking. Without this the sentinel would fire forever at the bottom.
+  const [reachedEnd, setReachedEnd] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const target = sentinel.current;
+    if (!target || reachedEnd || loading) return;
+
+    const observer = new IntersectionObserver(async (entries) => {
+      if (!entries[0]?.isIntersecting) return;
+      if (loadingMore) return;
+
+      setLoadingMore(true);
+      try {
+        const result = await fetchMore({
+          variables: { limit: FEED_PAGE_SIZE, offset: thoughts.length },
+        });
+        const page = (result.data as { thoughts?: Thought[] } | undefined)?.thoughts ?? [];
+        if (page.length < FEED_PAGE_SIZE) setReachedEnd(true);
+      } finally {
+        setLoadingMore(false);
+      }
+    });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [fetchMore, loading, loadingMore, reachedEnd, thoughts.length]);
 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
@@ -47,7 +79,7 @@ export default function Home() {
 
         <ThoughtList
           thoughts={thoughts}
-          loading={loading}
+          loading={loading && thoughts.length === 0}
           emptyTitle="The feed is empty"
           emptyBody={
             loggedIn
@@ -55,6 +87,20 @@ export default function Home() {
               : "Sign up to start building and posting."
           }
         />
+
+        {/* Watched by the observer above: scrolling it into view loads the next
+            page. It keeps a little height so it can be intersected at all. */}
+        {thoughts.length > 0 && !reachedEnd && (
+          <div ref={sentinel} className="flex justify-center py-8">
+            {loadingMore && <Loader2 className="size-5 animate-spin text-muted-foreground" />}
+          </div>
+        )}
+
+        {reachedEnd && thoughts.length > 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            That is the whole feed.
+          </p>
+        )}
       </div>
 
       {/* The sidebar is only useful signed in, and on a narrow screen it drops

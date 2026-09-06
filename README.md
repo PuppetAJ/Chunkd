@@ -136,6 +136,7 @@ why `.node-version` matters: it must stay at 22.18 or newer.
 | 1 to 9 | Choose a hotbar slot |
 | Scroll wheel | Move along the hotbar, wrapping at both ends |
 | E | Open the block inventory |
+| Shift and drag | Pan, when looking at a saved build |
 | P | Name and save the current world |
 | Esc | Release the mouse and pause |
 
@@ -199,12 +200,19 @@ shadcn/ui, and has before-and-after screenshots of each page.
 
 ## Credits
 
-Originally built by Adrian Jimenez, Alexander Havers, Caleb Funderburk,
-Austin Reed and Dane Cronin.
+Built and maintained by Adrian Jimenez. The 2026 rebuild — the voxel editor and
+its renderer, the save format, the GraphQL API and the interface — is his work.
 
-Block textures come from the Minecraft Sphax PureBDCraft
-[texture pack](https://bdcraft.net/downloads/purebdcraft-minecraft/). The
-starting point for the 3D editor was [this sandbox](https://codesandbox.io/s/vkgi6).
+The original 2022 version was a team project with Alexander Havers, Caleb
+Funderburk, Austin Reed and Dane Cronin. None of that interface remains.
+
+Block textures are [Faithful 32x](https://faithfulpack.net/faithful32x), used
+under the [Faithful licence](https://faithfulpack.net/license), with the exact
+files and any edits listed in
+[client/src/assets/textures/CREDITS.md](client/src/assets/textures/CREDITS.md).
+The 3D editor started from [this sandbox](https://codesandbox.io/s/vkgi6).
+
+Not an official Minecraft product. Not approved by or associated with Mojang.
 
 ## License
 

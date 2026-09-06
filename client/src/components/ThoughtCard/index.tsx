@@ -36,6 +36,8 @@ interface Props {
   showAuthor?: boolean;
   /** The post's own page has the comments below it, so the link is pointless there. */
   showCommentsLink?: boolean;
+  /** The post's own page shows the build in 3D above this, so the still is noise there. */
+  showBuild?: boolean;
   /** Lets the post's own page navigate away once the post is gone. */
   onDeleted?: () => void;
 }
@@ -51,6 +53,7 @@ export default function ThoughtCard({
   thought,
   showAuthor = true,
   showCommentsLink = true,
+  showBuild = true,
   onDeleted,
 }: Props) {
   const me = useAuthStore((state) => state.user?.username ?? "");
@@ -80,10 +83,26 @@ export default function ThoughtCard({
   };
 
   return (
-    <article className="rounded-xl border border-border bg-card transition-colors hover:border-border/80">
+    <article className="relative rounded-xl border border-border bg-card transition-colors hover:border-border/80">
+      {/* The whole card opens the post. It is a link stretched over the card
+          rather than a wrapper, because the card already contains links and one
+          cannot be nested inside another. Everything else here is given its own
+          stacking position so it stays clickable on top of this. */}
+      {showCommentsLink && !editing && (
+        <Link
+          to={`/thought/${thought._id}`}
+          className="absolute inset-0 rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          // Only the genuinely interactive children are given a position of
+          // their own, so they sit above this. The post text is not one of
+          // them: clicking it should open the post like the rest of the card.
+        >
+          <span className="sr-only">Open this post</span>
+        </Link>
+      )}
+
       <header className="flex items-center gap-3 px-4 pt-4">
         {showAuthor ? (
-          <Link to={`/profile/${author}`} className="flex items-center gap-2.5 group">
+          <Link to={`/profile/${author}`} className="group relative flex items-center gap-2.5">
             <UserAvatar username={author} size="sm" />
             <span className="text-sm font-medium group-hover:underline">{author}</span>
           </Link>
@@ -97,7 +116,7 @@ export default function ThoughtCard({
         {isMine && !editing && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="ml-auto" aria-label="Post actions">
+              <Button variant="ghost" size="icon-sm" className="relative ml-auto" aria-label="Post actions">
                 <MoreHorizontal />
               </Button>
             </DropdownMenuTrigger>
@@ -149,10 +168,10 @@ export default function ThoughtCard({
           </p>
         )}
 
-        {thought.build && !editing && (
+        {thought.build && showBuild && !editing && (
           <Link
             to={`/thought/${thought._id}`}
-            className="mt-3 block overflow-hidden rounded-lg border border-border transition-colors hover:border-primary/50"
+            className="relative mt-3 block overflow-hidden rounded-lg border border-border transition-colors hover:border-primary/50"
           >
             {thought.build.thumbnail && (
               <img src={thought.build.thumbnail} alt="" className="aspect-video w-full object-cover" />
@@ -167,7 +186,7 @@ export default function ThoughtCard({
 
       {showCommentsLink && (
       <footer className="border-t border-border px-2 py-1.5">
-        <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
+        <Button asChild variant="ghost" size="sm" className="relative text-muted-foreground">
           <Link to={`/thought/${thought._id}`}>
             <MessageSquare />
             {thought.reactionCount > 0

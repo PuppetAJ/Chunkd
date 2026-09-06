@@ -40,3 +40,11 @@ export interface Thought {
   build?: BuildSummary | null;
   reactions?: Reaction[];
 }
+
+/**
+ * How many posts the feed asks for at a time.
+ *
+ * Lives here rather than in the page, because the dialog that creates a post
+ * has to refetch the same first page and the two must agree on its size.
+ */
+export const FEED_PAGE_SIZE = 10;

@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="mt-auto border-t border-border bg-card/40">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-6 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">
-          &copy; {new Date().getFullYear()} The Second Breakfast Club
+          &copy; {new Date().getFullYear()} Adrian Jimenez
         </p>
 
         {/* The block textures are Faithful's, and their licence asks for clear

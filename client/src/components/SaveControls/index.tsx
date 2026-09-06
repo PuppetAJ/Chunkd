@@ -41,6 +41,8 @@ export default function SaveControls() {
     if (code !== "KeyP") return;
     const ui = useEditorUiStore.getState();
     if (ui.saveStatus === "saving" || ui.pendingSave) return;
+    // The pause screen is inert; P there should not capture a world.
+    if (!ui.playing) return;
 
     // Typing a name needs the cursor back.
     if (document.pointerLockElement) document.exitPointerLock();

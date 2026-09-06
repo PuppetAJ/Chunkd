@@ -43,7 +43,7 @@ export default function SingleThought() {
   const reactions = thought.reactions ?? [];
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="mx-auto max-w-4xl space-y-4">
       <Button asChild variant="ghost" size="sm" className="-ml-2 text-muted-foreground">
         <Link to="/">
           <ChevronLeft />
@@ -51,16 +51,27 @@ export default function SingleThought() {
         </Link>
       </Button>
 
-      {/* The attached world is the point of the post, so it leads. */}
+      {/* The world is the reason anyone opened this page, so it gets the room.
+          The feed shows a still image; this is where it becomes something you
+          can turn around. */}
       {thought.build && (
-        <div className="h-80">
-          <SavedBuild buildId={thought.build._id} />
-        </div>
+        <figure className="space-y-2">
+          <div className="h-[min(62vh,34rem)] min-h-72">
+            <SavedBuild buildId={thought.build._id} />
+          </div>
+          <figcaption className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">{thought.build.name}</span>
+            <span>Drag to orbit &middot; shift and drag to pan &middot; scroll to zoom</span>
+          </figcaption>
+        </figure>
       )}
 
       <ThoughtCard
         thought={thought}
         showCommentsLink={false}
+        // The world is already on screen above this, turnable; a still of it
+        // here would just be the same picture twice.
+        showBuild={false}
         onDeleted={() => navigate("/", { replace: true })}
       />
 
@@ -68,19 +79,25 @@ export default function SingleThought() {
         <h2 className="text-sm font-semibold">
           {reactions.length} {reactions.length === 1 ? "comment" : "comments"}
         </h2>
-        <ReactionList thoughtId={thought._id} reactions={reactions} />
+        {/* The box to type in comes before what other people wrote. On a post
+            with a long thread, having it at the bottom means scrolling past
+            everything to say anything. */}
         {isLoggedIn ? (
-          <div className="border-t border-border pt-3">
+          <div className="py-3">
             <ReactionForm thoughtId={thought._id} />
           </div>
         ) : (
-          <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+          <p className="py-3 text-sm text-muted-foreground">
             <Link to="/login" className="text-primary underline underline-offset-2">
               Log in
             </Link>{" "}
             to join the discussion.
           </p>
         )}
+
+        <div className="border-t border-border">
+          <ReactionList thoughtId={thought._id} reactions={reactions} />
+        </div>
       </section>
     </div>
   );

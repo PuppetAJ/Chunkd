@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Navigate, useParams } from "react-router";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { Plus, UserMinus, UserPlus } from "lucide-react";
+import { toast } from "sonner";
 
 import { useAuthStore } from "../lib/auth.ts";
 import { requestErrorMessage } from "../lib/credentials.ts";
@@ -10,7 +11,7 @@ import ThoughtList from "../components/ThoughtList/index.tsx";
 import BuildGallery from "../components/BuildGallery/index.tsx";
 import NewPostDialog from "../components/NewPostDialog/index.tsx";
 import UserAvatar from "../components/UserAvatar.tsx";
-import { QUERY_USER, QUERY_ME } from "../utils/queries.ts";
+import { QUERY_USER, QUERY_ME, QUERY_ME_BASIC } from "../utils/queries.ts";
 import { ADD_FRIEND, DELETE_FRIEND } from "../utils/mutations.ts";
 import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
@@ -41,8 +42,19 @@ export default function Profile() {
     skip: viewingOwnProfile,
   });
 
-  const [addFriend] = useMutation(ADD_FRIEND);
-  const [deleteFriend] = useMutation(DELETE_FRIEND);
+  // Whose friends the button depends on: adding someone puts them in *your*
+  // list, so whether the button says add or remove is a question about you, not
+  // about the profile being looked at. This used to read the profile owner's
+  // list, which answered the opposite question and showed "Add friend" for
+  // people you had already added.
+  const { data: myData } = useQuery(QUERY_ME_BASIC, { skip: !userParam });
+  const myFriends: FriendSummary[] =
+    (myData as { me?: { friends?: FriendSummary[] } } | undefined)?.me?.friends ?? [];
+
+  // Refetching the viewer's own record is what flips the button afterwards.
+  const friendMutationOptions = { refetchQueries: [{ query: QUERY_ME_BASIC }] };
+  const [addFriend, { loading: adding }] = useMutation(ADD_FRIEND, friendMutationOptions);
+  const [deleteFriend, { loading: removing }] = useMutation(DELETE_FRIEND, friendMutationOptions);
 
   // Visiting your own username lands you on your own profile page instead of
   // the read-only "someone else" view.
@@ -69,20 +81,26 @@ export default function Profile() {
   const thoughts = user.thoughts ?? [];
   const friends = user.friends ?? [];
 
-  // QUERY_ME returns the viewer's own friend list, so this is only meaningful
-  // on someone else's profile, which is exactly where the button is shown.
-  const alreadyFriends = Boolean(
-    userParam && me && friends.some((friend) => friend._id === me._id),
-  );
+  const alreadyFriends = myFriends.some((friend) => friend._id === user._id);
+  const friendPending = adding || removing;
 
   const handleFriendClick = async () => {
     setFriendError("");
     try {
       const variables = { id: user._id };
-      if (alreadyFriends) await deleteFriend({ variables });
-      else await addFriend({ variables });
+      if (alreadyFriends) {
+        await deleteFriend({ variables });
+        toast.success(`Removed ${user.username} from your friends`);
+      } else {
+        await addFriend({ variables });
+        // Deliberately not "request sent": there is no request to accept. The
+        // API adds them straight away, and the message should say what happened.
+        toast.success(`Added ${user.username} to your friends`);
+      }
     } catch (error) {
-      setFriendError(requestErrorMessage(error));
+      const message = requestErrorMessage(error);
+      setFriendError(message);
+      toast.error(message);
     }
   };
 
@@ -108,9 +126,19 @@ export default function Profile() {
                 New post
               </Button>
             ) : (
-              <Button variant={alreadyFriends ? "outline" : "default"} onClick={handleFriendClick}>
+              <Button
+                variant={alreadyFriends ? "outline" : "default"}
+                disabled={friendPending}
+                onClick={handleFriendClick}
+              >
                 {alreadyFriends ? <UserMinus /> : <UserPlus />}
-                {alreadyFriends ? "Remove friend" : "Add friend"}
+                {friendPending
+                  ? alreadyFriends
+                    ? "Removing..."
+                    : "Adding..."
+                  : alreadyFriends
+                    ? "Remove friend"
+                    : "Add friend"}
               </Button>
             )}
           </div>

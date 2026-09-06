@@ -63,7 +63,11 @@ export const typeDefs = /* GraphQL */ `
     me: User
     users: [User!]!
     user(username: String!): User
-    thoughts(username: String): [Thought!]!
+    """
+    The feed, newest first. Paged: the client asks for a window rather than
+    every post ever written, and loads the next window as it scrolls.
+    """
+    thoughts(username: String, limit: Int, offset: Int): [Thought!]!
     thought(_id: ID!): Thought
     build(_id: ID!): Build
   }
@@ -78,6 +82,10 @@ export const typeDefs = /* GraphQL */ `
 
     addReaction(thoughtId: ID!, reactionBody: String!): Thought!
     deleteReaction(thoughtId: ID!, reactionId: ID!): Thought!
+
+    "Changing a username or email invalidates the old token, so a new one comes back."
+    updateAccount(username: String, email: String): Auth!
+    changePassword(currentPassword: String!, newPassword: String!): Auth!
 
     addFriend(friendId: ID!): User!
     deleteFriend(friendId: ID!): User!
