@@ -1,4 +1,5 @@
-import { Types } from "mongoose";
+import { randomBytes } from "node:crypto";
+import { Types, type HydratedDocument } from "mongoose";
 import {
   Build,
   Thought,
@@ -33,6 +34,51 @@ function feedWindow(args: { limit?: number | null; offset?: number | null }) {
   const limit = Math.min(Math.max(args.limit ?? DEFAULT_FEED_LIMIT, 1), MAX_FEED_LIMIT);
   const offset = Math.max(args.offset ?? 0, 0);
   return { limit, offset };
+}
+
+// The shared account behind the demo button. It is only ever reached through
+// the demoLogin mutation, so nobody types these and the password is thrown away
+// as soon as it is hashed.
+const DEMO_USERNAME = "demo";
+const DEMO_EMAIL = "demo@chunkd.test";
+const DEMO_IS_READ_ONLY =
+  "The demo account's sign-in details cannot be changed, because everyone shares it. Sign up for an account of your own to change these.";
+
+/**
+ * The demo account, made on first use.
+ *
+ * HydratedDocument<UserDocument> means "a user that came back from the
+ * database", so it carries .save() and the other Mongoose instance methods
+ * rather than being a plain object.
+ */
+async function demoAccount(): Promise<HydratedDocument<UserDocument>> {
+  const existing = await User.findOne({ username: DEMO_USERNAME }).exec();
+  if (existing) {
+    // An account made before this flag existed still needs the protection.
+    if (!existing.isDemo) {
+      existing.isDemo = true;
+      await existing.save();
+    }
+    return existing;
+  }
+
+  try {
+    return await User.create({
+      username: DEMO_USERNAME,
+      email: DEMO_EMAIL,
+      password: randomBytes(24).toString("base64url"),
+      isDemo: true,
+    });
+  } catch (error) {
+    // Two visitors can press the button at the same moment and both find it
+    // missing. The unique index decides which one creates it, and the other
+    // reads back what was just made instead of failing.
+    if (isDuplicateKeyError(error)) {
+      const created = await User.findOne({ username: DEMO_USERNAME }).exec();
+      if (created) return created;
+    }
+    throw error;
+  }
 }
 
 /** Mongo reports a unique-index collision as error code 11000. */
@@ -100,6 +146,9 @@ export const resolvers = {
     // `.exec()` inside an async resolver matters: without it the resolver hands
     // GraphQL a Mongoose Query, which is thenable, and a Query refuses to run
     // twice. Awaiting it here runs it exactly once and returns a plain number.
+    // Coerced rather than read straight through: accounts created before this
+    // field existed have no value stored, and the schema promises a boolean.
+    isDemo: (parent: UserDocument) => Boolean(parent.isDemo),
     followerCount: async (parent: UserDocument) =>
       User.countDocuments({ following: parent._id }).exec(),
 
@@ -193,6 +242,10 @@ export const resolvers = {
       if (!user) throw failure;
       if (!(await user.isCorrectPassword(args.password))) throw failure;
 
+      return { token: signToken(user), user };
+    },
+    demoLogin: async () => {
+      const user = await demoAccount();
       return { token: signToken(user), user };
     },
 
@@ -309,6 +362,7 @@ export const resolvers = {
       const auth = requireAuth(context);
       const user = await User.findById(auth._id);
       if (!user) throw notFound("Your account no longer exists.");
+      if (user.isDemo) throw forbidden(DEMO_IS_READ_ONLY);
 
       if (args.username !== undefined && args.username !== null) user.username = args.username;
       if (args.email !== undefined && args.email !== null) user.email = args.email;
@@ -336,6 +390,7 @@ export const resolvers = {
       const auth = requireAuth(context);
       const user = await User.findById(auth._id);
       if (!user) throw notFound("Your account no longer exists.");
+      if (user.isDemo) throw forbidden(DEMO_IS_READ_ONLY);
 
       // Knowing the current password is what stops a stolen token being enough
       // to take an account over permanently.

@@ -12,6 +12,7 @@ import {
   MIN_PASSWORD_LENGTH,
 } from "../lib/credentials.ts";
 import { AuthShell, PasswordInput } from "./Login.tsx";
+import DemoLoginButton from "../components/DemoLoginButton.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Input } from "../components/ui/input.tsx";
 import { Label } from "../components/ui/label.tsx";
@@ -159,6 +160,8 @@ export default function Signup() {
           {loading ? "Creating account..." : "Create account"}
         </Button>
       </form>
+
+      <DemoLoginButton />
     </AuthShell>
   );
 }

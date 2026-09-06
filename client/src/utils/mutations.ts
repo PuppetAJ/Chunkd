@@ -12,6 +12,20 @@ export const LOGIN_USER = gql`
   }
 `;
 
+// Takes no arguments on purpose. The demo account's password stays on the
+// server, so there is nothing here for anyone to read out of the bundle.
+export const DEMO_LOGIN = gql`
+  mutation demoLogin {
+    demoLogin {
+      token
+      user {
+        _id
+        username
+      }
+    }
+  }
+`;
+
 export const ADD_USER = gql`
   mutation addUser($username: String!, $email: String!, $password: String!) {
     addUser(username: $username, email: $email, password: $password) {

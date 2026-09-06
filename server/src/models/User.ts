@@ -19,6 +19,13 @@ export interface UserDocument {
    * `following` contains this user.
    */
   following: Types.ObjectId[];
+  /**
+   * True only for the shared account behind the "explore the demo" button.
+   *
+   * It exists so that account can be refused the changes that would lock
+   * everyone else out of it, such as a new password or a new email address.
+   */
+  isDemo: boolean;
   createdAt: Date;
   updatedAt: Date;
   isCorrectPassword(candidate: string): Promise<boolean>;
@@ -47,6 +54,10 @@ const userSchema = new Schema<UserDocument>(
       required: [true, "A password is required"],
       // Raised from 5. Short passwords were the weakest part of the old auth.
       minlength: [8, "Password must be at least 8 characters"],
+    },
+    isDemo: {
+      type: Boolean,
+      default: false,
     },
     following: [
       {

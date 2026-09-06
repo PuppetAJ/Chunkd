@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button.tsx";
 import { Input } from "../components/ui/input.tsx";
 import { Label } from "../components/ui/label.tsx";
 import CampfireLogo from "../components/CampfireLogo.tsx";
+import DemoLoginButton from "../components/DemoLoginButton.tsx";
 
 /** One message per field, so a wrong password never looks like a bad email. */
 interface FieldErrors {
@@ -132,6 +133,8 @@ export default function Login() {
           {loading ? "Logging in..." : "Log in"}
         </Button>
       </form>
+
+      <DemoLoginButton />
     </AuthShell>
   );
 }

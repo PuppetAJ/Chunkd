@@ -127,6 +127,7 @@ export const QUERY_ME_BASIC = gql`
       _id
       username
       email
+      isDemo
       followerCount
       followingCount
       following {
