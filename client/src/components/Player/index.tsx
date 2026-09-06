@@ -45,7 +45,7 @@ export default function Player({ body }: Props) {
   const held = useHeldKeys();
   const axeRef = useRef<THREE.Group>(null);
 
-  const motion = useMemo(createMotionState, []);
+  const motion = useMemo(() => createMotionState(), []);
   const heading = useMemo(() => new THREE.Vector3(), []);
   const input = useMemo<MoveInput>(
     () => ({ forward: 0, strafe: 0, jump: false, sneak: false, headingX: 0, headingZ: -1 }),

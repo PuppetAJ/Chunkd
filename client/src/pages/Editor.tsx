@@ -25,7 +25,7 @@ import type { Body } from "../lib/voxel/collision.ts";
  *
  * The pause screen and the inventory both cover the canvas, so drei's own
  * click-to-lock never sees the click that dismissed them. A browser may refuse
- * outright — an automated one always does — in which case play continues
+ * outright, and an automated one always does. Play then continues
  * without mouse-look rather than trapping the player behind an overlay.
  */
 function requestPointerLock(): void {
@@ -130,6 +130,9 @@ export default function Editor() {
   const body = useMemo<Body>(() => {
     const [x, y, z] = spawnPoint();
     return { x, y, z, onGround: false };
+    // `seed` is not read here, but `spawnPoint` is a store method whose identity
+    // never changes, so without the seed a new world would reuse the old spawn.
+    // oxlint-disable-next-line exhaustive-deps
   }, [seed, spawnPoint]);
 
   return (

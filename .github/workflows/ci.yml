@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
 
 jobs:
@@ -22,6 +21,8 @@ jobs:
       # Fails if the lockfile disagrees with any package.json, which catches a
       # dependency added locally but never committed.
       - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
 
       - run: pnpm typecheck
 

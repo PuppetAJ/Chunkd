@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    // The automatic JSX transform means React need not be imported to use JSX.
+    "react/react-in-jsx-scope": "off",
+
+    // The editor mutates the player body, motion and input objects every frame
+    // inside useFrame, on purpose. Holding that in React state would re-render
+    // the scene sixty times a second.
+    "react/immutability": "off",
+
+    // The latest-ref idiom writes a ref during render so a listener registered
+    // once always calls the newest handler. Deliberate, and used in
+    // useKeyboard.ts and World/index.tsx.
+    "react/refs": "off",
+
+    // Two forms reset their fields when their source prop changes. Worth seeing,
+    // but not worth failing a build over.
+    "react/set-state-in-effect": "warn"
+  },
+  "ignorePatterns": ["**/dist/**", "docs/**", "client/src/components/ui/**"]
+}
