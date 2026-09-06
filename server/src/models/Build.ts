@@ -15,7 +15,7 @@ export interface BuildDocument {
   format: number;
   // The world itself, in the compact encoded form.
   data: string;
-  // A small PNG data URL rendered at save time, so galleries can show a build
+  // A small JPEG data URL rendered at save time, so galleries can show a build
   // without starting a WebGL context for each one.
   thumbnail?: string;
   createdAt: Date;

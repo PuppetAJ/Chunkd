@@ -1,7 +1,6 @@
 packages:
   - client
   - server
-  - packages/*
 
 # pnpm does not run a dependency's install scripts unless it is listed here.
 # Nothing in this project currently needs one.
