@@ -39,8 +39,7 @@ test-results/
 .eslintcache
 
 # Working notes: the refactor plan, the redesign write-up and its screenshots.
-# These document the rebuild for me rather than for anyone using the project,
-# so they stay on my machine instead of in the repository.
+# These document the rebuild for me rather than for anyone using the project.
 docs/
 
 # Texture packs such as Sphax PureBDCraft or Ashen are free to download but
