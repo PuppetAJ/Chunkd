@@ -58,11 +58,9 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
 
-  /* Two colours that are ours rather than shadcn's: the grass green used for
-     "this worked" states, and the stone grey the old pixel buttons are built
-     from. */
+  /* One colour that is ours rather than shadcn's: the grass green used for
+     "this worked" states. */
   --color-grass: var(--grass);
-  --color-stone-panel: #727272;
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -200,47 +198,6 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Pixel-styled controls
-   ---------------------------------------------------------------------------
-   The chiselled Minecraft button. It is still used by the pages that have not
-   been redesigned yet, and permanently by the editor's own HUD, where the pixel
-   look is the point.
-   ------------------------------------------------------------------------- */
-
-.minecraft {
-  font-family: var(--font-display);
-}
-
-.btn-minecraft {
-  font-family: var(--font-display);
-  background: var(--color-stone-panel);
-  /* Pure white on this grey is 4.49:1, a hair under AA. Near-black text on the
-     same panel is 4.8:1 and matches the in-game look more closely anyway. */
-  color: #17161a;
-  font-size: 1rem;
-  letter-spacing: 0.025em;
-  border: 2px solid #000;
-  box-shadow:
-    inset 3px 3px 0 rgba(255, 255, 255, 0.5),
-    inset -3px -3px 0 rgba(0, 0, 0, 0.5);
-}
-
-.btn-minecraft {
-  padding: 0.3rem 0.5rem;
-  cursor: pointer;
-}
-
-.btn-minecraft:hover {
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-
-.btn-minecraft:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-}
-
-/* ---------------------------------------------------------------------------
    Editor and saved-build canvases
    ------------------------------------------------------------------------- */
 
@@ -265,14 +222,3 @@
   z-index: 50;
 }
 
-/* ---------------------------------------------------------------------------
-   Pages not yet redesigned
-   ------------------------------------------------------------------------- */
-
-#login {
-  background-image: url("./assets/darkBG.jpg");
-  background-color: #17161a;
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: center;
-}

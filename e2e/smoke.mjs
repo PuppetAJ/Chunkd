@@ -48,14 +48,15 @@ check("signed-out /editor redirects to login", page.url().endsWith("/login"), pa
 // ------------------------------------------------------- sign-up form errors
 // Every failure here used to render the same "Signup failed !", so nobody was
 // ever told which field to change.
+// Field problems and request failures are both rendered as destructive text.
 const formErrors = async () =>
-  (await page.locator("p.text-red-400").allTextContents()).join(" | ");
+  (await page.locator("p.text-destructive").allTextContents()).join(" | ");
 
 await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
 await page.fill("#username", "shorty");
 await page.fill("#email", "shorty@chunkd.test");
 await page.fill("#password", "short");
-await page.getByRole("button", { name: "Submit" }).click();
+await page.getByRole("button", { name: "Create account" }).click();
 await page.waitForTimeout(500);
 check("signup names a password that is too short", (await formErrors()).includes("8 characters"), await formErrors());
 
@@ -63,7 +64,7 @@ await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
 await page.fill("#username", "ok");
 await page.fill("#email", "not-an-email");
 await page.fill("#password", "supersecret1");
-await page.getByRole("button", { name: "Submit" }).click();
+await page.getByRole("button", { name: "Create account" }).click();
 await page.waitForTimeout(500);
 const shortUsername = await formErrors();
 check("signup names a username that is too short", shortUsername.includes("3 characters"), shortUsername);
@@ -74,7 +75,7 @@ await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
 await page.fill("#username", user.username);
 await page.fill("#email", user.email);
 await page.fill("#password", user.password);
-await page.getByRole("button", { name: "Submit" }).click();
+await page.getByRole("button", { name: "Create account" }).click();
 await page.waitForURL(`${BASE}/`, { timeout: 15000 });
 check("signup signs the user in without reloading the page", page.url() === `${BASE}/`);
 check("header switches to the signed-in menu", (await page.getByRole("link", { name: "Editor" }).first().count()) > 0);
@@ -86,7 +87,7 @@ await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
 await page.fill("#username", `${user.username}b`.slice(0, 20));
 await page.fill("#email", user.email);
 await page.fill("#password", user.password);
-await page.getByRole("button", { name: "Submit" }).click();
+await page.getByRole("button", { name: "Create account" }).click();
 await page.waitForTimeout(1500);
 const taken = await formErrors();
 check("signup reports an email that is already registered", taken.toLowerCase().includes("already taken"), taken);
@@ -94,14 +95,21 @@ check("signup reports an email that is already registered", taken.toLowerCase().
 await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
 await page.fill("#email", user.email);
 await page.fill("#password", "definitely-wrong");
-await page.getByRole("button", { name: "Submit" }).click();
+await page.getByRole("button", { name: "Log in" }).click();
 await page.waitForTimeout(1500);
 const wrongPassword = await formErrors();
 check("login reports a wrong password", wrongPassword.toLowerCase().includes("incorrect email"), wrongPassword);
 check("login keeps the typed email after a failure", (await page.inputValue("#email")) === user.email);
 
+// The password field can be revealed, so a typo is checkable before submitting.
+check("the password starts hidden", (await page.getAttribute("#password", "type")) === "password");
+await page.getByRole("button", { name: "Show password" }).click();
+check("the password can be revealed", (await page.getAttribute("#password", "type")) === "text");
+await page.getByRole("button", { name: "Hide password" }).click();
+check("the password can be hidden again", (await page.getAttribute("#password", "type")) === "password");
+
 await page.fill("#password", user.password);
-await page.getByRole("button", { name: "Submit" }).click();
+await page.getByRole("button", { name: "Log in" }).click();
 await page.waitForURL(`${BASE}/`, { timeout: 15000 });
 check("login succeeds with the right password", page.url() === `${BASE}/`);
 
