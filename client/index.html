@@ -4,21 +4,38 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
-    <!-- maximum-scale with user-scalable=no is what stops Safari zooming on a
-         double tap; this is a pointer-driven 3D editor rather than a document,
-         so there is no reflowing text that zooming would help someone read. -->
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-    />
+    <!-- Pinch to zoom stays available. This used to carry maximum-scale=1 and
+         user-scalable=no to stop Safari zooming on a double tap in the editor,
+         but the tag applies to the whole site, so it also stopped anyone
+         enlarging the feed or a post to read it. That is a WCAG failure
+         (1.4.4 Resize Text) and axe reports it as one.
+
+         The double tap is handled without it: "touch-action: manipulation" in
+         index.css drops the double-tap gesture while keeping pinch, and the
+         editor additionally refuses ctrl+wheel and Safari's gesture events
+         through useSuppressZoomGestures. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#17161a" />
     <meta
       name="description"
       content="CHUNK'D - build voxel worlds in your browser and share them."
     />
     <link rel="icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Link previews. og:image is relative because the site has no domain of
+         its own yet; it becomes absolute when there is one to point at. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CHUNK'D" />
+    <meta property="og:title" content="CHUNK'D" />
+    <meta
+      property="og:description"
+      content="Build voxel worlds in your browser and share them."
+    />
+    <meta property="og:image" content="/og-card.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <title>CHUNK'D</title>
   </head>
   <body>

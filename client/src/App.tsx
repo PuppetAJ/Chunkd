@@ -4,8 +4,8 @@ import SiteLayout from "./components/SiteLayout.tsx";
 import RequireAuth from "./components/RequireAuth.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import Home from "./pages/Home.tsx";
-import Login from "./pages/Login.jsx";
-import Signup from "./pages/Signup.jsx";
+import Login from "./pages/Login.tsx";
+import Signup from "./pages/Signup.tsx";
 import NoMatch from "./pages/NoMatch.tsx";
 
 // Three.js, the physics engine and its WebAssembly module together are larger

@@ -30,9 +30,11 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "clean": "pnpm --recursive exec rm -rf node_modules dist build && rm -rf node_modules",
-    "test:e2e": "node e2e/smoke.mjs"
+    "test:e2e": "node e2e/smoke.mjs",
+    "test:a11y": "node e2e/a11y.mjs"
   },
   "devDependencies": {
+    "axe-core": "^4.13.0",
     "playwright": "^1.62.1"
   }
 }
