@@ -4,6 +4,7 @@ import { useApolloClient } from "@apollo/client/react";
 import { LogOut, Menu, Pickaxe, Settings, User } from "lucide-react";
 
 import { useAuthStore } from "../../lib/auth.ts";
+import { useHasFinePointer } from "../../lib/useHasFinePointer.ts";
 import UserAvatar from "../UserAvatar.tsx";
 import { Button } from "../ui/button.tsx";
 import {
@@ -32,6 +33,16 @@ const NAV_LINKS = [
   { to: "/profile", label: "My builds" },
 ];
 
+/**
+ * The editor is keyboard and mouse only, so a device without either is not
+ * offered it. The route explains itself if someone arrives by a shared link,
+ * but a menu item leading somewhere that cannot work is worth leaving out.
+ */
+function navLinksFor(hasFinePointer: boolean) {
+  if (hasFinePointer) return NAV_LINKS;
+  return NAV_LINKS.filter((link) => link.to !== "/editor");
+}
+
 function navLinkClasses({ isActive }: { isActive: boolean }): string {
   return [
     "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
@@ -46,6 +57,8 @@ export default function Header() {
   const navigate = useNavigate();
   const apollo = useApolloClient();
   const [menuOpen, setMenuOpen] = useState(false);
+  const hasFinePointer = useHasFinePointer();
+  const navLinks = navLinksFor(hasFinePointer);
 
   const handleLogout = async () => {
     logOut();
@@ -70,7 +83,7 @@ export default function Header() {
 
         {isLoggedIn && (
           <nav className="ml-4 hidden items-center gap-1 md:flex">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <NavLink key={link.to} to={link.to} end={link.to === "/"} className={navLinkClasses}>
                 {link.label}
               </NavLink>
@@ -83,12 +96,14 @@ export default function Header() {
             <>
               {/* Outline rather than filled: the page itself usually owns the one
                   filled button on screen, and two competing primaries read as noise. */}
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-                <Link to="/editor">
-                  <Pickaxe />
-                  New build
-                </Link>
-              </Button>
+              {hasFinePointer && (
+                <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+                  <Link to="/editor">
+                    <Pickaxe />
+                    New build
+                  </Link>
+                </Button>
+              )}
 
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -129,7 +144,7 @@ export default function Header() {
                 <SheetContent side="right" className="w-64">
                   <SheetTitle className="font-display text-base">Menu</SheetTitle>
                   <nav className="flex flex-col gap-1 px-4">
-                    {NAV_LINKS.map((link) => (
+                    {navLinks.map((link) => (
                       <SheetClose asChild key={link.to}>
                         <NavLink to={link.to} end={link.to === "/"} className={navLinkClasses}>
                           {link.label}

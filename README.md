@@ -106,6 +106,12 @@ standing in, then attach it to a post to share it.
 
 ### Controls
 
+The editor needs a keyboard and a mouse or trackpad. Movement is WASD, aiming
+uses the mouse, and the hotbar is on the number keys, none of which has a touch
+equivalent yet. On a phone or a tablet with no trackpad the editor is left out
+of the menu and its page explains why instead of loading. The rest of the site
+works on any device, including turning a saved build around with a finger.
+
 | Input | Action |
 |---|---|
 | W A S D | Move |
