@@ -7,8 +7,12 @@ export const typeDefs = /* GraphQL */ `
     username: String!
     "Only returned when you ask about yourself."
     email: String
-    friendCount: Int!
-    friends: [User!]!
+    "How many people this user follows."
+    followingCount: Int!
+    "How many people follow this user."
+    followerCount: Int!
+    following: [User!]!
+    followers: [User!]!
     thoughts: [Thought!]!
     builds: [BuildSummary!]!
     createdAt: String!
@@ -87,8 +91,9 @@ export const typeDefs = /* GraphQL */ `
     updateAccount(username: String, email: String): Auth!
     changePassword(currentPassword: String!, newPassword: String!): Auth!
 
-    addFriend(friendId: ID!): User!
-    deleteFriend(friendId: ID!): User!
+    "Following is one-way. There is nothing for the other person to accept."
+    follow(userId: ID!): User!
+    unfollow(userId: ID!): User!
 
     saveBuild(name: String, data: String!, thumbnail: String, format: Int): Build!
     deleteBuild(buildId: ID!): ID!

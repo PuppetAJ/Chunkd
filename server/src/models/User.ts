@@ -10,7 +10,15 @@ export interface UserDocument {
   username: string;
   email: string;
   password: string;
-  friends: Types.ObjectId[];
+  /**
+   * The people this user follows.
+   *
+   * This has always been a one-way list — adding someone put them here and
+   * nowhere else — so it was a following list wearing the word "friends". The
+   * name now says what it is. Followers are the reverse lookup: everyone whose
+   * `following` contains this user.
+   */
+  following: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
   isCorrectPassword(candidate: string): Promise<boolean>;
@@ -40,10 +48,13 @@ const userSchema = new Schema<UserDocument>(
       // Raised from 5. Short passwords were the weakest part of the old auth.
       minlength: [8, "Password must be at least 8 characters"],
     },
-    friends: [
+    following: [
       {
         type: Schema.Types.ObjectId,
         ref: "User",
+        // Indexed because finding someone's followers means asking which users
+        // have their id in this array, which is a query against it.
+        index: true,
       },
     ],
   },

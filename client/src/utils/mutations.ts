@@ -51,13 +51,13 @@ export const CHANGE_PASSWORD = gql`
   }
 `;
 
-export const ADD_FRIEND = gql`
-  mutation addFriend($id: ID!) {
-    addFriend(friendId: $id) {
+export const FOLLOW = gql`
+  mutation follow($id: ID!) {
+    follow(userId: $id) {
       _id
       username
-      friendCount
-      friends {
+      followingCount
+      following {
         _id
         username
       }
@@ -66,13 +66,13 @@ export const ADD_FRIEND = gql`
 `;
 
 /** Existed only as a commented-out block before the server supported it. */
-export const DELETE_FRIEND = gql`
-  mutation deleteFriend($id: ID!) {
-    deleteFriend(friendId: $id) {
+export const UNFOLLOW = gql`
+  mutation unfollow($id: ID!) {
+    unfollow(userId: $id) {
       _id
       username
-      friendCount
-      friends {
+      followingCount
+      following {
         _id
         username
       }

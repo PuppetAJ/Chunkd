@@ -6,13 +6,13 @@ import { toast } from "sonner";
 
 import { useAuthStore } from "../lib/auth.ts";
 import { requestErrorMessage } from "../lib/credentials.ts";
-import type { BuildSummary, FriendSummary, Thought } from "../lib/feedTypes.ts";
+import type { BuildSummary, UserSummary, Thought } from "../lib/feedTypes.ts";
 import ThoughtList from "../components/ThoughtList/index.tsx";
 import BuildGallery from "../components/BuildGallery/index.tsx";
 import NewPostDialog from "../components/NewPostDialog/index.tsx";
 import UserAvatar from "../components/UserAvatar.tsx";
 import { QUERY_USER, QUERY_ME, QUERY_ME_BASIC } from "../utils/queries.ts";
-import { ADD_FRIEND, DELETE_FRIEND } from "../utils/mutations.ts";
+import { FOLLOW, UNFOLLOW } from "../utils/mutations.ts";
 import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs.tsx";
@@ -21,8 +21,10 @@ import { Link } from "react-router";
 interface ProfileUser {
   _id: string;
   username: string;
-  friendCount: number;
-  friends?: FriendSummary[];
+  followerCount: number;
+  followingCount: number;
+  followers?: UserSummary[];
+  following?: UserSummary[];
   builds?: BuildSummary[];
   thoughts?: Thought[];
 }
@@ -32,7 +34,7 @@ export default function Profile() {
   const me = useAuthStore((state) => state.user);
 
   const [posting, setPosting] = useState(false);
-  const [friendError, setFriendError] = useState("");
+  const [followError, setFollowError] = useState("");
 
   const viewingOwnProfile = Boolean(userParam) && me?.username === userParam;
 
@@ -42,19 +44,22 @@ export default function Profile() {
     skip: viewingOwnProfile,
   });
 
-  // Whose friends the button depends on: adding someone puts them in *your*
-  // list, so whether the button says add or remove is a question about you, not
-  // about the profile being looked at. This used to read the profile owner's
-  // list, which answered the opposite question and showed "Add friend" for
-  // people you had already added.
+  // Whose list the button depends on: following someone puts them in *yours*,
+  // so whether it says follow or unfollow is a question about you, not about
+  // the profile being looked at. This used to read the profile owner's list,
+  // which answered the opposite question and showed "Add friend" for people you
+  // had already added.
   const { data: myData } = useQuery(QUERY_ME_BASIC, { skip: !userParam });
-  const myFriends: FriendSummary[] =
-    (myData as { me?: { friends?: FriendSummary[] } } | undefined)?.me?.friends ?? [];
+  const iFollow: UserSummary[] =
+    (myData as { me?: { following?: UserSummary[] } } | undefined)?.me?.following ?? [];
 
-  // Refetching the viewer's own record is what flips the button afterwards.
-  const friendMutationOptions = { refetchQueries: [{ query: QUERY_ME_BASIC }] };
-  const [addFriend, { loading: adding }] = useMutation(ADD_FRIEND, friendMutationOptions);
-  const [deleteFriend, { loading: removing }] = useMutation(DELETE_FRIEND, friendMutationOptions);
+  // Refetching the viewer's own record is what flips the button afterwards. The
+  // profile itself is refetched too, because its follower count just changed.
+  const followOptions = {
+    refetchQueries: [{ query: QUERY_ME_BASIC }, { query: QUERY_USER, variables: { username: userParam } }],
+  };
+  const [follow, { loading: following }] = useMutation(FOLLOW, followOptions);
+  const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW, followOptions);
 
   // Visiting your own username lands you on your own profile page instead of
   // the read-only "someone else" view.
@@ -79,27 +84,28 @@ export default function Profile() {
   const isOwnProfile = !userParam;
   const builds = user.builds ?? [];
   const thoughts = user.thoughts ?? [];
-  const friends = user.friends ?? [];
+  const followers = user.followers ?? [];
+  const followingList = user.following ?? [];
 
-  const alreadyFriends = myFriends.some((friend) => friend._id === user._id);
-  const friendPending = adding || removing;
+  const alreadyFollowing = iFollow.some((person) => person._id === user._id);
+  const followPending = following || unfollowing;
 
-  const handleFriendClick = async () => {
-    setFriendError("");
+  const handleFollowClick = async () => {
+    setFollowError("");
     try {
       const variables = { id: user._id };
-      if (alreadyFriends) {
-        await deleteFriend({ variables });
-        toast.success(`Removed ${user.username} from your friends`);
+      if (alreadyFollowing) {
+        await unfollow({ variables });
+        toast.success(`Unfollowed ${user.username}`);
       } else {
-        await addFriend({ variables });
-        // Deliberately not "request sent": there is no request to accept. The
-        // API adds them straight away, and the message should say what happened.
-        toast.success(`Added ${user.username} to your friends`);
+        await follow({ variables });
+        // Deliberately not "request sent": following is one-way and there is
+        // nothing for them to accept. The message says what actually happened.
+        toast.success(`You are now following ${user.username}`);
       }
     } catch (error) {
       const message = requestErrorMessage(error);
-      setFriendError(message);
+      setFollowError(message);
       toast.error(message);
     }
   };
@@ -115,7 +121,8 @@ export default function Profile() {
             <p className="mt-1 text-sm text-muted-foreground">
               {countLabel(builds.length, "build")} &middot;{" "}
               {countLabel(thoughts.length, "post")} &middot;{" "}
-              {countLabel(user.friendCount, "friend")}
+              {countLabel(user.followerCount, "follower")} &middot;{" "}
+              {user.followingCount} following
             </p>
           </div>
 
@@ -127,26 +134,26 @@ export default function Profile() {
               </Button>
             ) : (
               <Button
-                variant={alreadyFriends ? "outline" : "default"}
-                disabled={friendPending}
-                onClick={handleFriendClick}
+                variant={alreadyFollowing ? "outline" : "default"}
+                disabled={followPending}
+                onClick={handleFollowClick}
               >
-                {alreadyFriends ? <UserMinus /> : <UserPlus />}
-                {friendPending
-                  ? alreadyFriends
-                    ? "Removing..."
-                    : "Adding..."
-                  : alreadyFriends
-                    ? "Remove friend"
-                    : "Add friend"}
+                {alreadyFollowing ? <UserMinus /> : <UserPlus />}
+                {followPending
+                  ? alreadyFollowing
+                    ? "Unfollowing..."
+                    : "Following..."
+                  : alreadyFollowing
+                    ? "Unfollow"
+                    : "Follow"}
               </Button>
             )}
           </div>
         </div>
 
-        {friendError && (
+        {followError && (
           <p role="alert" className="mt-3 text-sm text-destructive">
-            {friendError}
+            {followError}
           </p>
         )}
       </header>
@@ -155,7 +162,8 @@ export default function Profile() {
         <TabsList>
           <TabsTrigger value="builds">Builds</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="friends">Friends</TabsTrigger>
+          <TabsTrigger value="followers">Followers</TabsTrigger>
+          <TabsTrigger value="following">Following</TabsTrigger>
         </TabsList>
 
         <TabsContent value="builds" className="mt-4">
@@ -183,33 +191,64 @@ export default function Profile() {
           />
         </TabsContent>
 
-        <TabsContent value="friends" className="mt-4">
-          {friends.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
-              {isOwnProfile
-                ? "Open someone's profile to add them as a friend."
-                : `${user.username} hasn't added any friends yet.`}
-            </div>
-          ) : (
-            <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {friends.map((friend) => (
-                <li key={friend._id}>
-                  <Link
-                    to={`/profile/${friend.username}`}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/50"
-                  >
-                    <UserAvatar username={friend.username} size="md" />
-                    <span className="truncate text-sm font-medium">{friend.username}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+        <TabsContent value="followers" className="mt-4">
+          <PeopleGrid
+            people={followers}
+            empty={
+              isOwnProfile
+                ? "Nobody is following you yet. Share a build and they will find you."
+                : `Nobody is following ${user.username} yet.`
+            }
+          />
         </TabsContent>
+
+        <TabsContent value="following" className="mt-4">
+          <PeopleGrid
+            people={followingList}
+            empty={
+              isOwnProfile
+                ? "Open someone's profile to follow them."
+                : `${user.username} isn't following anyone yet.`
+            }
+          />
+        </TabsContent>
+
       </Tabs>
 
       {isOwnProfile && <NewPostDialog open={posting} onOpenChange={setPosting} />}
     </div>
+  );
+}
+
+/**
+ * A list of people, used by both the followers and the following tabs.
+ *
+ * The two differ only in where the list came from, so they share one component
+ * rather than two near-identical blocks of markup.
+ */
+function PeopleGrid({ people, empty }: { people: UserSummary[]; empty: string }) {
+  if (people.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">
+        {empty}
+      </div>
+    );
+  }
+
+  return (
+    <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {people.map((person) => (
+        <li key={person._id}>
+          <Link
+            to={`/profile/${person.username}`}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-primary/50"
+          >
+            <UserAvatar username={person.username} size="md" />
+            <span className="truncate text-sm font-medium">{person.username}</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

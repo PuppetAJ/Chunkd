@@ -49,17 +49,17 @@ async function seed(): Promise<void> {
     users.push(user);
   }
 
-  console.log("Linking friends...");
+  console.log("Linking follows...");
   for (const user of users) {
-    const friends = new Set<string>();
-    const friendCount = Math.floor(Math.random() * 5);
-    while (friends.size < friendCount) {
+    const following = new Set<string>();
+    const followCount = Math.floor(Math.random() * 5);
+    while (following.size < followCount) {
       const candidate = pickRandom(users);
       if (candidate._id.toString() !== user._id.toString()) {
-        friends.add(candidate._id.toString());
+        following.add(candidate._id.toString());
       }
     }
-    user.friends = [...friends].map((id) => new Types.ObjectId(id));
+    user.following = [...following].map((id) => new Types.ObjectId(id));
     await user.save();
   }
 

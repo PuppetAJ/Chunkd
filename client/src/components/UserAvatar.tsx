@@ -5,7 +5,7 @@ import { cn } from "cn";
  *
  * Nobody uploads a picture, so the alternative is the same grey circle for
  * everyone. Hashing the name into a hue gives each person a consistent colour
- * across the feed, their profile and the friend list without storing anything.
+ * across the feed, their profile and the follow lists without storing anything.
  */
 
 // "sm" | "md" | "lg" rather than a number, so every avatar on the site is one
