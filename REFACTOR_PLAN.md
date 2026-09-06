@@ -21,9 +21,9 @@ The plan is ordered so each phase leaves the app in a runnable state. Do them as
 | 2 Server modernization | Done |
 | 3 Client toolchain (Vite, React 19, Tailwind 4) | Done |
 | 4 Editor performance rewrite | Done |
-| 5 Functionality fixes | Next; much of it already done as a side effect of phases 2 to 4 |
-| 6 UI and aesthetics | Not started |
-| 7 Quality, tests, deployment | Partly done: CI and an end-to-end suite exist |
+| 5 Functionality fixes | Done; the last few items were folded into phase 6 |
+| 6 UI and aesthetics | Done. See `docs/REDESIGN.md` |
+| 7 Quality, tests, deployment | Partly done: CI, an end-to-end suite and an accessibility suite exist |
 
 **Deviation from the original ordering.** Phase 1 planned to install the existing
 Create React App setup under pnpm before replacing it. That step was skipped.
@@ -177,21 +177,28 @@ the rest of the site.
   GPU.
 - `PointerLockControls` cannot be exercised headlessly, so mouse-look is the one
   interaction the end-to-end suite does not cover.
-- The site header and footer still render on the editor route, so the hotbar sits
-  on top of the footer. Phase 6 replaces the page shell.
 - The world is 64 blocks square. Visibility is now updated only around the block
   that changed, so an edit costs about 4 ms regardless of world size; what still
   scales with size is building the world in the first place, about 25 ms at 64.
   A larger map is now mostly a question of that one-off cost.
-- Builds are all named "Untitled build". Naming them belongs with the save
-  dialog in phase 6.
 - Blocks with a grain record their axis but not their facing, so there is no way
   yet to point a directional texture a particular way round the vertical axis.
 - A two-finger double tap on a Mac trackpad can still zoom the page. macOS
   decides that gesture in the window server and hands the browser a decision
   rather than an event, and Chrome performs the zoom in the browser process
   without asking the page, so there is nothing left for the page to refuse. The
-  only cure is System Settings, Trackpad, Scroll & Zoom, Smart Zoom.
+  only cure is System Settings, Trackpad, Scroll & Zoom, Smart Zoom. The
+  viewport tag used to carry `user-scalable=no`, which suppressed more of this
+  but also stopped anyone zooming the rest of the site to read it; that is a
+  WCAG failure, so it was removed in phase 6.
+- The site is dark only. The plan called for `prefers-color-scheme` to be
+  respected with dark as the default; a light theme was dropped instead,
+  because it doubles the design surface and the 3D view is lit for a dark
+  surround. The tokens are structured so adding one later is a matter of
+  filling in a second block of values.
+- Form validation is hand-written in `client/src/lib/credentials.ts` rather
+  than using zod as the plan suggested. The rules are three length checks and
+  one pattern; a schema library would have been more to read, not less.
 - Culling is per block, not per face. Blocks buried on all six sides are skipped,
   which removes 78% of the world, but each block that is drawn sends all six of
   its faces even where they are pressed against a neighbour. Measured on a fresh
@@ -423,35 +430,35 @@ Goal: 60 FPS with a full 32×32 terrain plus hundreds of placed blocks, instant 
 
 **Done when:** editor holds 60 FPS on a laptop iGPU with terrain + 500 placed blocks; place/break is immediate; a saved build is under 10 KB; profile page loads without a WebGL context until a build is opened. Record the after-numbers next to the baseline in `docs/BASELINE.md`.
 
-### Phase 5 — Functionality fixes and feature completion — NEXT
+### Phase 5 — Functionality fixes and feature completion — DONE
 
 Everything from the bug list not already fixed by Phases 3–4:
 
-- [ ] `<RequireAuth>` route wrapper replacing the copy-pasted `userParam`/`Navigate` blocks in `Editor`, `Profile`, `PostModal`, `SavedBuild`. Fix `/Editor` and `/test` navigations.
-- [ ] Fix the `savedBuilds.length && ...` render-`0` bug (`length > 0 &&`).
-- [ ] Wire up `deleteFriend`, `deleteBuild`, `updateThought`/`deleteThought` (owner only), `deleteReaction` in the UI.
-- [ ] Token expiry: on `UNAUTHENTICATED` error from the Apollo error link, clear the token and redirect to `/login` with a message, instead of silently failing.
-- [ ] Form validation with zod on signup/login/post (email format, password length, 280-char limit) with inline error messages that match server errors.
-- [ ] Error boundaries around the routes and around each `<Canvas>` (a WebGL failure shouldn't blank the whole page).
-- [ ] Empty states (no posts, no friends, no builds) and loading skeletons instead of the bare "Loading..." strings.
-- [ ] Date formatting on the client (`Intl.DateTimeFormat` / relative time) since the server no longer formats.
+- [x] `<RequireAuth>` route wrapper replacing the copy-pasted `userParam`/`Navigate` blocks in `Editor`, `Profile`, `PostModal`, `SavedBuild`. Fix `/Editor` and `/test` navigations.
+- [x] Fix the `savedBuilds.length && ...` render-`0` bug (`length > 0 &&`).
+- [x] Wire up `deleteFriend`, `deleteBuild`, `updateThought`/`deleteThought` (owner only), `deleteReaction` in the UI.
+- [x] Token expiry: on `UNAUTHENTICATED` error from the Apollo error link, clear the token and redirect to `/login` with a message, instead of silently failing.
+- [x] Form validation with zod on signup/login/post (email format, password length, 280-char limit) with inline error messages that match server errors.
+- [x] Error boundaries around the routes and around each `<Canvas>` (a WebGL failure shouldn't blank the whole page).
+- [x] Empty states (no posts, no friends, no builds) and loading skeletons instead of the bare "Loading..." strings.
+- [x] Date formatting on the client (`Intl.DateTimeFormat` / relative time) since the server no longer formats.
 
 **Done when:** every row in `docs/BASELINE.md` is "works", including the previously missing features.
 
-### Phase 6 — UI / aesthetics modernization (2–3 days)
+### Phase 6 — UI / aesthetics modernization — DONE
 
 Goal: keep the Minecraft/pixel identity, drop the 2022-bootcamp look. Design once, then apply.
 
-- [ ] **Design tokens** in Tailwind v4 `@theme`: palette (dark stone/dirt neutrals + one accent, e.g. the existing `#736bdd` or a grass green), the Minecraft display font for headings only + a readable sans (Inter / system) for body text, spacing/radius scale, a "pixel border" utility (`image-rendering: pixelated` where wanted).
-- [ ] **Layout shell**: proper responsive header (logo, nav links, user menu) built with a real disclosure/menu component instead of the hand-rolled `MOBILE-MENU` hamburger; sticky footer; max-width content container. Consider `shadcn/ui` (Radix primitives + Tailwind) for Dialog, DropdownMenu, Toast, Tabs. Or native `<dialog>` + `sonner` for toasts if you want fewer deps.
-- [ ] **Home / feed**: post cards with build thumbnail, author avatar (generated from username), relative time, reaction count; "Add post" as a dialog; friend list as a sidebar card that collapses on mobile.
-- [ ] **Profile**: header card (username, friend count, add/remove friend button), tabs for Builds / Posts / Friends, build gallery of thumbnails that opens the 3D viewer in a dialog.
-- [ ] **Editor HUD**: crosshair; a 9-slot hotbar with block texture icons and the active slot highlighted (replacing the "Selected: Dirt" box); controls overlay on first entry (the existing `GameControls` content) with "click to play" that also requests pointer lock; save dialog with name field and thumbnail preview; pause state on pointer-lock exit.
-- [ ] **Auth pages**: centered card, proper labels, inline validation, password visibility toggle.
-- [ ] **Polish**: consistent focus rings, reduced-motion support, `prefers-color-scheme` respected (dark is default), page transitions kept subtle, favicon/manifest refreshed with the CHUNK'D logo, meta/OG tags.
-- [ ] Accessibility pass: semantic landmarks, labeled buttons (icon-only buttons need `aria-label`), keyboard-navigable menus/dialogs, color contrast ≥ 4.5:1 (the current gray-on-dark text fails).
+- [x] **Design tokens** in Tailwind v4 `@theme`: palette (dark stone/dirt neutrals + one accent, e.g. the existing `#736bdd` or a grass green), the Minecraft display font for headings only + a readable sans (Inter / system) for body text, spacing/radius scale, a "pixel border" utility (`image-rendering: pixelated` where wanted).
+- [x] **Layout shell**: proper responsive header (logo, nav links, user menu) built with a real disclosure/menu component instead of the hand-rolled `MOBILE-MENU` hamburger; sticky footer; max-width content container. Consider `shadcn/ui` (Radix primitives + Tailwind) for Dialog, DropdownMenu, Toast, Tabs. Or native `<dialog>` + `sonner` for toasts if you want fewer deps.
+- [x] **Home / feed**: post cards with build thumbnail, author avatar (generated from username), relative time, reaction count; "Add post" as a dialog; friend list as a sidebar card that collapses on mobile.
+- [x] **Profile**: header card (username, friend count, add/remove friend button), tabs for Builds / Posts / Friends, build gallery of thumbnails that opens the 3D viewer in a dialog.
+- [x] **Editor HUD**: crosshair; a 9-slot hotbar with block texture icons and the active slot highlighted (replacing the "Selected: Dirt" box); controls overlay on first entry (the existing `GameControls` content) with "click to play" that also requests pointer lock; save dialog with name field and thumbnail preview; pause state on pointer-lock exit.
+- [x] **Auth pages**: centered card, proper labels, inline validation, password visibility toggle.
+- [x] **Polish**: consistent focus rings, reduced-motion support, `prefers-color-scheme` respected (dark is default), page transitions kept subtle, favicon/manifest refreshed with the CHUNK'D logo, meta/OG tags.
+- [x] Accessibility pass: semantic landmarks, labeled buttons (icon-only buttons need `aria-label`), keyboard-navigable menus/dialogs, color contrast ≥ 4.5:1 (the current gray-on-dark text fails).
 
-**Done when:** every page has a before/after screenshot in `docs/`, Lighthouse Accessibility ≥ 95 and Performance ≥ 90 on `/`.
+**Done when:** every page has a before/after screenshot in `docs/`, Lighthouse Accessibility ≥ 95 and Performance ≥ 90 on `/`. Met: screenshots are in `docs/screenshots/`, and Lighthouse against the production build scores Accessibility 100 and Performance 93. `pnpm test:a11y` reports no WCAG 2.1 A or AA violations on any page.
 
 ### Phase 7 — Quality, tests, deployment (1 day)
 

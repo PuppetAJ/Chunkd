@@ -15,7 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu.tsx";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "../ui/sheet.tsx";
-import logo from "../../assets/Soul_Campfire.webp";
+// The 300px original is 87 KB for a 28px mark; this is the same art at 96px.
+import logo from "../../assets/Soul_Campfire_96.webp";
 
 /**
  * The site header.
