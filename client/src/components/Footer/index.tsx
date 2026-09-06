@@ -35,7 +35,7 @@ export default function Footer() {
 
         <a
           className="inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
-          href="https://github.com/PuppetAJ/ReactMC"
+          href="https://github.com/PuppetAJ/Chunkd"
           target="_blank"
           rel="noreferrer"
         >
