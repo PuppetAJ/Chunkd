@@ -12,10 +12,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PuppetAJ/ReactMC.git"
+    "url": "git+https://github.com/PuppetAJ/Chunkd.git"
   },
   "bugs": {
-    "url": "https://github.com/PuppetAJ/ReactMC/issues"
+    "url": "https://github.com/PuppetAJ/Chunkd/issues"
   },
   "scripts": {
     "dev": "pnpm --recursive --parallel --stream dev",
