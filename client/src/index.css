@@ -255,18 +255,6 @@
   position: relative;
 }
 
-#save-container {
-  height: 50%;
-  display: flex;
-  justify-content: center;
-}
-
-#save-wrapper {
-  width: 50%;
-  border: 1px solid var(--border);
-  filter: drop-shadow(0 0 0.75rem #000);
-}
-
 .hotbar {
   bottom: 75px;
   left: 10px;

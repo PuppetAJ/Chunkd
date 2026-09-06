@@ -34,6 +34,10 @@ interface Props {
   thought: Thought;
   /** The profile page already says whose posts these are. */
   showAuthor?: boolean;
+  /** The post's own page has the comments below it, so the link is pointless there. */
+  showCommentsLink?: boolean;
+  /** Lets the post's own page navigate away once the post is gone. */
+  onDeleted?: () => void;
 }
 
 /**
@@ -43,7 +47,12 @@ interface Props {
  * rather than in a dialog: the post is already the right size and shape to type
  * into, and a dialog would hide the thing being edited.
  */
-export default function ThoughtCard({ thought, showAuthor = true }: Props) {
+export default function ThoughtCard({
+  thought,
+  showAuthor = true,
+  showCommentsLink = true,
+  onDeleted,
+}: Props) {
   const me = useAuthStore((state) => state.user?.username ?? "");
   const author = thought.username ?? me;
   const isMine = Boolean(me) && author === me;
@@ -148,6 +157,7 @@ export default function ThoughtCard({ thought, showAuthor = true }: Props) {
         )}
       </div>
 
+      {showCommentsLink && (
       <footer className="border-t border-border px-2 py-1.5">
         <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
           <Link to={`/thought/${thought._id}`}>
@@ -158,6 +168,7 @@ export default function ThoughtCard({ thought, showAuthor = true }: Props) {
           </Link>
         </Button>
       </footer>
+      )}
 
       <AlertDialog open={confirmingDelete} onOpenChange={setConfirmingDelete}>
         <AlertDialogContent>
@@ -172,7 +183,10 @@ export default function ThoughtCard({ thought, showAuthor = true }: Props) {
             <AlertDialogCancel>Keep it</AlertDialogCancel>
             <AlertDialogAction
               disabled={deleting}
-              onClick={() => deleteThought({ variables: { thoughtId: thought._id } })}
+              onClick={async () => {
+                await deleteThought({ variables: { thoughtId: thought._id } });
+                onDeleted?.();
+              }}
             >
               Delete
             </AlertDialogAction>

@@ -333,10 +333,28 @@ check("Leave returns from the editor to the feed", page.url() === `${BASE}/`);
 await page.getByRole("link", { name: "My builds" }).first().click();
 await page.waitForURL("**/profile", { timeout: 15000 });
 await page.waitForTimeout(2500);
-check("profile page loads", (await page.locator("text=Welcome to Your Profile").count()) > 0);
+check("profile page loads", (await page.getByRole("tab", { name: "Builds" }).count()) > 0);
+
+// The saved build is listed, can be opened in the 3D viewer, and belongs to the
+// signed-in user so it offers a delete button. deleteBuild had no UI before.
+check("the saved build is listed on the profile", (await page.getByRole("button", { name: "Open" }).count()) > 0);
+await page.getByRole("button", { name: "Open" }).first().click();
+await page.waitForTimeout(3000);
+check("opening a build renders it in 3D", (await page.locator("[role=dialog] canvas").count()) > 0);
+await page.keyboard.press("Escape");
+await page.waitForTimeout(500);
+check("a build offers a delete button to its owner", (await page.getByRole("button", { name: /^Delete / }).count()) > 0);
+
+// Nothing has been posted yet at this point in the run, so the posts tab is
+// the place to check that an empty list explains itself instead of going blank.
+await page.getByRole("tab", { name: "Posts" }).click();
+await page.waitForTimeout(500);
+check("an empty posts tab explains itself", (await page.locator("text=No posts yet").count()) > 0);
+await page.getByRole("tab", { name: "Builds" }).click();
+await page.waitForTimeout(300);
 
 // --------------------------------------------------------------- posting a build
-await page.getByRole("button", { name: /Add Post/i }).click();
+await page.getByRole("button", { name: "New post" }).click();
 await page.waitForTimeout(2000);
 check("post dialog opens", (await page.locator('textarea[name="thoughtText"]').count()) > 0);
 
@@ -381,10 +399,18 @@ check("the post opens on its own page", /\/thought\//.test(page.url()), page.url
 check("the attached build renders in a canvas", (await page.locator("canvas").count()) > 0);
 
 // ------------------------------------------------------------------ commenting
-await page.fill("textarea", "Nice work");
-await page.getByRole("button", { name: /Submit|Add Reaction|Reply/i }).first().click();
+await page.fill('textarea[aria-label="Write a comment"]', "Nice work");
+await page.getByRole("button", { name: "Comment" }).click();
 await page.waitForTimeout(2500);
 check("a comment can be added", (await page.locator("text=Nice work").count()) > 0);
+
+// deleteReaction has existed on the API since the start and had no UI. Only
+// your own comments offer the button.
+check("your own comment offers a delete button", (await page.getByRole("button", { name: "Delete comment" }).count()) === 1);
+await page.getByRole("button", { name: "Delete comment" }).click();
+await page.waitForTimeout(2000);
+check("a comment can be deleted", (await page.locator("text=Nice work").count()) === 0);
+check("the empty comment list explains itself", (await page.locator("text=No comments yet").count()) > 0);
 
 // ---------------------------------------------------------------------- logout
 // Logging out moved into the account menu in the header.
