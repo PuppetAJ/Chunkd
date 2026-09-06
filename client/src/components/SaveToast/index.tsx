@@ -16,8 +16,8 @@ export default function SaveToast() {
     <div
       role="status"
       aria-live="polite"
-      className={`errorhandling fixed bottom-28 right-6 z-50 rounded ${
-        status === "error" ? "text-red-300" : ""
+      className={`fixed right-6 bottom-28 z-50 rounded-lg border border-border bg-card px-3 py-2 text-sm shadow-lg ${
+        status === "error" ? "text-destructive" : ""
       }`}
     >
       {message}

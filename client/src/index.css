@@ -211,7 +211,6 @@
   font-family: var(--font-display);
 }
 
-.errorhandling,
 .btn-minecraft {
   font-family: var(--font-display);
   background: var(--color-stone-panel);
@@ -224,10 +223,6 @@
   box-shadow:
     inset 3px 3px 0 rgba(255, 255, 255, 0.5),
     inset -3px -3px 0 rgba(0, 0, 0, 0.5);
-}
-
-.errorhandling {
-  padding: 0.5rem;
 }
 
 .btn-minecraft {

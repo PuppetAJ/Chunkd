@@ -150,10 +150,18 @@ export default function ThoughtCard({
         )}
 
         {thought.build && !editing && (
-          <p className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-            <Blocks className="size-3.5" />
-            {thought.build.name}
-          </p>
+          <Link
+            to={`/thought/${thought._id}`}
+            className="mt-3 block overflow-hidden rounded-lg border border-border transition-colors hover:border-primary/50"
+          >
+            {thought.build.thumbnail && (
+              <img src={thought.build.thumbnail} alt="" className="aspect-video w-full object-cover" />
+            )}
+            <span className="flex items-center gap-1.5 px-3 py-2 text-xs text-muted-foreground">
+              <Blocks className="size-3.5" />
+              {thought.build.name}
+            </span>
+          </Link>
         )}
       </div>
 

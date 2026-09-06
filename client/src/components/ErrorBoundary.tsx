@@ -28,11 +28,11 @@ export default class ErrorBoundary extends Component<Props, State> {
     if (this.state.error) {
       return (
         this.props.fallback ?? (
-          <div className="errorhandling m-auto my-8 flex w-3/4 max-w-lg flex-col items-center gap-3 p-6 text-center">
-            <p>Something went wrong on this page.</p>
+          <div className="mx-auto my-8 flex w-full max-w-lg flex-col items-center gap-4 rounded-xl border border-border bg-card p-8 text-center">
+            <p className="font-medium">Something went wrong on this page.</p>
             <button
               type="button"
-              className="btn-minecraft"
+              className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80"
               onClick={() => this.setState({ error: null })}
             >
               Try again
