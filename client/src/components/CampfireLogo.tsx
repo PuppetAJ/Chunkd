@@ -19,7 +19,7 @@ import fire96Still from "../assets/Campfire_96_still.webp";
  * loaded by the time anyone points at them.
  *
  * The swap is driven by `group-hover`, so it follows a hover anywhere on the
- * ancestor marked `group` — the whole wordmark link in the header, rather than
+ * ancestor marked `group`, which is the whole wordmark link in the header rather than
  * the 28 pixels of the icon.
  */
 

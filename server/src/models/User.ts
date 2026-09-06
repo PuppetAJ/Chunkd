@@ -13,8 +13,8 @@ export interface UserDocument {
   /**
    * The people this user follows.
    *
-   * This has always been a one-way list — adding someone put them here and
-   * nowhere else — so it was a following list wearing the word "friends". The
+   * This has always been a one-way list. Adding someone put them here and
+   * nowhere else, so it was a following list wearing the word "friends". The
    * name now says what it is. Followers are the reverse lookup: everyone whose
    * `following` contains this user.
    */

@@ -1,8 +1,8 @@
 /**
  * One-off migration: rename the `friends` array on every user to `following`.
  *
- * The field was always a one-way list — adding someone wrote to your document
- * and nobody else's — so this only changes what it is called, not what it
+ * The field was always a one-way list. Adding someone wrote to your document
+ * and nobody else's, so this only changes what it is called, not what it
  * holds. Nothing is lost and nothing is recomputed.
  *
  *   pnpm --filter server migrate:following

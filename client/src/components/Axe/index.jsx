@@ -17,7 +17,7 @@ import axeUrl from "../../assets/axe.glb";
 // and each brings a WebAssembly decoder: Draco's is fetched from Google's CDN
 // on every visit, Meshopt's is compiled inline. Both need a
 // Content-Security-Policy hole for 'wasm-unsafe-eval', and this model uses
-// neither compression — it is 5 KB of plain glTF. Draco was saving 1.3 KB on it.
+// neither compression. It is 5 KB of plain glTF, and Draco was saving 1.3 KB on it.
 export default function Axe(props) {
   const { nodes, materials } = useGLTF(axeUrl, false, false);
   return (
