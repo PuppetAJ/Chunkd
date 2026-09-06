@@ -159,6 +159,9 @@ export function generateTerrain(seed: number, size: number = WORLD_SIZE): Map<Bl
   const heightAt = createHeightField(seed);
   const blocks = new Map<BlockKey, number>();
 
+  // Preallocated deliberately. The grid is filled by index below, and the
+  // size is known, so growing the array element by element is wasted work.
+  // oxlint-disable-next-line no-new-array
   const heights: number[] = new Array(size * size);
   for (let x = 0; x < size; x += 1) {
     for (let z = 0; z < size; z += 1) {

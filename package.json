@@ -24,7 +24,7 @@
     "build": "pnpm --recursive build",
     "start": "pnpm --filter server start",
     "seed": "pnpm --filter server seed",
-    "lint": "pnpm --recursive lint",
+    "lint": "oxlint",
     "test": "pnpm --recursive test",
     "typecheck": "pnpm --recursive typecheck",
     "db:up": "docker compose up -d",
@@ -32,10 +32,12 @@
     "clean": "pnpm --recursive exec rm -rf node_modules dist build && rm -rf node_modules",
     "test:e2e": "node e2e/smoke.mjs",
     "test:prod": "node e2e/production.mjs",
-    "test:a11y": "node e2e/a11y.mjs"
+    "test:a11y": "node e2e/a11y.mjs",
+    "lint:fix": "oxlint --fix"
   },
   "devDependencies": {
     "axe-core": "^4.13.0",
+    "oxlint": "^1.81.0",
     "playwright": "^1.62.1"
   }
 }
