@@ -38,6 +38,11 @@ test-results/
 .vite/
 .eslintcache
 
+# Working notes: the refactor plan, the redesign write-up and its screenshots.
+# These document the rebuild for me rather than for anyone using the project,
+# so they stay on my machine instead of in the repository.
+docs/
+
 # Texture packs such as Sphax PureBDCraft or Ashen are free to download but
 # their licences forbid redistributing the files, so they must not be committed.
 # Drop one here and point VITE_TEXTURE_PACK at it to use it locally.
