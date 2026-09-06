@@ -108,11 +108,10 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
             <DialogTitle>{openBuild?.name}</DialogTitle>
           </DialogHeader>
           <div className="h-[60vh] min-h-64">
-            {openBuild && <SavedBuild buildId={openBuild._id} />}
+            {/* The dialog header already names the build, so the viewer does
+                not repeat it. */}
+            {openBuild && <SavedBuild buildId={openBuild._id} showName={false} />}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Drag to orbit &middot; shift and drag to pan &middot; scroll to zoom
-          </p>
         </DialogContent>
       </Dialog>
 
