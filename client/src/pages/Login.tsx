@@ -9,7 +9,7 @@ import { emailError, requestErrorMessage } from "../lib/credentials.ts";
 import { Button } from "../components/ui/button.tsx";
 import { Input } from "../components/ui/input.tsx";
 import { Label } from "../components/ui/label.tsx";
-import logo from "../assets/Soul_Campfire.webp";
+import logo from "../assets/Soul_Campfire_96.webp";
 
 /** One message per field, so a wrong password never looks like a bad email. */
 interface FieldErrors {

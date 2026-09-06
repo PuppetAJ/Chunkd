@@ -19,6 +19,7 @@ that stores accounts, posts, comments, friendships and saved worlds.
 |---|---|
 | Package manager | pnpm workspaces |
 | Client | React 19, Vite, Tailwind CSS v4, React Router |
+| Interface | shadcn/ui on Radix primitives, Lucide icons |
 | 3D | three.js, React Three Fiber, drei, Rapier physics |
 | Data | Apollo Client against a GraphQL API |
 | Server | Express 5, Apollo Server 5, Mongoose, TypeScript run directly by Node |
@@ -85,6 +86,7 @@ Run these from the repository root.
 | `pnpm seed` | Resets the database to example content |
 | `pnpm typecheck` | Type-checks both packages |
 | `pnpm test:e2e` | Drives a real browser through every route (needs `pnpm dev` running) |
+| `pnpm test:a11y` | Runs axe-core over every page and fails on any WCAG 2.1 A or AA violation (needs `pnpm dev` running) |
 | `pnpm db:up` / `pnpm db:down` | Starts and stops the MongoDB container |
 
 ## Deploying
@@ -134,7 +136,11 @@ why `.node-version` matters: it must stay at 22.18 or newer.
 | 1 to 9 | Choose a hotbar slot |
 | Scroll wheel | Move along the hotbar, wrapping at both ends |
 | E | Open the block inventory |
-| P | Save the current world |
+| P | Name and save the current world |
+| Esc | Release the mouse and pause |
+
+The editor opens on a pause screen listing all of this. Clicking plays, Escape
+comes back to it, and that screen is also where you leave the editor.
 
 A jump clears a little over one block, which leaves room to place a block under
 your own feet and build upwards.
@@ -180,8 +186,16 @@ they can be used locally this way but must never be committed.
 ```
 client/    React app. Vite, Tailwind, and the 3D editor.
 server/    GraphQL API. TypeScript, run directly by Node with no build step.
-e2e/       Browser smoke test covering every route.
+e2e/       Browser smoke test covering every route, plus an accessibility audit.
+docs/      The refactor plan's supporting notes, including the redesign.
 ```
+
+## Styling
+
+Every colour, radius and font on the site comes from tokens at the top of
+`client/src/index.css`. Change a hex value in the `:root` block and the whole
+site follows. `docs/REDESIGN.md` explains how that fits together with
+shadcn/ui, and has before-and-after screenshots of each page.
 
 ## Credits
 
