@@ -35,7 +35,10 @@ const user = {
 
 // ---------------------------------------------------------------- public pages
 await page.goto(BASE, { waitUntil: "networkidle" });
-check("feed renders for signed-out visitors", (await page.locator("text=Recent builds").count()) > 0);
+check(
+  "signed-out visitors get the landing page, not the feed",
+  (await page.getByRole("heading", { name: /Build a world in your browser/ }).count()) > 0,
+);
 check("signed-out header offers Log in", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
 
 // The campfire mark is two stacked animations that cross-fade: soul fire at
@@ -50,7 +53,15 @@ check("both campfires are loaded, one of them hidden", atRest.length === 2, JSON
 check("soul fire shows at rest", atRest[0] === 1 && atRest[1] === 0, JSON.stringify(atRest));
 
 await page.locator("header a").first().hover();
-await page.waitForTimeout(500);
+// The swap is a CSS transition, so this waits for it to finish rather than
+// guessing at a duration. A fixed wait caught it mid-fade once the landing
+// page's canvas started competing for the main thread.
+await page
+  .waitForFunction(() => {
+    const images = [...document.querySelectorAll("header a img")];
+    return images.length === 2 && getComputedStyle(images[1]).opacity === "1";
+  }, null, { timeout: 5000 })
+  .catch(() => {});
 const hovered = await flameOpacity();
 check("hovering the brand swaps to ordinary fire", hovered[0] === 0 && hovered[1] === 1, JSON.stringify(hovered));
 await page.mouse.move(0, 300);
@@ -627,13 +638,28 @@ await page.getByRole("button", { name: "Log in" }).click();
 await page.waitForURL(`${BASE}/`, { timeout: 15000 }).catch(() => {});
 check("the changed password logs the user back in", page.url() === `${BASE}/`, page.url());
 
+// ------------------------------------------------------------------- landing
+// Signed out, the root is a landing page rather than the feed, because a feed
+// of strangers' posts does not tell a first-time visitor what this is.
+await page.evaluate(() => localStorage.clear());
+await page.goto(BASE, { waitUntil: "networkidle" });
+await page.waitForTimeout(3000);
+check(
+  "signed out, the root explains what the app is",
+  (await page.getByRole("heading", { name: /Build a world in your browser/ }).count()) > 0,
+);
+check(
+  "the landing page offers a way in without an account",
+  (await page.getByRole("button", { name: /Try it without an account/ }).count()) > 0,
+);
+check(
+  "the landing page shows builds people have made",
+  (await page.locator('a[href^="/thought/"] img').count()) > 0,
+);
+
 // ------------------------------------------------------------- the demo account
 // The point of the demo button is that someone can look round without signing
-// up, so the checks start from a signed-out browser.
-await page.getByRole("button", { name: "Account menu" }).click();
-await page.getByRole("menuitem", { name: "Log out" }).click();
-await page.waitForTimeout(1500);
-
+// up, so these run on from the signed-out state above.
 await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
 check(
   "the login page offers the demo",
@@ -651,6 +677,10 @@ check("the demo button signs straight in", page.url() === `${BASE}/`, page.url()
 check(
   "the demo lands on the signed-in header",
   (await page.getByRole("link", { name: "Editor" }).first().count()) > 0,
+);
+check(
+  "signing in swaps the landing page for the feed",
+  (await page.getByRole("heading", { name: "Recent builds" }).count()) > 0,
 );
 
 // Everyone shares the account, so a change to its sign-in details would lock

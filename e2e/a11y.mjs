@@ -74,6 +74,11 @@ await audit("not found", "/definitely-not-a-page");
 // The world has to finish generating before the pause screen settles.
 await audit("editor pause screen", "/editor", 9000);
 
+// The root is a different page when nobody is signed in, and it is the one
+// most visitors see first, so it gets audited in that state too.
+await page.evaluate(() => localStorage.clear());
+await audit("landing (signed out)", "/", 4000);
+
 await browser.close();
 
 console.log(`\n${failures === 0 ? "no accessibility violations" : `${failures} violation type(s)`}`);

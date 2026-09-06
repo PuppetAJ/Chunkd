@@ -4,11 +4,13 @@ import SiteLayout from "./components/SiteLayout.tsx";
 import RequireAuth from "./components/RequireAuth.tsx";
 import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import Home from "./pages/Home.tsx";
+import Landing from "./pages/Landing.tsx";
 import Login from "./pages/Login.tsx";
 import Signup from "./pages/Signup.tsx";
 import NoMatch from "./pages/NoMatch.tsx";
 import EditorUnavailable from "./components/EditorUnavailable/index.tsx";
 import { useHasFinePointer } from "./lib/useHasFinePointer.ts";
+import { useAuthStore } from "./lib/auth.ts";
 
 // Three.js, the physics engine and its WebAssembly module together are larger
 // than everything else in the app combined. Loading these routes on demand keeps
@@ -23,7 +25,7 @@ export default function App() {
     <Routes>
       {/* Everything except the editor is a page inside the site shell. */}
       <Route element={<SiteLayout />}>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Root />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/thought/:id" element={<SingleThought />} />
@@ -60,6 +62,17 @@ export default function App() {
       <Route path="/editor" element={<EditorRoute />} />
     </Routes>
   );
+}
+
+/**
+ * The root is two different pages.
+ *
+ * Someone signed in wants the feed. Someone who has never been here wants to
+ * know what this is, and a feed of other people's posts does not tell them.
+ */
+function Root() {
+  const loggedIn = useAuthStore((state) => state.isLoggedIn);
+  return loggedIn ? <Home /> : <Landing />;
 }
 
 /**

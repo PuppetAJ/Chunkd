@@ -1,11 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { useApolloClient, useMutation } from "@apollo/client/react";
 import { Play } from "lucide-react";
 
-import { DEMO_LOGIN } from "../utils/mutations.ts";
-import { useAuthStore } from "../lib/auth.ts";
-import { requestErrorMessage } from "../lib/credentials.ts";
+import { useDemoLogin } from "../lib/useDemoLogin.ts";
 import { Button } from "./ui/button.tsx";
 
 /**
@@ -19,26 +14,7 @@ import { Button } from "./ui/button.tsx";
  * written out twice.
  */
 export default function DemoLoginButton() {
-  const logIn = useAuthStore((state) => state.logIn);
-  const navigate = useNavigate();
-  const apollo = useApolloClient();
-
-  const [demoLogin, { loading }] = useMutation(DEMO_LOGIN);
-  const [error, setError] = useState("");
-
-  const handleClick = async () => {
-    setError("");
-    try {
-      const { data } = await demoLogin();
-      logIn((data as { demoLogin: { token: string } }).demoLogin.token);
-      // Drop anything cached for the logged-out visitor, the same as a normal
-      // sign-in does.
-      await apollo.resetStore();
-      navigate("/", { replace: true });
-    } catch (requestError) {
-      setError(requestErrorMessage(requestError));
-    }
-  };
+  const { startDemo, loading, error } = useDemoLogin();
 
   return (
     <div className="mt-6">
@@ -54,7 +30,7 @@ export default function DemoLoginButton() {
         type="button"
         variant="outline"
         className="mt-4 w-full"
-        onClick={handleClick}
+        onClick={startDemo}
         disabled={loading}
       >
         <Play />
