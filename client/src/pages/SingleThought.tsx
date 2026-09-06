@@ -55,15 +55,9 @@ export default function SingleThought() {
           The feed shows a still image; this is where it becomes something you
           can turn around. */}
       {thought.build && (
-        <figure className="space-y-2">
-          <div className="h-[min(62vh,34rem)] min-h-72">
-            <SavedBuild buildId={thought.build._id} />
-          </div>
-          <figcaption className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">{thought.build.name}</span>
-            <span>Drag to orbit &middot; shift and drag to pan &middot; scroll to zoom</span>
-          </figcaption>
-        </figure>
+        <div className="h-[min(62vh,34rem)] min-h-72">
+          <SavedBuild buildId={thought.build._id} />
+        </div>
       )}
 
       <ThoughtCard

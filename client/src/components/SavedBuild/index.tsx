@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Preload, Sky } from "@react-three/drei";
+import { Grid, OrbitControls, Preload } from "@react-three/drei";
 import { useQuery } from "@apollo/client/react";
 
 import World from "../World/index.tsx";
@@ -12,6 +12,11 @@ import { WORLD_SIZE } from "../../lib/voxel/terrain.ts";
 
 interface Props {
   buildId: string;
+  /**
+   * Show the build's name in the corner of the viewer. Off where the name is
+   * already on screen, such as a dialog that has it in its header.
+   */
+  showName?: boolean;
   /**
    * Turn the build slowly on its own. Used by the landing page, where the
    * viewer is something to look at rather than something to operate.
@@ -24,6 +29,8 @@ interface Bounds {
   centre: [number, number, number];
   /** Radius of the sphere that contains every block. */
   radius: number;
+  /** The underside of the build, which is where the floor grid is drawn. */
+  minY: number;
 }
 
 /**
@@ -54,7 +61,7 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
 
   if (minX === Infinity) {
     const half = WORLD_SIZE / 2;
-    return { centre: [half, half, half], radius: half };
+    return { centre: [half, half, half], radius: half, minY: 0 };
   }
 
   // Blocks are placed by their centre and are one unit across, so the solid
@@ -68,6 +75,7 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
   return {
     centre: [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2],
     radius: Math.hypot(half[0], half[1], half[2]),
+    minY: minY - 0.5,
   };
 }
 
@@ -78,13 +86,14 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
  * second copy of the block-drawing code to keep in step. It fetches the block
  * data itself, which is why listing builds elsewhere costs nothing.
  */
-export default function SavedBuild({ buildId, autoRotate = false }: Props) {
+export default function SavedBuild({ buildId, autoRotate = false, showName = true }: Props) {
   const { loading, error, data } = useQuery(QUERY_BUILD, {
     variables: { id: buildId },
     skip: !buildId,
   });
 
-  const payload = (data as { build?: { data?: string } } | undefined)?.build?.data;
+  const build = (data as { build?: { data?: string; name?: string } } | undefined)?.build;
+  const payload = build?.data;
   const world = useMemo(() => (payload ? deserializeWorld(payload) : null), [payload]);
   const bounds = useMemo(() => (world ? measure(world.blocks) : null), [world]);
 
@@ -120,7 +129,7 @@ export default function SavedBuild({ buildId, autoRotate = false }: Props) {
   // The component fills whatever box it is given. It used to carry its own
   // fixed 50%-of-the-page sizing, which was wrong everywhere it was reused.
   return (
-    <div className="h-full w-full overflow-hidden rounded-lg border border-border bg-background">
+    <div className="relative h-full w-full overflow-hidden rounded-lg border border-border bg-[#0d0c10]">
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -137,6 +146,23 @@ export default function SavedBuild({ buildId, autoRotate = false }: Props) {
           <BuildScene world={world.blocks} bounds={bounds} autoRotate={autoRotate} />
         </Suspense>
       </Canvas>
+
+      {/* Chrome drawn over the canvas rather than under it, so the viewer reads
+          as a piece of the page instead of an embedded object. It never takes
+          the pointer, because every gesture here belongs to the controls. */}
+      <div className="pointer-events-none absolute inset-0 p-3 sm:p-4">
+        {showName && build?.name && (
+          <div>
+            <p className="font-mono text-[0.625rem] tracking-[0.2em] text-muted-foreground uppercase">
+              Saved build
+            </p>
+            <p className="mt-0.5 font-display text-lg text-foreground/90">{build.name}</p>
+          </div>
+        )}
+        <p className="absolute right-3 bottom-3 font-mono text-[0.625rem] tracking-[0.15em] text-muted-foreground uppercase sm:right-4 sm:bottom-4">
+          Drag to orbit &middot; shift drag to pan &middot; scroll to zoom
+        </p>
+      </div>
     </div>
   );
 }
@@ -157,9 +183,28 @@ function BuildScene({
   return (
     <>
       <Preload all />
-      <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
-      {/* Blocks carry their own face shading; the sun adds the cast shadows. */}
-      <ambientLight intensity={1.5} />
+      {/* A dark studio rather than a sky. The bright sky was the one element on
+          the page fighting the rest of the interface, and a build reads better
+          as an object on a floor than as a piece of landscape in daylight. */}
+      <color attach="background" args={["#0d0c10"]} />
+      <Grid
+        // Sits just under the lowest block, so a build stands on the floor
+        // rather than hovering over it or sinking into it.
+        position={[cx, bounds.minY, cz]}
+        infiniteGrid
+        cellSize={1}
+        cellThickness={0.5}
+        cellColor="#26252c"
+        sectionSize={8}
+        sectionThickness={1}
+        sectionColor="#413f4d"
+        fadeDistance={extent * 10}
+        fadeStrength={1.5}
+      />
+      {/* Blocks carry their own face shading; the sun adds the cast shadows.
+          Ambient is higher than the editor's because there is no sky bouncing
+          light back, so without it the shaded faces went to near black. */}
+      <ambientLight intensity={2.1} />
       <primitive object={lightTarget} position={[cx, cy, cz]} />
       <directionalLight
         castShadow
