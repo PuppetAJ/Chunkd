@@ -1,6 +1,4 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
-import { ChevronLeft, Keyboard } from "lucide-react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { PointerLockControls, Preload, Sky } from "@react-three/drei";
@@ -13,8 +11,9 @@ import Inventory from "../components/Inventory/index.tsx";
 import SaveToast from "../components/SaveToast/index.tsx";
 import Crosshair from "../components/Crosshair/index.tsx";
 import FlightIndicator from "../components/FlightIndicator/index.tsx";
-import GameControlsModal from "../components/GameControls/index.jsx";
-import { Button } from "../components/ui/button.tsx";
+import EditorPause from "../components/EditorPause/index.tsx";
+import SaveBuildDialog from "../components/SaveBuildDialog/index.tsx";
+import { useEditorUiStore } from "../lib/editorUiStore.ts";
 import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
 import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
@@ -30,22 +29,57 @@ export default function Editor() {
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   const [inventoryOpen, setInventoryOpen] = useState(false);
-  // The site header used to carry a "Controls" button that appeared only on
-  // this route. The editor no longer renders the header, so the button and the
-  // way back out of the editor both belong to this overlay now.
-  const [controlsOpen, setControlsOpen] = useState(false);
+  const [everPlayed, setEverPlayed] = useState(false);
+
+  const playing = useEditorUiStore((state) => state.playing);
+  const setPlaying = useEditorUiStore((state) => state.setPlaying);
+  const pendingSave = useEditorUiStore((state) => state.pendingSave);
 
   // Zooming the page moves the crosshair away from where the player is aiming.
   useSuppressZoomGestures(true);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      // Typing a build name should not also open the inventory.
+      if (useEditorUiStore.getState().pendingSave) return;
       if (event.code === "KeyE") setInventoryOpen((open) => !open);
-      if (event.code === "Escape") setInventoryOpen(false);
+      if (event.code === "Escape") {
+        setInventoryOpen(false);
+        // When the mouse really is locked the browser releases it and the
+        // pointerlockchange handler below pauses. When the lock was never
+        // granted there is no such event, and without this Escape would do
+        // nothing and the pause screen would be unreachable.
+        if (!document.pointerLockElement) setPlaying(false);
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [setPlaying]);
+
+  // Escape hands the mouse back, which is the browser's way of pausing. The
+  // editor follows it rather than the other way round.
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.pointerLockElement) setPlaying(false);
+    };
+    document.addEventListener("pointerlockchange", onChange);
+    return () => {
+      document.removeEventListener("pointerlockchange", onChange);
+      // Leaving the route should not leave the store thinking a game is running.
+      setPlaying(false);
+    };
+  }, [setPlaying]);
+
+  const startPlaying = () => {
+    setEverPlayed(true);
+    setPlaying(true);
+    // The pause screen covers the canvas, so drei's own click-to-lock never
+    // sees the click that dismissed it. Ask for the lock directly instead; a
+    // browser that refuses (an automated one always does) simply leaves the
+    // editor in mouse-look-less mode rather than trapping the player on the
+    // pause screen.
+    document.querySelector("#editor canvas")?.requestPointerLock?.();
+  };
 
   // Mouse-look holds the pointer, which hides the cursor the inventory needs.
   useEffect(() => {
@@ -110,36 +144,23 @@ export default function Editor() {
           <Player body={body} />
           <SaveControls />
         </Suspense>
-        {/* Mouse-look would fight the cursor while the inventory is open. */}
-        {!inventoryOpen && <PointerLockControls />}
+        {/* Mouse-look would fight the cursor while the inventory or the save
+            dialog is open, and there is nothing to look at while paused. */}
+        {!inventoryOpen && !pendingSave && <PointerLockControls />}
       </Canvas>
-
-      {/* The bar ignores the pointer so a click meant for the world is not
-          swallowed by empty space; only the buttons themselves take clicks. */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-start justify-between gap-2 p-3">
-        <Button asChild variant="secondary" size="sm" className="pointer-events-auto">
-          <Link to="/">
-            <ChevronLeft />
-            Leave
-          </Link>
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="pointer-events-auto"
-          onClick={() => setControlsOpen(true)}
-        >
-          <Keyboard />
-          Controls
-        </Button>
-      </div>
 
       <Crosshair />
       <FlightIndicator />
       <Hotbar />
       <SaveToast />
       {inventoryOpen && <Inventory onClose={() => setInventoryOpen(false)} />}
-      {controlsOpen && <GameControlsModal setModalOn={setControlsOpen} />}
+      <SaveBuildDialog />
+
+      {/* The pause screen would otherwise stack on top of the two things that
+          legitimately take the mouse away from the world. */}
+      {!playing && !inventoryOpen && !pendingSave && (
+        <EditorPause firstVisit={!everPlayed} onPlay={startPlaying} />
+      )}
     </>
   );
 }

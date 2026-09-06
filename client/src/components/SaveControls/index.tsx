@@ -1,25 +1,20 @@
 import { useCallback } from "react";
 import { useThree } from "@react-three/fiber";
-import { useMutation } from "@apollo/client/react";
-
-import { SAVE_BUILD } from "../../utils/mutations.ts";
-import { QUERY_ME } from "../../utils/queries.ts";
 import { useKeyPress } from "../../lib/useKeyboard.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
-import { BUILD_FORMAT_VERSION } from "../../lib/voxel/format.ts";
 import { useEditorUiStore } from "../../lib/editorUiStore.ts";
 
 const THUMBNAIL_WIDTH = 480;
 
 /**
- * Saves the world when P is pressed.
+ * Captures the world when P is pressed.
  *
- * Lives inside the Canvas because taking the thumbnail needs the renderer.
+ * Lives inside the Canvas because taking the thumbnail needs the renderer. It
+ * does not save: it hands the encoded world and the picture to the naming
+ * dialog, which lives outside the canvas because it needs ordinary DOM focus.
  */
 export default function SaveControls() {
   const { gl, scene, camera } = useThree();
-  const setSaveStatus = useEditorUiStore((state) => state.setSaveStatus);
-  const [saveBuild] = useMutation(SAVE_BUILD, { refetchQueries: [QUERY_ME] });
 
   const captureThumbnail = useCallback((): string | undefined => {
     try {
@@ -42,23 +37,17 @@ export default function SaveControls() {
     }
   }, [gl, scene, camera]);
 
-  useKeyPress(async (code) => {
+  useKeyPress((code) => {
     if (code !== "KeyP") return;
-    if (useEditorUiStore.getState().saveStatus === "saving") return;
+    const ui = useEditorUiStore.getState();
+    if (ui.saveStatus === "saving" || ui.pendingSave) return;
 
-    setSaveStatus("saving", "Saving...");
-    try {
-      const data = useWorldStore.getState().serialize();
-      const thumbnail = captureThumbnail();
-      await saveBuild({
-        variables: { name: "Untitled build", data, thumbnail, format: BUILD_FORMAT_VERSION },
-      });
-      setSaveStatus("saved", "Build saved");
-    } catch (error) {
-      setSaveStatus("error", error instanceof Error ? error.message : "Could not save");
-    } finally {
-      window.setTimeout(() => useEditorUiStore.getState().setSaveStatus("idle"), 2500);
-    }
+    // Typing a name needs the cursor back.
+    if (document.pointerLockElement) document.exitPointerLock();
+    ui.setPendingSave({
+      data: useWorldStore.getState().serialize(),
+      thumbnail: captureThumbnail(),
+    });
   });
 
   return null;

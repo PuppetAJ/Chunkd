@@ -116,14 +116,15 @@ check("the editor renders no site header", (await page.locator("header").count()
 check("the editor renders no site footer", (await page.locator("footer").count()) === 0);
 const editorCanvas = await page.locator("#editor canvas").boundingBox();
 check("the canvas fills the window", editorCanvas !== null && editorCanvas.y === 0, JSON.stringify(editorCanvas));
-check("the editor offers a way back out", (await page.getByRole("link", { name: "Leave" }).count()) > 0);
+// The editor opens on its own pause screen, which is where the controls and
+// the way back out live now that there is no site header.
+check("the editor opens paused", (await page.getByRole("button", { name: "Click to play" }).count()) > 0);
+check("the pause screen lists the controls", (await page.locator("text=Open the block inventory").count()) > 0);
+check("the pause screen offers a way back out", (await page.getByRole("link", { name: "Leave the editor" }).count()) > 0);
 
-// The controls used to hang off the site header, which the editor no longer has.
-await page.getByRole("button", { name: "Controls" }).click();
-await page.waitForTimeout(400);
-check("the editor's own Controls button opens the help", (await page.locator("text=Left-Click").count()) > 0);
-await page.getByRole("button", { name: "Back" }).click();
-await page.waitForTimeout(300);
+await page.getByRole("button", { name: "Click to play" }).click();
+await page.waitForTimeout(500);
+check("clicking to play dismisses the pause screen", (await page.getByRole("button", { name: "Click to play" }).count()) === 0);
 
 // Pin the world. A fresh editor seeds itself at random, so where the player
 // lands, and therefore whether a given camera angle can legally place a block,
@@ -317,7 +318,14 @@ check("orientation does not disturb the block id", axisAt.every((one) => one.id 
 
 // P saves the world. The key state is sampled inside the render loop, so a
 // press has to last longer than a frame to be seen.
+// P captures the world and opens the naming dialog. Every build used to be
+// saved as "Untitled build" because a keypress had nowhere to type a name.
 await page.keyboard.press("p");
+await page.waitForTimeout(1200);
+check("saving asks for a name", (await page.locator("#buildName").count()) > 0);
+check("the dialog previews the captured view", (await page.locator('[role=dialog] img').count()) > 0);
+await page.fill("#buildName", "Ridge fort");
+await page.getByRole("button", { name: "Save build" }).click();
 // The confirmation clears itself after a couple of seconds, so look while it
 // is still on screen.
 await page.waitForTimeout(1500);
@@ -326,8 +334,10 @@ await page.waitForTimeout(2000);
 
 // -------------------------------------------------------------------- profile
 // The editor is outside the site shell now, so there is no header to click.
-// Leaving it is how you get back to the rest of the site.
-await page.getByRole("link", { name: "Leave" }).click();
+// Escape pauses, and leaving is done from the pause screen.
+await page.keyboard.press("Escape");
+await page.waitForTimeout(400);
+await page.getByRole("link", { name: "Leave the editor" }).click();
 await page.waitForURL(`${BASE}/`, { timeout: 15000 });
 check("Leave returns from the editor to the feed", page.url() === `${BASE}/`);
 await page.getByRole("link", { name: "My builds" }).first().click();
@@ -338,6 +348,7 @@ check("profile page loads", (await page.getByRole("tab", { name: "Builds" }).cou
 // The saved build is listed, can be opened in the 3D viewer, and belongs to the
 // signed-in user so it offers a delete button. deleteBuild had no UI before.
 check("the saved build is listed on the profile", (await page.getByRole("button", { name: "Open" }).count()) > 0);
+check("the build kept the name it was given", (await page.locator("text=Ridge fort").count()) > 0);
 await page.getByRole("button", { name: "Open" }).first().click();
 await page.waitForTimeout(3000);
 check("opening a build renders it in 3D", (await page.locator("[role=dialog] canvas").count()) > 0);

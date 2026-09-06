@@ -6,7 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary.tsx";
 import Home from "./pages/Home.tsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
-import NoMatch from "./pages/NoMatch.jsx";
+import NoMatch from "./pages/NoMatch.tsx";
 
 // Three.js, the physics engine and its WebAssembly module together are larger
 // than everything else in the app combined. Loading these routes on demand keeps

@@ -56,11 +56,22 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
     <>
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {builds.map((build) => (
-          <li key={build._id} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <Blocks className="size-5 text-muted-foreground" />
-              </span>
+          <li key={build._id} className="overflow-hidden rounded-xl border border-border bg-card">
+            {/* The picture was taken from wherever the player was standing when
+                they saved, so it is the fastest way to tell two worlds apart. */}
+            {build.thumbnail ? (
+              <img
+                src={build.thumbnail}
+                alt=""
+                className="aspect-video w-full border-b border-border object-cover"
+              />
+            ) : (
+              <div className="flex aspect-video w-full items-center justify-center border-b border-border bg-muted">
+                <Blocks className="size-6 text-muted-foreground" />
+              </div>
+            )}
+
+            <div className="p-4">
               <div className="min-w-0">
                 <p className="truncate font-medium">{build.name}</p>
                 {build.createdAt && (
@@ -69,23 +80,23 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
                   </p>
                 )}
               </div>
-            </div>
 
-            <div className="mt-4 flex items-center gap-2">
-              <Button size="sm" variant="outline" onClick={() => setOpenBuild(build)}>
-                Open
-              </Button>
-              {canManage && (
-                <Button
-                  size="icon-sm"
-                  variant="ghost"
-                  className="ml-auto text-muted-foreground hover:text-destructive"
-                  aria-label={`Delete ${build.name}`}
-                  onClick={() => setBuildToDelete(build)}
-                >
-                  <Trash2 />
+              <div className="mt-4 flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setOpenBuild(build)}>
+                  Open
                 </Button>
-              )}
+                {canManage && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    className="ml-auto text-muted-foreground hover:text-destructive"
+                    aria-label={`Delete ${build.name}`}
+                    onClick={() => setBuildToDelete(build)}
+                  >
+                    <Trash2 />
+                  </Button>
+                )}
+              </div>
             </div>
           </li>
         ))}

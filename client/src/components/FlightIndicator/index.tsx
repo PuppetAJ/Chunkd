@@ -9,7 +9,7 @@ export default function FlightIndicator() {
     <div
       role="status"
       aria-live="polite"
-      className="errorhandling pointer-events-none fixed left-6 top-24 z-50 rounded"
+      className="pointer-events-none fixed top-6 left-6 z-50 rounded-lg border border-border bg-card/90 px-3 py-2 text-sm shadow-lg"
     >
       Flying &middot; space up, shift down
     </div>
