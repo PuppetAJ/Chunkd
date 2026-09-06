@@ -9,7 +9,7 @@ import { emailError, requestErrorMessage } from "../lib/credentials.ts";
 import { Button } from "../components/ui/button.tsx";
 import { Input } from "../components/ui/input.tsx";
 import { Label } from "../components/ui/label.tsx";
-import logo from "../assets/Soul_Campfire_96.webp";
+import CampfireLogo from "../components/CampfireLogo.tsx";
 
 /** One message per field, so a wrong password never looks like a bad email. */
 interface FieldErrors {
@@ -156,7 +156,7 @@ export function AuthShell({
 }) {
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center py-8">
-      <img src={logo} alt="" className="size-12" />
+      <CampfireLogo size="lg" className="size-12" />
       <h1 className="mt-4 font-display text-2xl">{title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
 

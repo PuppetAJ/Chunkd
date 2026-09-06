@@ -15,8 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu.tsx";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "../ui/sheet.tsx";
-// The 300px original is 87 KB for a 28px mark; this is the same art at 96px.
-import logo from "../../assets/Soul_Campfire_96.webp";
+import CampfireLogo from "../CampfireLogo.tsx";
 
 /**
  * The site header.
@@ -59,8 +58,13 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-sm">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-4">
-        <Link to="/" className="flex items-center gap-2 rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none">
-          <img src={logo} alt="" className="size-7" />
+        {/* "group" is what lets the campfire react to a hover anywhere on the
+            brand, not only on the icon itself. */}
+        <Link
+          to="/"
+          className="group flex items-center gap-2 rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          <CampfireLogo size="sm" className="size-7" />
           <span className="font-display text-lg tracking-wide">CHUNK&apos;D</span>
         </Link>
 
