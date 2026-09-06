@@ -56,6 +56,20 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
           Click to play
         </Button>
 
+        {/* The way out is a button of its own rather than a footnote. Getting
+            stuck in a pointer-locked full-screen view with no visible exit is
+            the easiest way to lose someone. */}
+        <Button asChild variant="outline" size="lg" className="mt-2 w-full">
+          <Link to="/">
+            <ChevronLeft />
+            Leave the editor
+          </Link>
+        </Button>
+
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          Press Esc at any time to pause and come back to this screen.
+        </p>
+
         <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
           {CONTROLS.map(([key, description]) => (
             <div key={key} className="contents">
@@ -89,13 +103,6 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
           </a>
           . Not an official Minecraft product.
         </p>
-
-        <Button asChild variant="ghost" size="sm" className="mt-4 -ml-2 text-muted-foreground">
-          <Link to="/">
-            <ChevronLeft />
-            Leave the editor
-          </Link>
-        </Button>
       </div>
     </div>
   );

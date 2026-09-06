@@ -39,12 +39,35 @@ interface EditorUiState {
   setPlaying: (playing: boolean) => void;
 
   /**
+   * Whether the block inventory is open.
+   *
+   * It lives here rather than in the editor's own state because pausing has to
+   * know about it: the inventory is a menu, and the player should not keep
+   * walking behind it.
+   */
+  inventoryOpen: boolean;
+  setInventoryOpen: (open: boolean) => void;
+
+  /**
    * Set when the world has been captured and the naming dialog should open.
    * Capturing has to happen inside the canvas, but naming happens outside it,
    * so the two halves meet here.
    */
   pendingSave: PendingSave | null;
   setPendingSave: (pending: PendingSave | null) => void;
+}
+
+/**
+ * Whether the world should be standing still.
+ *
+ * Read outside React, from the frame loop and the input handlers, so it is a
+ * plain function rather than a hook. Three things stop the world: the pause
+ * screen, the naming dialog and the inventory. Without the second, typing "w"
+ * into a build name walked the player off the ledge they were photographing.
+ */
+export function isEditorPaused(): boolean {
+  const state = useEditorUiStore.getState();
+  return !state.playing || state.pendingSave !== null || state.inventoryOpen;
 }
 
 export const useEditorUiStore = create<EditorUiState>((set) => ({
@@ -57,6 +80,9 @@ export const useEditorUiStore = create<EditorUiState>((set) => ({
 
   playing: false,
   setPlaying: (playing) => set({ playing }),
+
+  inventoryOpen: false,
+  setInventoryOpen: (inventoryOpen) => set({ inventoryOpen }),
 
   pendingSave: null,
   setPendingSave: (pendingSave) => set({ pendingSave }),

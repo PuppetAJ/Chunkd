@@ -24,6 +24,24 @@ import {
 const MAX_BUILD_BYTES = 512 * 1024;
 const MAX_THUMBNAIL_BYTES = 256 * 1024;
 
+// How many posts one request may ask for. The default is a screenful or two;
+// the ceiling stops a client asking for the entire collection in one go.
+const DEFAULT_FEED_LIMIT = 10;
+const MAX_FEED_LIMIT = 50;
+
+function feedWindow(args: { limit?: number | null; offset?: number | null }) {
+  const limit = Math.min(Math.max(args.limit ?? DEFAULT_FEED_LIMIT, 1), MAX_FEED_LIMIT);
+  const offset = Math.max(args.offset ?? 0, 0);
+  return { limit, offset };
+}
+
+/** Mongo reports a unique-index collision as error code 11000. */
+function isDuplicateKeyError(error: unknown): boolean {
+  return (
+    error !== null && typeof error === "object" && "code" in error && error.code === 11000
+  );
+}
+
 function toObjectId(value: string, label: string): Types.ObjectId {
   if (!Types.ObjectId.isValid(value)) {
     throw badRequest(`${label} is not a valid id.`);
@@ -43,15 +61,23 @@ export const resolvers = {
     user: async (_parent: unknown, args: { username: string }) =>
       User.findOne({ username: args.username }),
 
-    thoughts: async (_parent: unknown, args: { username?: string | null }) => {
+    thoughts: async (
+      _parent: unknown,
+      args: { username?: string | null; limit?: number | null; offset?: number | null },
+    ) => {
+      const { limit, offset } = feedWindow(args);
+
       // Filtering by username means one extra lookup, because thoughts store the
       // author's id rather than a copy of their name.
       if (args.username) {
         const author = await User.findOne({ username: args.username }).select("_id");
         if (!author) return [];
-        return Thought.find({ author: author._id }).sort({ createdAt: -1 });
+        return Thought.find({ author: author._id })
+          .sort({ createdAt: -1 })
+          .skip(offset)
+          .limit(limit);
       }
-      return Thought.find().sort({ createdAt: -1 });
+      return Thought.find().sort({ createdAt: -1 }).skip(offset).limit(limit);
     },
 
     thought: async (_parent: unknown, args: { _id: string }) =>
@@ -134,9 +160,8 @@ export const resolvers = {
         const user = await User.create(args);
         return { token: signToken(user), user };
       } catch (error) {
-        // Mongo reports a unique-index collision as error code 11000. Without
-        // this the client saw a raw driver error mentioning the index name.
-        if (error && typeof error === "object" && "code" in error && error.code === 11000) {
+        // Without this the client saw a raw driver error naming the index.
+        if (isDuplicateKeyError(error)) {
           throw badRequest("That username or email address is already taken.");
         }
         // A password that is too short, or a username that is, is the person's
@@ -262,6 +287,62 @@ export const resolvers = {
       reaction.deleteOne();
       await thought.save();
       return thought;
+    },
+
+    updateAccount: async (
+      _parent: unknown,
+      args: { username?: string | null; email?: string | null },
+      context: GraphQLContext,
+    ) => {
+      const auth = requireAuth(context);
+      const user = await User.findById(auth._id);
+      if (!user) throw notFound("Your account no longer exists.");
+
+      if (args.username !== undefined && args.username !== null) user.username = args.username;
+      if (args.email !== undefined && args.email !== null) user.email = args.email;
+
+      try {
+        await user.save();
+      } catch (error) {
+        // A duplicate username or email arrives as a Mongo key error rather
+        // than a validation error, so it needs saying in plain words.
+        if (isDuplicateKeyError(error)) {
+          throw badRequest("That username or email is already taken.");
+        }
+        throw asUserInputError(error) ?? error;
+      }
+
+      // The name and email live inside the token, so the old one is now wrong.
+      return { token: signToken(user), user };
+    },
+
+    changePassword: async (
+      _parent: unknown,
+      args: { currentPassword: string; newPassword: string },
+      context: GraphQLContext,
+    ) => {
+      const auth = requireAuth(context);
+      const user = await User.findById(auth._id);
+      if (!user) throw notFound("Your account no longer exists.");
+
+      // Knowing the current password is what stops a stolen token being enough
+      // to take an account over permanently.
+      if (!(await user.isCorrectPassword(args.currentPassword))) {
+        throw badRequest("That is not your current password.");
+      }
+      if (args.currentPassword === args.newPassword) {
+        throw badRequest("Your new password must be different from the old one.");
+      }
+
+      // The model hashes on save, so this is assigned in the clear on purpose.
+      user.password = args.newPassword;
+      try {
+        await user.save();
+      } catch (error) {
+        throw asUserInputError(error) ?? error;
+      }
+
+      return { token: signToken(user), user };
     },
 
     addFriend: async (

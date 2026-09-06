@@ -8,6 +8,7 @@ import { type BlockKey } from "../../lib/voxel/coords.ts";
 import { buildRenderLayers, groupVisible } from "../../lib/voxel/render.ts";
 import { axisForFaceNormal } from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
+import { isEditorPaused } from "../../lib/editorUiStore.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
 import { blockOverlapsPlayer, type Body } from "../../lib/voxel/collision.ts";
 
@@ -199,6 +200,12 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
   useFrame(() => {
     if (!editable || !groupRef.current) return;
+    if (isEditorPaused()) {
+      // A button still down when the world paused must not keep digging.
+      heldButton.current = null;
+      clearTarget();
+      return;
+    }
 
     const now = performance.now();
     if (heldButton.current !== null && now >= nextActionAt.current) {
@@ -216,6 +223,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     // Listening on the canvas covers both mouse buttons. React's onClick only
     // fires for the primary button, which is why placing a block never worked.
     const onPointerDown = (event: PointerEvent) => {
+      if (isEditorPaused()) return;
       heldButton.current = event.button;
       // Act now rather than waiting for the next frame. A quick click can send
       // both press and release inside a single frame, and deferring meant such

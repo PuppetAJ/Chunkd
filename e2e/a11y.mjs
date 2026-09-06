@@ -67,6 +67,7 @@ async function audit(label, path, settleMs = 1500) {
 
 await audit("feed", "/");
 await audit("profile", "/profile");
+await audit("settings", "/settings");
 await audit("login", "/login");
 await audit("signup", "/signup");
 await audit("not found", "/definitely-not-a-page");

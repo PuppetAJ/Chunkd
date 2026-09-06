@@ -24,6 +24,33 @@ export const ADD_USER = gql`
   }
 `;
 
+// Both of these hand back a fresh token: the username and email are baked into
+// the old one, so it is wrong the moment either changes.
+export const UPDATE_ACCOUNT = gql`
+  mutation updateAccount($username: String, $email: String) {
+    updateAccount(username: $username, email: $email) {
+      token
+      user {
+        _id
+        username
+        email
+      }
+    }
+  }
+`;
+
+export const CHANGE_PASSWORD = gql`
+  mutation changePassword($currentPassword: String!, $newPassword: String!) {
+    changePassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+      token
+      user {
+        _id
+        username
+      }
+    }
+  }
+`;
+
 export const ADD_FRIEND = gql`
   mutation addFriend($id: ID!) {
     addFriend(friendId: $id) {

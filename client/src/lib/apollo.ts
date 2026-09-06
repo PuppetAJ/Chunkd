@@ -37,7 +37,32 @@ export const apolloClient = new ApolloClient({
   // Requests travel down this list in order: error handling, then the auth
   // header, then the actual HTTP call.
   link: ApolloLink.from([errorLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          thoughts: {
+            // Two feeds with different `username` filters are different lists
+            // and must not be merged together. `limit` and `offset` describe a
+            // window into one list, so they are not part of its identity.
+            keyArgs: ["username"],
+
+            // Each page is written at the offset it was asked for, so pages
+            // arriving out of order still land in the right place and a page
+            // fetched twice overwrites itself rather than appearing twice.
+            merge(existing: unknown[] = [], incoming: unknown[], { args }) {
+              const merged = existing.slice();
+              const offset = (args?.["offset"] as number | undefined) ?? 0;
+              for (let index = 0; index < incoming.length; index += 1) {
+                merged[offset + index] = incoming[index];
+              }
+              return merged;
+            },
+          },
+        },
+      },
+    },
+  }),
   defaultOptions: {
     watchQuery: {
       // Show what is cached immediately, then refresh from the network.

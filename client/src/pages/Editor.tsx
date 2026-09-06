@@ -13,11 +13,28 @@ import Crosshair from "../components/Crosshair/index.tsx";
 import FlightIndicator from "../components/FlightIndicator/index.tsx";
 import EditorPause from "../components/EditorPause/index.tsx";
 import SaveBuildDialog from "../components/SaveBuildDialog/index.tsx";
+import { Toaster } from "../components/ui/sonner.tsx";
 import { useEditorUiStore } from "../lib/editorUiStore.ts";
 import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
 import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
 import type { Body } from "../lib/voxel/collision.ts";
+
+/**
+ * Ask for the mouse.
+ *
+ * The pause screen and the inventory both cover the canvas, so drei's own
+ * click-to-lock never sees the click that dismissed them. A browser may refuse
+ * outright — an automated one always does — in which case play continues
+ * without mouse-look rather than trapping the player behind an overlay.
+ */
+function requestPointerLock(): void {
+  try {
+    document.querySelector("#editor canvas")?.requestPointerLock?.();
+  } catch {
+    // Refused. Nothing to recover; the crosshair simply stops following.
+  }
+}
 
 export default function Editor() {
   const centre = WORLD_SIZE / 2;
@@ -28,57 +45,78 @@ export default function Editor() {
   const seed = useWorldStore((state) => state.seed);
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
-  const [inventoryOpen, setInventoryOpen] = useState(false);
   const [everPlayed, setEverPlayed] = useState(false);
 
   const playing = useEditorUiStore((state) => state.playing);
   const setPlaying = useEditorUiStore((state) => state.setPlaying);
   const pendingSave = useEditorUiStore((state) => state.pendingSave);
+  const inventoryOpen = useEditorUiStore((state) => state.inventoryOpen);
 
   // Zooming the page moves the crosshair away from where the player is aiming.
   useSuppressZoomGestures(true);
 
+  // Closing the inventory puts the player straight back in the world. The
+  // keypress or click that closed it counts as the gesture a browser wants
+  // before it will hand the mouse back.
+  const closeInventory = () => {
+    useEditorUiStore.getState().setInventoryOpen(false);
+    if (useEditorUiStore.getState().playing) requestPointerLock();
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      const ui = useEditorUiStore.getState();
       // Typing a build name should not also open the inventory.
-      if (useEditorUiStore.getState().pendingSave) return;
-      if (event.code === "KeyE") setInventoryOpen((open) => !open);
+      if (ui.pendingSave) return;
+
+      if (event.code === "KeyE") {
+        if (ui.inventoryOpen) closeInventory();
+        else ui.setInventoryOpen(true);
+      }
+
       if (event.code === "Escape") {
-        setInventoryOpen(false);
-        // When the mouse really is locked the browser releases it and the
-        // pointerlockchange handler below pauses. When the lock was never
-        // granted there is no such event, and without this Escape would do
-        // nothing and the pause screen would be unreachable.
-        if (!document.pointerLockElement) setPlaying(false);
+        // Escape means "back out of whatever I am in". With the inventory open
+        // that is the inventory, not the game; pausing as well would drop the
+        // player onto the pause screen for closing a menu.
+        if (ui.inventoryOpen) {
+          closeInventory();
+          return;
+        }
+        // With the mouse really locked the browser releases it and the handler
+        // below pauses. When the lock was never granted there is no such event,
+        // and without this the pause screen would be unreachable.
+        if (!document.pointerLockElement) ui.setPlaying(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setPlaying]);
+    // Registered once. Everything it reads comes from the store rather than
+    // from a render, so there is nothing here that can go stale.
+  }, []);
 
-  // Escape hands the mouse back, which is the browser's way of pausing. The
-  // editor follows it rather than the other way round.
+  // Losing the mouse is the browser's way of pausing, so the editor follows it.
   useEffect(() => {
     const onChange = () => {
-      if (!document.pointerLockElement) setPlaying(false);
+      if (document.pointerLockElement) return;
+      // The lock is also released deliberately when the inventory or the naming
+      // dialog opens. That is a menu, not the player asking to stop.
+      const ui = useEditorUiStore.getState();
+      if (ui.inventoryOpen || ui.pendingSave) return;
+      setPlaying(false);
     };
     document.addEventListener("pointerlockchange", onChange);
     return () => {
       document.removeEventListener("pointerlockchange", onChange);
       // Leaving the route should not leave the store thinking a game is running.
       setPlaying(false);
+      useEditorUiStore.getState().setInventoryOpen(false);
     };
   }, [setPlaying]);
 
   const startPlaying = () => {
     setEverPlayed(true);
     setPlaying(true);
-    // The pause screen covers the canvas, so drei's own click-to-lock never
-    // sees the click that dismissed it. Ask for the lock directly instead; a
-    // browser that refuses (an automated one always does) simply leaves the
-    // editor in mouse-look-less mode rather than trapping the player on the
-    // pause screen.
-    document.querySelector("#editor canvas")?.requestPointerLock?.();
+    requestPointerLock();
   };
 
   // Mouse-look holds the pointer, which hides the cursor the inventory needs.
@@ -153,8 +191,10 @@ export default function Editor() {
       <FlightIndicator />
       <Hotbar />
       <SaveToast />
-      {inventoryOpen && <Inventory onClose={() => setInventoryOpen(false)} />}
+      {inventoryOpen && <Inventory onClose={closeInventory} />}
       <SaveBuildDialog />
+      {/* The editor is routed outside the site shell, so it carries its own. */}
+      <Toaster />
 
       {/* The pause screen would otherwise stack on top of the two things that
           legitimately take the mouse away from the world. */}

@@ -332,6 +332,25 @@ await page.keyboard.press("p");
 await page.waitForTimeout(1200);
 check("saving asks for a name", (await page.locator("#buildName").count()) > 0);
 check("the dialog previews the captured view", (await page.locator('[role=dialog] img').count()) > 0);
+
+// The world has to stand still while the dialog is open. Typing a name used to
+// walk the player, because W is both a letter and the key for forward.
+const cameraNow = () => page.evaluate(() => {
+  const p = window.__r3f.camera.position;
+  return [p.x, p.y, p.z];
+});
+const cameraBeforeTyping = await cameraNow();
+await page.keyboard.down("w");
+await page.waitForTimeout(900);
+await page.keyboard.up("w");
+const cameraAfterTyping = await cameraNow();
+const moved = Math.hypot(
+  cameraAfterTyping[0] - cameraBeforeTyping[0],
+  cameraAfterTyping[1] - cameraBeforeTyping[1],
+  cameraAfterTyping[2] - cameraBeforeTyping[2],
+);
+check("the world stands still while a build is being named", moved < 1e-6, `moved ${moved}`);
+
 await page.fill("#buildName", "Ridge fort");
 await page.getByRole("button", { name: "Save build" }).click();
 // The confirmation clears itself after a couple of seconds, so look while it
@@ -412,9 +431,31 @@ check("the edit survives a reload", (await page.locator("text=End-to-end test bu
 check("timestamps are formatted rather than raw ISO",
   !/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(await page.locator("body").innerText()));
 
+// The whole card opens the post, not only the comments button. The click is
+// forced because Playwright refuses to click an element something else covers,
+// and being covered by the card's stretched link is the whole point: the
+// browser delivers the click to that link, which is what a reader gets when
+// they click the post text.
+await page.locator("article").first().locator("p").first().click({ force: true });
+await page.waitForTimeout(4000);
+check("clicking a post card opens the post", /\/thought\//.test(page.url()), page.url());
+await page.goBack({ waitUntil: "networkidle" });
+await page.waitForTimeout(1500);
+
 await page.getByRole("link").filter({ hasText: /the discussion/ }).first().click();
 await page.waitForTimeout(4000);
 check("the post opens on its own page", /\/thought\//.test(page.url()), page.url());
+
+// The box to type in comes before the comments themselves.
+const commentOrder = await page.evaluate(() => {
+  const form = document.querySelector('textarea[aria-label="Write a comment"]');
+  const list = document.querySelector("section ul");
+  if (!form || !list) return "missing";
+  return form.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING
+    ? "form first"
+    : "list first";
+});
+check("the comment box sits above the comments", commentOrder !== "list first", commentOrder);
 check("the attached build renders in a canvas", (await page.locator("canvas").count()) > 0);
 
 // ------------------------------------------------------------------ commenting
@@ -431,12 +472,102 @@ await page.waitForTimeout(2000);
 check("a comment can be deleted", (await page.locator("text=Nice work").count()) === 0);
 check("the empty comment list explains itself", (await page.locator("text=No comments yet").count()) > 0);
 
+// ------------------------------------------------------------------- the feed
+// The feed is paged rather than fetching every post ever written. Ten come back
+// first; scrolling to the bottom asks for the next ten.
+await page.goto(BASE, { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+const firstPage = await page.locator("article").count();
+check("the feed loads one page at a time", firstPage <= 10, `${firstPage} posts`);
+
+if (firstPage === 10) {
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page
+    .waitForFunction(() => document.querySelectorAll("article").length > 10, { timeout: 10000 })
+    .catch(() => {});
+  const secondPage = await page.locator("article").count();
+  check("scrolling to the bottom loads more posts", secondPage > firstPage, `${firstPage} then ${secondPage}`);
+}
+
+// ------------------------------------------------------------------- friends
+// Someone else's profile. addFriend is immediate rather than a request, so the
+// button flips to "Remove friend" and a toast says what happened.
+const otherAuthor = await page
+  .locator("article a[href^='/profile/']")
+  .filter({ hasNotText: user.username })
+  .first()
+  .getAttribute("href");
+
+if (otherAuthor && !otherAuthor.endsWith(user.username)) {
+  await page.goto(BASE + otherAuthor, { waitUntil: "networkidle" });
+  await page.waitForTimeout(2000);
+  check("someone else's profile offers Add friend", (await page.getByRole("button", { name: "Add friend" }).count()) > 0);
+
+  await page.getByRole("button", { name: "Add friend" }).click();
+  await page.waitForTimeout(2000);
+  check("adding a friend is confirmed on screen", (await page.locator("text=/to your friends/").count()) > 0);
+  check("the button flips to Remove friend", (await page.getByRole("button", { name: "Remove friend" }).count()) > 0);
+
+  await page.reload({ waitUntil: "networkidle" });
+  await page.waitForTimeout(2000);
+  check("the friendship survives a reload", (await page.getByRole("button", { name: "Remove friend" }).count()) > 0);
+}
+
+// ------------------------------------------------------------------ settings
+await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
+await page.waitForTimeout(1500);
+check("settings loads the current details", (await page.inputValue("#settingsUsername")) === user.username);
+
+const renamed = `${user.username}x`.slice(0, 20);
+await page.fill("#settingsUsername", renamed);
+await page.getByRole("button", { name: "Save changes" }).click();
+await page.waitForTimeout(2500);
+check("a username change is confirmed", (await page.locator("text=/details were saved/").count()) > 0);
+
+await page.goto(`${BASE}/profile`, { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+check("the new username shows on the profile", (await page.locator(`text=${renamed}`).count()) > 0);
+user.username = renamed;
+
+const newPassword = "supersecret2";
+await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
+await page.waitForTimeout(1500);
+await page.fill("#currentPassword", "definitely-wrong");
+await page.fill("#newPassword", newPassword);
+await page.fill("#confirmPassword", newPassword);
+await page.getByRole("button", { name: "Change password" }).click();
+await page.waitForTimeout(2000);
+check("the wrong current password is refused", (await page.locator("text=/not your current password/").count()) > 0);
+
+await page.fill("#currentPassword", user.password);
+await page.fill("#newPassword", newPassword);
+await page.fill("#confirmPassword", "something-else");
+await page.getByRole("button", { name: "Change password" }).click();
+await page.waitForTimeout(1000);
+check("mismatched new passwords are refused", (await page.locator("text=/do not match/").count()) > 0);
+
+await page.fill("#currentPassword", user.password);
+await page.fill("#newPassword", newPassword);
+await page.fill("#confirmPassword", newPassword);
+await page.getByRole("button", { name: "Change password" }).click();
+await page.waitForTimeout(2500);
+check("the password change is confirmed", (await page.locator("text=/password was changed/").count()) > 0);
+user.password = newPassword;
+
 // ---------------------------------------------------------------------- logout
 // Logging out moved into the account menu in the header.
 await page.getByRole("button", { name: "Account menu" }).click();
 await page.getByRole("menuitem", { name: "Log out" }).click();
 await page.waitForTimeout(1500);
 check("logout returns to the signed-out header", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
+
+// The changed password is the one that now works.
+await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+await page.fill("#email", user.email);
+await page.fill("#password", user.password);
+await page.getByRole("button", { name: "Log in" }).click();
+await page.waitForURL(`${BASE}/`, { timeout: 15000 }).catch(() => {});
+check("the changed password logs the user back in", page.url() === `${BASE}/`, page.url());
 
 await browser.close();
 

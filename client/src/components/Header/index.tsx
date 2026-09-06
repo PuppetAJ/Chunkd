@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { useApolloClient } from "@apollo/client/react";
-import { LogOut, Menu, Pickaxe, User } from "lucide-react";
+import { LogOut, Menu, Pickaxe, Settings, User } from "lucide-react";
 
 import { useAuthStore } from "../../lib/auth.ts";
 import UserAvatar from "../UserAvatar.tsx";
@@ -100,6 +100,12 @@ export default function Header() {
                     <Link to="/profile">
                       <User />
                       My profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings">
+                      <Settings />
+                      Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

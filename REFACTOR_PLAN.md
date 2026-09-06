@@ -171,6 +171,14 @@ the rest of the site.
 
 ### Known issues carried forward
 
+- The feed is paged, ten posts at a time, and loads more as you reach the
+  bottom. A profile's own posts and builds are still fetched all at once,
+  nested inside the profile query; that only matters for someone with hundreds
+  of either.
+- Comments are a flat list. The Reaction subdocument has an author and a body
+  but no parent, so there is no way to reply to a particular person. Adding one
+  `replyTo` field to that subdocument would be enough to thread them.
+
 - Editor frame rate on real hardware has not been measured. The numbers recorded
   below come from a headless browser using software rasterisation, so they are
   useful for comparing before against after but are not representative of a real

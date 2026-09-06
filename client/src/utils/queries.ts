@@ -4,9 +4,11 @@ import { gql } from "@apollo/client";
 // behind QUERY_BUILD so that opening a profile no longer downloads every world
 // the user has ever saved.
 
+// The feed is paged. `limit` and `offset` describe the window; the cache is
+// told how to stitch consecutive windows together in lib/apollo.ts.
 export const QUERY_THOUGHTS = gql`
-  query thoughts($username: String) {
-    thoughts(username: $username) {
+  query thoughts($username: String, $limit: Int, $offset: Int) {
+    thoughts(username: $username, limit: $limit, offset: $offset) {
       _id
       thoughtText
       createdAt

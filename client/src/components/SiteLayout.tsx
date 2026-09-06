@@ -4,6 +4,7 @@ import Header from "./Header/index.tsx";
 import Footer from "./Footer/index.tsx";
 import ErrorBoundary from "./ErrorBoundary.tsx";
 import { Skeleton } from "./ui/skeleton.tsx";
+import { Toaster } from "./ui/sonner.tsx";
 
 /**
  * The page shell: header, content, footer.
@@ -28,6 +29,9 @@ export default function SiteLayout() {
         </ErrorBoundary>
       </main>
       <Footer />
+      {/* One toaster for the whole site; anything can call toast() and it lands
+          here. */}
+      <Toaster />
     </>
   );
 }
