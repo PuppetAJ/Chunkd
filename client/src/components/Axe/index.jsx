@@ -11,9 +11,15 @@ title: Minecraft Diamond Axe
 import { useGLTF } from "@react-three/drei";
 import axeUrl from "../../assets/axe.glb";
 
-// Uses gltf loader to load the model as a component
+// Uses gltf loader to load the model as a component.
+//
+// The two `false`s turn off Draco and Meshopt. drei enables both by default,
+// and each brings a WebAssembly decoder: Draco's is fetched from Google's CDN
+// on every visit, Meshopt's is compiled inline. Both need a
+// Content-Security-Policy hole for 'wasm-unsafe-eval', and this model uses
+// neither compression — it is 5 KB of plain glTF. Draco was saving 1.3 KB on it.
 export default function Axe(props) {
-  const { nodes, materials } = useGLTF(axeUrl);
+  const { nodes, materials } = useGLTF(axeUrl, false, false);
   return (
     <group dispose={null} {...props}>
       <group rotation={[0, Math.PI / 1.8, -0.3]} scale={0.5}>
