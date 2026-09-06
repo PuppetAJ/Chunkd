@@ -38,8 +38,24 @@ async function start(): Promise<void> {
 
   app.use(
     helmet({
-      // The GraphQL explorer loads from a CDN and needs to frame itself.
-      contentSecurityPolicy: isProduction,
+      // The GraphQL explorer loads from a CDN and needs to frame itself, so the
+      // policy is only applied to real deployments.
+      contentSecurityPolicy: isProduction
+        ? {
+            useDefaults: true,
+            directives: {
+              // three's GLTFLoader unpacks the textures embedded in the axe
+              // model into blob: URLs and then fetches them back. Helmet's
+              // default `default-src 'self'` blocks that, which left the model
+              // untextured and threw inside the canvas.
+              "img-src": ["'self'", "data:", "blob:"],
+              "connect-src": ["'self'", "blob:"],
+              // Everything else stays at helmet's defaults, which is where the
+              // useful part of the policy lives: no inline scripts, no plugins,
+              // no framing by other sites.
+            },
+          }
+        : false,
       crossOriginEmbedderPolicy: false,
     }),
   );

@@ -88,6 +88,7 @@ Run these from the repository root.
 | `pnpm typecheck` | Type-checks both packages |
 | `pnpm test:e2e` | Drives a real browser through every route (needs `pnpm dev` running) |
 | `pnpm test:a11y` | Runs axe-core over every page and fails on any WCAG 2.1 A or AA violation (needs `pnpm dev` running) |
+| `pnpm test:prod` | Drives the critical path against a production build (see Deploying) |
 | `pnpm db:up` / `pnpm db:down` | Starts and stops the MongoDB container |
 
 ## Deploying
@@ -109,6 +110,19 @@ these variables on the service:
 
 `PORT` is supplied by the platform and read automatically.
 
+Check the production path locally before deploying. Development and production
+differ in ways the ordinary test suite cannot see, so there is a suite for this:
+
+```bash
+pnpm build
+NODE_ENV=production PORT=4000 pnpm start
+pnpm test:prod                     # in another terminal
+```
+
+It signs up, builds and saves a world, posts it, opens the post in 3D and
+comments, and fails on any console error. The same command checks a real
+deployment: `BASE=https://your-app.up.railway.app pnpm test:prod`.
+
 Three things are worth knowing before the first deploy:
 
 - `NODE_ENV` must be exactly `production`. Anything else and the server skips
@@ -119,6 +133,11 @@ Three things are worth knowing before the first deploy:
   deliberate, but it looks like a crash loop.
 - The build needs devDependencies, because Vite lives there. Do not enable an
   install flag that skips them.
+- A Content-Security-Policy applies in production and not in development, so a
+  page can work locally and break once deployed. `pnpm test:prod` is what
+  catches that. If you add a library that loads WebAssembly or fetches from
+  another origin, expect to widen the policy in `server/src/server.ts` and to
+  think about whether the dependency is worth it first.
 
 The server has no build step. Node runs its TypeScript sources directly, which is
 why `.node-version` matters: it must stay at 22.18 or newer.
