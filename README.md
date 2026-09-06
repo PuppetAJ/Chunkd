@@ -99,6 +99,11 @@ Run these from the repository root.
 
 ## Usage
 
+There is a demo account on the login and signup pages, so the app can be tried
+without signing up for anything. Everyone shares it, and it cannot change its
+own username, email or password, because that would lock the next visitor out.
+Everything else works: build a world, save it, post it, comment on other posts.
+
 Sign up to create an account. Once you are logged in you can read the feed,
 open a build in 3D, comment on a post, and follow other users. The editor is
 where you make a build of your own. Press P to name and save the world you are

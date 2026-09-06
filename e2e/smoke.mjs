@@ -627,6 +627,47 @@ await page.getByRole("button", { name: "Log in" }).click();
 await page.waitForURL(`${BASE}/`, { timeout: 15000 }).catch(() => {});
 check("the changed password logs the user back in", page.url() === `${BASE}/`, page.url());
 
+// ------------------------------------------------------------- the demo account
+// The point of the demo button is that someone can look round without signing
+// up, so the checks start from a signed-out browser.
+await page.getByRole("button", { name: "Account menu" }).click();
+await page.getByRole("menuitem", { name: "Log out" }).click();
+await page.waitForTimeout(1500);
+
+await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+check(
+  "the login page offers the demo",
+  (await page.getByRole("button", { name: /Explore with a demo account/ }).count()) > 0,
+);
+await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+check(
+  "the signup page offers the demo too",
+  (await page.getByRole("button", { name: /Explore with a demo account/ }).count()) > 0,
+);
+
+await page.getByRole("button", { name: /Explore with a demo account/ }).click();
+await page.waitForURL(`${BASE}/`, { timeout: 20000 }).catch(() => {});
+check("the demo button signs straight in", page.url() === `${BASE}/`, page.url());
+check(
+  "the demo lands on the signed-in header",
+  (await page.getByRole("link", { name: "Editor" }).first().count()) > 0,
+);
+
+// Everyone shares the account, so a change to its sign-in details would lock
+// the next visitor out. Settings says so rather than offering forms that fail.
+await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+check(
+  "the demo account is told why it cannot change its details",
+  (await page.locator("text=You are using the demo account").count()) > 0,
+);
+check("the demo is not offered the profile form", (await page.locator("#settingsUsername").count()) === 0);
+check("the demo is not offered the password form", (await page.locator("#newPassword").count()) === 0);
+
+// The demo is still a real account: it can do everything except change itself.
+await page.goto(`${BASE}/editor`, { waitUntil: "networkidle" });
+check("the demo can open the editor", (await page.getByRole("button", { name: "Click to play" }).count()) > 0);
+
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);

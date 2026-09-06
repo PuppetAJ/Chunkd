@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { useApolloClient, useMutation, useQuery } from "@apollo/client/react";
 import { toast } from "sonner";
 
@@ -22,6 +23,7 @@ import { Skeleton } from "../components/ui/skeleton.tsx";
 interface MeBasic {
   username: string;
   email: string;
+  isDemo: boolean;
 }
 
 /**
@@ -57,8 +59,40 @@ export default function Settings() {
         </div>
       </header>
 
-      <ProfileForm me={me} logIn={logIn} apollo={apollo} />
-      <PasswordForm logIn={logIn} />
+      {me.isDemo ? (
+        <DemoNotice />
+      ) : (
+        <>
+          <ProfileForm me={me} logIn={logIn} apollo={apollo} />
+          <PasswordForm logIn={logIn} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * What the demo account sees here instead of the two forms.
+ *
+ * The server refuses to change its username, email or password, because
+ * everyone shares the account and a change would lock the next visitor out.
+ * Showing forms that cannot work and only saying so on submit is worse than
+ * not showing them.
+ */
+function DemoNotice() {
+  return (
+    <div className="rounded-xl border border-border bg-card p-6">
+      <h2 className="font-display text-lg">You are using the demo account</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Everyone trying CHUNK&apos;D shares this account, so its username, email and password
+        are fixed. Everything else works normally: build a world, save it, post it and comment.
+      </p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Make an account of your own if you want builds that are yours alone.
+      </p>
+      <Button asChild className="mt-4">
+        <Link to="/signup">Create an account</Link>
+      </Button>
     </div>
   );
 }

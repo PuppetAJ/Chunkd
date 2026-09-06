@@ -7,6 +7,8 @@ export const typeDefs = /* GraphQL */ `
     username: String!
     "Only returned when you ask about yourself."
     email: String
+    "True for the shared demo account, whose sign-in details are fixed."
+    isDemo: Boolean!
     "How many people this user follows."
     followingCount: Int!
     "How many people follow this user."
@@ -79,6 +81,12 @@ export const typeDefs = /* GraphQL */ `
   type Mutation {
     addUser(username: String!, email: String!, password: String!): Auth!
     login(email: String!, password: String!): Auth!
+
+    """
+    Sign in as the shared demo account, so the app can be tried without
+    creating a real one. The account is created on first use.
+    """
+    demoLogin: Auth!
 
     addThought(thoughtText: String!, buildId: ID): Thought!
     updateThought(thoughtId: ID!, thoughtText: String!): Thought!
