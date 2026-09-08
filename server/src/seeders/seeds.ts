@@ -1,8 +1,9 @@
+import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { faker } from "@faker-js/faker";
 import { Types, type HydratedDocument } from "mongoose";
 import { connectToDatabase, disconnectFromDatabase } from "../config/db.ts";
-import { DEMO_USERNAME } from "../config/demo.ts";
+import { DEMO_EMAIL, DEMO_USERNAME } from "../config/demo.ts";
 import { isProduction } from "../config/env.ts";
 import { Build, Thought, User, type UserDocument } from "../models/index.ts";
 
@@ -27,9 +28,14 @@ const showcaseBuilds: ShowcaseBuild[] = JSON.parse(
 );
 
 // Every seeded account shares this password so you can log in as anyone while
-// developing. On the live site these accounts are as public as the demo one:
-// the whole database is reset from this file on a schedule.
-const SEED_PASSWORD = "chunkd-dev-password";
+// developing. On the live site the password is random and thrown away: the
+// seeded authors are the ones whose builds appear on the landing page, and a
+// documented password would let anyone sign in as one of them and post
+// straight onto the front door, which is the one page the demo account is
+// kept off. Nobody needs to sign in as a seeded author on the live site.
+const SEED_PASSWORD = isProduction
+  ? randomBytes(24).toString("base64url")
+  : "chunkd-dev-password";
 
 // Pass --force to reset even when nothing has changed since the last one.
 const FORCE = process.argv.includes("--force");
@@ -54,14 +60,13 @@ function pickRandom<T>(items: T[]): T {
  * password hashing and shows whoever is loading the page at that moment an
  * empty feed for no reason. So the usual case is to look and leave.
  */
-async function somebodyUsedIt(demo: HydratedDocument<UserDocument> | null): Promise<boolean> {
+async function somebodyUsedIt(demo: HydratedDocument<UserDocument>): Promise<boolean> {
   const [others, posts] = await Promise.all([
     User.countDocuments({ isDemo: { $ne: true } }),
     Thought.countDocuments(),
   ]);
   if (others !== USER_COUNT) return true;
   if (posts !== THOUGHT_COUNT + showcaseBuilds.length) return true;
-  if (!demo) return false;
 
   const [demoPosts, demoBuilds] = await Promise.all([
     Thought.countDocuments({ author: demo._id }),
@@ -83,7 +88,16 @@ async function seed(): Promise<void> {
 
   await connectToDatabase();
 
-  const demo = await User.findOne({ username: DEMO_USERNAME });
+  // Reserve the demo account up front rather than leaving it to the first
+  // press of the button, so the name cannot be taken by anyone else first.
+  const demo =
+    (await User.findOne({ username: DEMO_USERNAME })) ??
+    (await User.create({
+      username: DEMO_USERNAME,
+      email: DEMO_EMAIL,
+      password: randomBytes(24).toString("base64url"),
+      isDemo: true,
+    }));
 
   if (!FORCE && !(await somebodyUsedIt(demo))) {
     console.log("Nothing has changed since the last reset. Leaving the database as it is.");
@@ -100,10 +114,8 @@ async function seed(): Promise<void> {
     Thought.deleteMany({}),
     Build.deleteMany({}),
   ]);
-  if (demo) {
-    demo.following = [];
-    await demo.save();
-  }
+  demo.following = [];
+  await demo.save();
 
   console.log(`Creating ${USER_COUNT} users...`);
   // HydratedDocument<UserDocument> is "a UserDocument that came back from the
@@ -190,7 +202,9 @@ async function seed(): Promise<void> {
   console.log(
     `\nDone. ${USER_COUNT} users, ${showcaseBuilds.length} builds and ` +
       `${THOUGHT_COUNT + showcaseBuilds.length} posts created.\n` +
-      `Log in as any seeded user with the password: ${SEED_PASSWORD}\n` +
+      (isProduction
+        ? "Seeded accounts have a random password on the live site.\n"
+        : `Log in as any seeded user with the password: ${SEED_PASSWORD}\n`) +
       `Example login: ${users[0]?.email ?? "(none)"}\n`,
   );
 
