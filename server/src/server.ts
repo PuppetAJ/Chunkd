@@ -12,6 +12,7 @@ import { env, isProduction } from "./config/env.ts";
 import { connectToDatabase } from "./config/db.ts";
 import { typeDefs, resolvers } from "./schemas/index.ts";
 import { getUserFromAuthHeader, type GraphQLContext } from "./utils/auth.ts";
+import { queryLimits } from "./utils/queryLimits.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const clientBuildDir = path.resolve(here, "../../client/dist");
@@ -27,6 +28,9 @@ async function start(): Promise<void> {
     resolvers,
     // Stack traces leak file paths and package versions. Keep them in dev only.
     includeStacktraceInErrorResponses: !isProduction,
+    // Refuse queries deep or wide enough to exhaust the process. See the rule
+    // for the measurements that made this necessary.
+    validationRules: [queryLimits()],
   });
   await apollo.start();
 
@@ -91,6 +95,8 @@ async function start(): Promise<void> {
     expressMiddleware(apollo, {
       context: async ({ req }): Promise<GraphQLContext> => ({
         user: getUserFromAuthHeader(req.headers.authorization),
+        // Correct behind one proxy because of `trust proxy` above.
+        ip: req.ip ?? "unknown",
       }),
     }),
   );
