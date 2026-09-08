@@ -4,7 +4,10 @@ services:
     container_name: chunkd-mongo
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      # Bound to loopback. Docker's default of 0.0.0.0 publishes the port on
+      # every interface, and this MongoDB has no authentication, so on a laptop
+      # with a public address it was an open database.
+      - "127.0.0.1:27017:27017"
     volumes:
       - chunkd-mongo-data:/data/db
 

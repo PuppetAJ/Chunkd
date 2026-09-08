@@ -32,8 +32,9 @@ export default defineConfig({
   },
 
   build: {
-    // Source maps make a production stack trace readable without shipping
-    // the original source to the browser on every page load.
+    // Source maps ship the original source to anyone who asks for them. That
+    // is a deliberate choice here: the repository is public, so the maps give
+    // away nothing, and they make a production stack trace readable.
     sourcemap: true,
   },
 });
