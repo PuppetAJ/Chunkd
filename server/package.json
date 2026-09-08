@@ -12,7 +12,8 @@
     "seed": "node --env-file-if-exists=../.env src/seeders/seeds.ts",
     "migrate:following": "node --env-file-if-exists=../.env src/scripts/renameFriendsToFollowing.ts",
     "build": "echo \"server needs no build step\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",

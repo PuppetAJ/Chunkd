@@ -14,6 +14,8 @@ export interface AuthUser {
 // The object handed to every resolver as its third argument.
 export interface GraphQLContext {
   user: AuthUser | null;
+  /** Where the request came from, for the per-address attempt limits. */
+  ip: string;
 }
 
 export function signToken(user: UserDocument): string {
@@ -42,7 +44,11 @@ export function getUserFromAuthHeader(header: string | undefined): AuthUser | nu
   if (!token) return null;
 
   try {
-    return jwt.verify(token, env.JWT_SECRET) as AuthUser;
+    // Pinned to the one algorithm we sign with. jsonwebtoken already limits a
+    // string secret to the HMAC family, so this is belt and braces rather than
+    // the fix for a known hole, but it costs nothing and it will still hold if
+    // the signing key ever changes shape.
+    return jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"] }) as AuthUser;
   } catch {
     return null;
   }
