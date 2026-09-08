@@ -15,7 +15,13 @@ const envSchema = z.object({
 
   JWT_SECRET: z
     .string()
-    .min(32, "JWT_SECRET must be at least 32 characters"),
+    .min(32, "JWT_SECRET must be at least 32 characters")
+    // The example file's stand-in value is 34 characters, so it satisfied the
+    // length check. A deploy that copied .env.example without editing it would
+    // have signed every token with a secret that is public on GitHub.
+    .refine((value) => !/replace-me|changeme|change-me|example|secret-here/i.test(value), {
+      message: "JWT_SECRET is still the placeholder from .env.example. Generate a real one.",
+    }),
 
   JWT_EXPIRES_IN: z.string().default("2h"),
 
@@ -49,3 +55,17 @@ function loadEnv(): Env {
 export const env = loadEnv();
 
 export const isProduction = env.NODE_ENV === "production";
+
+// Running on a host without NODE_ENV=production opens four things at once:
+// the content security policy switches off, CORS reflects any origin, error
+// responses carry stack traces, and introspection is on. That is one missing
+// variable away, and nothing else would notice. Railway sets this variable on
+// every deployment, so its presence is a reliable way to tell a real host from
+// a laptop.
+if (process.env.RAILWAY_ENVIRONMENT && !isProduction) {
+  console.error(
+    `\nCannot start: this looks like a Railway deployment but NODE_ENV is ` +
+      `"${env.NODE_ENV}". Set NODE_ENV=production on the service.\n`,
+  );
+  process.exit(1);
+}
