@@ -663,10 +663,10 @@ check(
 const firstBuildLink = await page.locator('a[href^="/thought/"]').first().getAttribute("href");
 await page.goto(BASE + firstBuildLink, { waitUntil: "networkidle" });
 await page.waitForTimeout(6000);
-check("the viewer offers its own settings", (await page.getByRole("button", { name: "Viewer settings" }).count()) > 0);
+check("the viewer offers its own settings", (await page.getByRole("button", { name: "Scene settings" }).count()) > 0);
 check("the viewer names the build it is showing", (await page.locator("[data-viewer-chrome]").count()) > 0);
 
-await page.getByRole("button", { name: "Viewer settings" }).click();
+await page.getByRole("button", { name: "Scene settings" }).click();
 await page.waitForTimeout(400);
 check("the settings offer a daylight scene", (await page.getByRole("menuitemradio", { name: "Daylight" }).count()) > 0);
 await page.getByRole("menuitemradio", { name: "Daylight" }).click();
@@ -721,6 +721,22 @@ check("the demo is not offered the password form", (await page.locator("#newPass
 // The demo is still a real account: it can do everything except change itself.
 await page.goto(`${BASE}/editor`, { waitUntil: "networkidle" });
 check("the demo can open the editor", (await page.getByRole("button", { name: "Click to play" }).count()) > 0);
+// A build's thumbnail is a capture of the editor's own render, so the editor
+// needs the same scene controls or the picture can only ever look one way.
+check(
+  "the editor offers scene settings while paused",
+  (await page.getByRole("button", { name: "Scene settings" }).count()) > 0,
+);
+await page.getByRole("button", { name: "Scene settings" }).click();
+await page.waitForTimeout(400);
+check(
+  "the editor settings offer the studio scene",
+  (await page.getByRole("menuitemradio", { name: "Studio" }).count()) > 0,
+);
+await page.getByRole("menuitemradio", { name: "Studio" }).click();
+await page.waitForTimeout(600);
+const editorScene = await page.evaluate(() => localStorage.getItem("editor-settings"));
+check("the editor keeps its own scene preference", /studio/.test(editorScene ?? ""), String(editorScene));
 
 await browser.close();
 

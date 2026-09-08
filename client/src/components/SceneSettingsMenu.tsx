@@ -1,10 +1,6 @@
 import { Settings2 } from "lucide-react";
 
-import {
-  useViewerSettings,
-  type ViewerEnvironment,
-  type ViewerLight,
-} from "../../lib/viewerSettingsStore.ts";
+import type { SceneEnvironment, SceneLight, SceneSettings } from "../lib/sceneSettings.ts";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -14,31 +10,42 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu.tsx";
+} from "./ui/dropdown-menu.tsx";
+
+interface Props {
+  settings: SceneSettings;
+  onChange: (settings: SceneSettings) => void;
+  /**
+   * True when the menu sits over the daylight sky, which is nearly white. The
+   * button has to switch to dark-on-light there or it disappears.
+   */
+  onLightSky?: boolean;
+  /** Where the button sits, so the editor and the viewer can differ. */
+  className?: string;
+}
 
 /**
- * How the viewer is lit and what it sits in.
+ * How a scene is lit and what it sits in.
  *
- * The choice is a preference rather than a property of any one build, so it is
- * remembered across visits and applies to every viewer on the site.
+ * One menu for the build viewer and the editor. It takes the current settings
+ * and hands back a whole new set rather than reaching into a store itself,
+ * which is what lets the two of them keep separate preferences.
  */
-export default function ViewerSettingsMenu({ onLightSky }: { onLightSky: boolean }) {
-  const environment = useViewerSettings((state) => state.environment);
-  const grid = useViewerSettings((state) => state.grid);
-  const light = useViewerSettings((state) => state.light);
-  const setEnvironment = useViewerSettings((state) => state.setEnvironment);
-  const setGrid = useViewerSettings((state) => state.setGrid);
-  const setLight = useViewerSettings((state) => state.setLight);
-
+export default function SceneSettingsMenu({
+  settings,
+  onChange,
+  onLightSky = false,
+  className = "",
+}: Props) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        aria-label="Viewer settings"
+        aria-label="Scene settings"
         className={`flex size-8 items-center justify-center rounded-md border backdrop-blur-sm transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none ${
           onLightSky
             ? "border-neutral-400/70 bg-white/70 text-neutral-700 hover:text-neutral-900"
             : "border-border/70 bg-background/70 text-muted-foreground hover:text-foreground"
-        }`}
+        } ${className}`}
       >
         <Settings2 className="size-4" />
       </DropdownMenuTrigger>
@@ -46,20 +53,22 @@ export default function ViewerSettingsMenu({ onLightSky }: { onLightSky: boolean
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel>Scene</DropdownMenuLabel>
         <DropdownMenuRadioGroup
-          value={environment}
-          onValueChange={(value) => setEnvironment(value as ViewerEnvironment)}
+          value={settings.environment}
+          onValueChange={(value) =>
+            onChange({ ...settings, environment: value as SceneEnvironment })
+          }
         >
           <DropdownMenuRadioItem value="studio">Studio</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="daylight">Daylight</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
 
         <DropdownMenuSeparator />
-        {/* The grid belongs to the studio. There is a floor of sorts in
-            daylight already, and a grid floating in the sky reads as a bug. */}
+        {/* The grid belongs to the studio. There is ground in daylight already,
+            and a grid floating in the sky reads as a bug. */}
         <DropdownMenuCheckboxItem
-          checked={grid}
-          disabled={environment !== "studio"}
-          onCheckedChange={setGrid}
+          checked={settings.grid}
+          disabled={settings.environment !== "studio"}
+          onCheckedChange={(grid) => onChange({ ...settings, grid })}
         >
           Floor grid
         </DropdownMenuCheckboxItem>
@@ -67,8 +76,8 @@ export default function ViewerSettingsMenu({ onLightSky }: { onLightSky: boolean
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Light</DropdownMenuLabel>
         <DropdownMenuRadioGroup
-          value={light}
-          onValueChange={(value) => setLight(value as ViewerLight)}
+          value={settings.light}
+          onValueChange={(value) => onChange({ ...settings, light: value as SceneLight })}
         >
           <DropdownMenuRadioItem value="dim">Dim</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="even">Even</DropdownMenuRadioItem>

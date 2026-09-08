@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
-import { PointerLockControls, Preload, Sky } from "@react-three/drei";
+import { Grid, PointerLockControls, Preload, Sky } from "@react-three/drei";
 
 import World from "../components/World/index.tsx";
 import Player from "../components/Player/index.tsx";
@@ -15,6 +15,7 @@ import EditorPause from "../components/EditorPause/index.tsx";
 import SaveBuildDialog from "../components/SaveBuildDialog/index.tsx";
 import { Toaster } from "../components/ui/sonner.tsx";
 import { useEditorUiStore } from "../lib/editorUiStore.ts";
+import { LIGHTING, LIGHT_SCALE, useEditorSettings } from "../lib/sceneSettings.ts";
 import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
 import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
@@ -46,6 +47,13 @@ export default function Editor() {
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   const [everPlayed, setEverPlayed] = useState(false);
+
+  // A build's thumbnail is a capture of this render, so how the editor is lit
+  // decides how the build looks everywhere else on the site.
+  const { environment, grid: showGrid, light } = useEditorSettings((state) => state.settings);
+  const studio = environment === "studio";
+  const lightScale = LIGHT_SCALE[light];
+  const lighting = LIGHTING[environment];
 
   const playing = useEditorUiStore((state) => state.playing);
   const setPlaying = useEditorUiStore((state) => state.setPlaying);
@@ -161,17 +169,45 @@ export default function Editor() {
             Canvas and destroys its WebGL context. */}
         <Suspense fallback={null}>
           <Preload all />
-          <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
+          {studio ? (
+            <>
+              <color attach="background" args={["#0d0c10"]} />
+              {showGrid && (
+                <Grid
+                  position={[centre, 0, centre]}
+                  infiniteGrid
+                  cellSize={1}
+                  cellThickness={0.5}
+                  cellColor="#26252c"
+                  sectionSize={8}
+                  sectionThickness={1}
+                  sectionColor="#413f4d"
+                  fadeDistance={WORLD_SIZE * 3}
+                  fadeStrength={1.5}
+                />
+              )}
+            </>
+          ) : (
+            <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
+          )}
           {/* Blocks carry their own face shading in the cube's vertex colours;
               the sun is layered on top of that for cast shadows. Its camera is
               aimed at the middle of the world, because it defaults to the origin
               and that left the far half of the map unshadowed. */}
-          <ambientLight intensity={1.5} />
+          <ambientLight intensity={lighting.ambient * lightScale} />
           <primitive object={lightTarget} position={[centre, 0, centre]} />
+          {lighting.fill > 0 && (
+            <directionalLight
+              target={lightTarget}
+              intensity={lighting.fill * lightScale}
+              color="#9fb6ff"
+              position={[centre - 60, 20, centre - 40]}
+            />
+          )}
           <directionalLight
             castShadow
             target={lightTarget}
-            intensity={1.5}
+            intensity={lighting.key * lightScale}
             position={[centre + 60, 90, centre + 40]}
             shadow-mapSize={[2048, 2048]}
             shadow-camera-near={1}
