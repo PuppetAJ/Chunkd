@@ -245,6 +245,13 @@ export const resolvers = {
       context: GraphQLContext,
     ) => {
       limitSignup(context.ip);
+      // The demo account is created on first use, and demoAccount() adopts an
+      // existing user of that name. Without this, whoever registered "demo"
+      // first would have had their account quietly turned into the shared
+      // public one, password locked and all.
+      if (args.username.trim().toLowerCase() === DEMO_USERNAME) {
+        throw badRequest("That username is reserved.");
+      }
       try {
         // Named one by one rather than passing `args` through. Today the two
         // are the same, but the day a field is added to the mutation for some
