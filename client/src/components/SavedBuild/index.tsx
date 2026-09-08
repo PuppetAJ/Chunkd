@@ -117,9 +117,13 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
   }
 
   if (error || !payload) {
+    // Usually means the build was deleted. On this site it more often means the
+    // page is holding an id from before the scheduled reset, and reloading is
+    // what fixes that, so say so rather than leaving a dead end.
     return (
-      <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-        This build is no longer available.
+      <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-4 text-center text-sm text-muted-foreground">
+        <p>This build is no longer available.</p>
+        <p className="text-xs">Reload the page if it was here a moment ago.</p>
       </div>
     );
   }
