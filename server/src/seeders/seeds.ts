@@ -114,8 +114,11 @@ async function seed(): Promise<void> {
     Thought.deleteMany({}),
     Build.deleteMany({}),
   ]);
-  demo.following = [];
-  await demo.save();
+  // An atomic update rather than demo.save(): save() re-validates the whole
+  // document, and a demo row that is invalid for any reason would make every
+  // scheduled reset fail here, after the wipe, leaving the site empty. Only the
+  // follows list changes, so only the follows list is touched.
+  await User.updateOne({ _id: demo._id }, { $set: { following: [] } });
 
   console.log(`Creating ${USER_COUNT} users...`);
   // HydratedDocument<UserDocument> is "a UserDocument that came back from the
