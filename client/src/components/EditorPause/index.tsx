@@ -1,6 +1,8 @@
 import { Link } from "react-router";
 import { ChevronLeft, MousePointerClick } from "lucide-react";
 import { Button } from "../ui/button.tsx";
+import SceneSettingsMenu from "../SceneSettingsMenu.tsx";
+import { useEditorSettings } from "../../lib/sceneSettings.ts";
 
 /**
  * The screen shown whenever the player is not in the world.
@@ -33,17 +35,27 @@ interface Props {
 }
 
 export default function EditorPause({ firstVisit, onPlay }: Props) {
+  const settings = useEditorSettings((state) => state.settings);
+  const setSettings = useEditorSettings((state) => state.setSettings);
+
   return (
     <div
       className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
       onClick={onPlay}
     >
       <div
-        className="w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl"
+        className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl"
         // The card is part of the click target for playing, but the two links
         // inside it are not, so stop those clicks from also locking the mouse.
         onClick={(event) => event.stopPropagation()}
       >
+        {/* Changing how the world is lit needs a cursor, and the only time
+            there is one is while paused. It belongs here rather than as another
+            thing floating over the crosshair. */}
+        <div className="absolute top-4 right-4">
+          <SceneSettingsMenu settings={settings} onChange={setSettings} />
+        </div>
+
         <h1 className="font-display text-2xl">{firstVisit ? "Build something" : "Paused"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {firstVisit
@@ -67,7 +79,9 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
         </Button>
 
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          Press Esc at any time to pause and come back to this screen.
+          Press Esc at any time to pause and come back to this screen. The
+          settings button changes how the world is lit, and a build&apos;s picture
+          is taken from exactly what you see when you press P.
         </p>
 
         <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">

@@ -160,13 +160,18 @@ Logs and hay bales have a grain and are placed along the face you build against.
 A log put on top of something stands upright, and one put against a wall lies
 down.
 
-### The build viewer
+### Scenes and lighting
 
 A saved build opens in a dark studio on a floor grid, which is what the rest of
-the site looks like. The settings button in the corner switches it to the
-daylight sky the world was built under, turns the grid off, and changes the
-lighting. The choice is remembered in the browser and applies everywhere a
-build is shown.
+the site looks like. The settings button in the corner of the viewer switches it
+to the daylight sky the world was built under, turns the grid off, and changes
+the lighting.
+
+The editor has the same settings, on its pause screen. That matters more than it
+sounds: a build's thumbnail is a capture of the editor's own render at the moment
+you press P, so without them every thumbnail could only ever be a bright daylight
+one. The editor and the viewer remember their choices separately, and both are
+kept in the browser.
 
 ## How builds are saved
 

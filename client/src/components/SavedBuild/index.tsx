@@ -9,12 +9,8 @@ import { QUERY_BUILD } from "../../utils/queries.ts";
 import { deserializeWorld } from "../../lib/voxel/format.ts";
 import { fromKey, type BlockKey } from "../../lib/voxel/coords.ts";
 import { WORLD_SIZE } from "../../lib/voxel/terrain.ts";
-import {
-  LIGHTING,
-  LIGHT_SCALE,
-  useViewerSettings,
-} from "../../lib/viewerSettingsStore.ts";
-import ViewerSettingsMenu from "./ViewerSettingsMenu.tsx";
+import { LIGHTING, LIGHT_SCALE, useViewerSettings } from "../../lib/sceneSettings.ts";
+import SceneSettingsMenu from "../SceneSettingsMenu.tsx";
 
 interface Props {
   buildId: string;
@@ -95,8 +91,9 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
 export default function SavedBuild({ buildId, autoRotate = false, showName = true }: Props) {
   // The chrome sits on the canvas, so its colours have to follow whatever the
   // canvas is showing. Light text vanished against the daylight sky.
-  const environment = useViewerSettings((state) => state.environment);
-  const onLightSky = environment === "daylight";
+  const settings = useViewerSettings((state) => state.settings);
+  const setSettings = useViewerSettings((state) => state.setSettings);
+  const onLightSky = settings.environment === "daylight";
   const labelClass = onLightSky ? "text-neutral-700" : "text-muted-foreground";
   const titleClass = onLightSky ? "text-neutral-900" : "text-foreground/90";
   const { loading, error, data } = useQuery(QUERY_BUILD, {
@@ -184,7 +181,7 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
 
         {/* The only thing in the overlay that takes a click. */}
         <div className="pointer-events-auto absolute top-3 right-3 sm:top-4 sm:right-4">
-          <ViewerSettingsMenu onLightSky={onLightSky} />
+          <SceneSettingsMenu settings={settings} onChange={setSettings} onLightSky={onLightSky} />
         </div>
       </div>
     </div>
@@ -204,9 +201,7 @@ function BuildScene({
   const [cx, cy, cz] = bounds.centre;
   const extent = bounds.radius;
 
-  const environment = useViewerSettings((state) => state.environment);
-  const showGrid = useViewerSettings((state) => state.grid);
-  const light = useViewerSettings((state) => state.light);
+  const { environment, grid: showGrid, light } = useViewerSettings((state) => state.settings);
 
   const studio = environment === "studio";
   const scale = LIGHT_SCALE[light];
