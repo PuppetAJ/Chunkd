@@ -1,5 +1,8 @@
 import { randomBytes } from "node:crypto";
+import bcrypt from "bcryptjs";
 import { Types, type HydratedDocument } from "mongoose";
+import { DEMO_EMAIL, DEMO_USERNAME } from "../config/demo.ts";
+import { attemptLimiter } from "../utils/attemptLimiter.ts";
 import {
   Build,
   Thought,
@@ -36,11 +39,32 @@ function feedWindow(args: { limit?: number | null; offset?: number | null }) {
   return { limit, offset };
 }
 
+// Per-address limits on the three ways to obtain a token. Generous for a
+// person, tight for a script. The general limiter in server.ts still applies
+// on top.
+const limitLogin = attemptLimiter("sign-in", 20, 15 * 60_000);
+const limitSignup = attemptLimiter("sign-up", 60, 60 * 60_000);
+const limitDemo = attemptLimiter("demo sign-in", 30, 60 * 60_000);
+
+// Compared against when an email is not registered, so that a request for an
+// unknown address takes as long as one with a wrong password. Without this,
+// the unknown address returned in under a millisecond and the wrong password
+// in about a hundred, which told anyone timing the endpoint which emails were
+// real. The password itself is irrelevant; only the cost of the comparison is.
+const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
+
+// How many builds one account can hold. A world is a few kilobytes, so this is
+// not about disk. It stops one script filling the database between resets.
+const MAX_BUILDS_PER_USER = 50;
+
+// How many of a user's follows, followers, posts or builds one query returns.
+// The counts stay exact; only the lists are capped. Along with the depth limit
+// this is what bounds how much work one query can ask for.
+const MAX_LIST = 100;
+
 // The shared account behind the demo button. It is only ever reached through
 // the demoLogin mutation, so nobody types these and the password is thrown away
 // as soon as it is hashed.
-const DEMO_USERNAME = "demo";
-const DEMO_EMAIL = "demo@chunkd.test";
 const DEMO_IS_READ_ONLY =
   "The demo account's sign-in details cannot be changed, because everyone shares it. Sign up for an account of your own to change these.";
 
@@ -102,7 +126,7 @@ export const resolvers = {
       return User.findById(auth._id);
     },
 
-    users: async () => User.find().sort({ createdAt: -1 }),
+    users: async () => User.find().sort({ createdAt: -1 }).limit(MAX_LIST),
 
     user: async (_parent: unknown, args: { username: string }) =>
       User.findOne({ username: args.username }),
@@ -153,17 +177,19 @@ export const resolvers = {
       User.countDocuments({ following: parent._id }).exec(),
 
     following: async (parent: UserDocument) =>
-      User.find({ _id: { $in: parent.following } }).exec(),
+      User.find({ _id: { $in: parent.following } }).limit(MAX_LIST).exec(),
 
-    followers: async (parent: UserDocument) => User.find({ following: parent._id }).exec(),
+    followers: async (parent: UserDocument) =>
+      User.find({ following: parent._id }).limit(MAX_LIST).exec(),
 
     thoughts: async (parent: UserDocument) =>
-      Thought.find({ author: parent._id }).sort({ createdAt: -1 }),
+      Thought.find({ author: parent._id }).sort({ createdAt: -1 }).limit(MAX_LIST),
 
     builds: async (parent: UserDocument) =>
       Build.find({ owner: parent._id })
         .select("_id name thumbnail createdAt")
-        .sort({ createdAt: -1 }),
+        .sort({ createdAt: -1 })
+        .limit(MAX_LIST),
 
     // An email address is not public. Return it only to its owner.
     email: (parent: UserDocument, _args: unknown, context: GraphQLContext) =>
@@ -216,9 +242,18 @@ export const resolvers = {
     addUser: async (
       _parent: unknown,
       args: { username: string; email: string; password: string },
+      context: GraphQLContext,
     ) => {
+      limitSignup(context.ip);
       try {
-        const user = await User.create(args);
+        // Named one by one rather than passing `args` through. Today the two
+        // are the same, but the day a field is added to the mutation for some
+        // other reason it must not land in the document by accident.
+        const user = await User.create({
+          username: args.username,
+          email: args.email,
+          password: args.password,
+        });
         return { token: signToken(user), user };
       } catch (error) {
         // Without this the client saw a raw driver error naming the index.
@@ -233,18 +268,31 @@ export const resolvers = {
       }
     },
 
-    login: async (_parent: unknown, args: { email: string; password: string }) => {
+    login: async (
+      _parent: unknown,
+      args: { email: string; password: string },
+      context: GraphQLContext,
+    ) => {
+      limitLogin(context.ip);
       const user = await User.findOne({ email: args.email.toLowerCase() });
 
       // Deliberately the same message for "no such user" and "wrong password",
       // so the endpoint cannot be used to discover which emails are registered.
+      // And the same amount of work: see DUMMY_HASH.
       const failure = badRequest("Incorrect email address or password.");
-      if (!user) throw failure;
+      if (!user) {
+        await bcrypt.compare(args.password, DUMMY_HASH);
+        throw failure;
+      }
       if (!(await user.isCorrectPassword(args.password))) throw failure;
 
       return { token: signToken(user), user };
     },
-    demoLogin: async () => {
+    demoLogin: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
+      // The tokens are for a shared public account and not worth much, but
+      // without this a script could mint them faster than the site resets and
+      // use them to post.
+      limitDemo(context.ip);
       const user = await demoAccount();
       return { token: signToken(user), user };
     },
@@ -458,6 +506,19 @@ export const resolvers = {
       }
       if (args.thumbnail && Buffer.byteLength(args.thumbnail, "utf8") > MAX_THUMBNAIL_BYTES) {
         throw badRequest("That build's preview image is too large.");
+      }
+      // The client renders this straight into an <img>. Anything but an inline
+      // image is refused here rather than left for the content security policy
+      // to catch, since that policy is only on in production.
+      if (args.thumbnail && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(args.thumbnail)) {
+        throw badRequest("That build's preview is not an image.");
+      }
+
+      const owned = await Build.countDocuments({ owner: auth._id });
+      if (owned >= MAX_BUILDS_PER_USER) {
+        throw badRequest(
+          `You already have ${MAX_BUILDS_PER_USER} saved builds. Delete one to save another.`,
+        );
       }
 
       return Build.create({

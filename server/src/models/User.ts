@@ -40,6 +40,10 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
       minlength: [3, "Username must be at least 3 characters"],
       maxlength: [24, "Username must be at most 24 characters"],
+      // Letters, digits, and the three separators people expect. Without this
+      // a name could hold control characters, or look-alike letters from other
+      // scripts that render as somebody else's name.
+      match: [/^[A-Za-z0-9_.-]+$/, "Username may only use letters, numbers, dots, dashes and underscores"],
     },
     email: {
       type: String,
