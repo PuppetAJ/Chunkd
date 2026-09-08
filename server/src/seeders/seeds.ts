@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { faker } from "@faker-js/faker";
 import { Types, type HydratedDocument } from "mongoose";
 import { connectToDatabase, disconnectFromDatabase } from "../config/db.ts";
+import { DEMO_USERNAME } from "../config/demo.ts";
+import { isProduction } from "../config/env.ts";
 import { Build, Thought, User, type UserDocument } from "../models/index.ts";
 
 /**
@@ -25,8 +27,12 @@ const showcaseBuilds: ShowcaseBuild[] = JSON.parse(
 );
 
 // Every seeded account shares this password so you can log in as anyone while
-// developing. It only ever runs against a local database.
+// developing. On the live site these accounts are as public as the demo one:
+// the whole database is reset from this file on a schedule.
 const SEED_PASSWORD = "chunkd-dev-password";
+
+// Pass --force to reset even when nothing has changed since the last one.
+const FORCE = process.argv.includes("--force");
 
 const USER_COUNT = 25;
 const THOUGHT_COUNT = 60;
@@ -40,11 +46,64 @@ function pickRandom<T>(items: T[]): T {
   return item;
 }
 
+/**
+ * Has anyone used the site since the last reset?
+ *
+ * The reset runs on a timer, and most of the time it will find the database
+ * exactly as it left it. Wiping and rebuilding anyway costs a few seconds of
+ * password hashing and shows whoever is loading the page at that moment an
+ * empty feed for no reason. So the usual case is to look and leave.
+ */
+async function somebodyUsedIt(demo: HydratedDocument<UserDocument> | null): Promise<boolean> {
+  const [others, posts] = await Promise.all([
+    User.countDocuments({ isDemo: { $ne: true } }),
+    Thought.countDocuments(),
+  ]);
+  if (others !== USER_COUNT) return true;
+  if (posts !== THOUGHT_COUNT + showcaseBuilds.length) return true;
+  if (!demo) return false;
+
+  const [demoPosts, demoBuilds] = await Promise.all([
+    Thought.countDocuments({ author: demo._id }),
+    Build.countDocuments({ owner: demo._id }),
+  ]);
+  return demoPosts > 0 || demoBuilds > 0 || demo.following.length > 0;
+}
+
 async function seed(): Promise<void> {
+  // This deletes everything. On a laptop that is the point. On the live site
+  // it is also the point, but only when the scheduled reset asks for it, never
+  // because someone ran it with the wrong .env loaded.
+  if (isProduction && process.env.SEED_ALLOW_PRODUCTION !== "1") {
+    console.error(
+      "Refusing to reset a production database. Set SEED_ALLOW_PRODUCTION=1 if you mean it.",
+    );
+    process.exit(1);
+  }
+
   await connectToDatabase();
 
+  const demo = await User.findOne({ username: DEMO_USERNAME });
+
+  if (!FORCE && !(await somebodyUsedIt(demo))) {
+    console.log("Nothing has changed since the last reset. Leaving the database as it is.");
+    await disconnectFromDatabase();
+    return;
+  }
+
   console.log("Clearing existing data...");
-  await Promise.all([User.deleteMany({}), Thought.deleteMany({}), Build.deleteMany({})]);
+  // The demo account survives so that a token issued before the reset keeps
+  // working after it. Its content and its follows are cleared with everything
+  // else; only the account row stays.
+  await Promise.all([
+    User.deleteMany({ isDemo: { $ne: true } }),
+    Thought.deleteMany({}),
+    Build.deleteMany({}),
+  ]);
+  if (demo) {
+    demo.following = [];
+    await demo.save();
+  }
 
   console.log(`Creating ${USER_COUNT} users...`);
   // HydratedDocument<UserDocument> is "a UserDocument that came back from the
