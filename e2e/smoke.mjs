@@ -738,6 +738,39 @@ await page.waitForTimeout(600);
 const editorScene = await page.evaluate(() => localStorage.getItem("editor-settings"));
 check("the editor keeps its own scene preference", /studio/.test(editorScene ?? ""), String(editorScene));
 
+// ------------------------------------------------------------ signing out
+// Signing out has to re-run the queries that are on screen, not just empty the
+// cache. It used to call clearStore, which empties the cache and leaves every
+// mounted query showing the result it already had. On the live site the
+// database is wiped every few hours, so a tab opened before a reset held build
+// ids that no longer existed, and the landing page's hero viewer reported the
+// build as unavailable until a refresh. resetStore refetches instead.
+await page.goto(BASE, { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+
+const refetched = [];
+const watchRefetch = (response) => {
+  if (!response.url().includes("/graphql")) return;
+  const name = response.request().postDataJSON()?.operationName;
+  if (name) refetched.push(name);
+};
+page.on("response", watchRefetch);
+
+await page.getByRole("button", { name: "Account menu" }).click();
+await page.getByRole("menuitem", { name: "Log out" }).click();
+await page.waitForTimeout(4000);
+page.off("response", watchRefetch);
+
+check(
+  "signing out refetches the feed rather than leaving stale data on screen",
+  refetched.includes("thoughts"),
+  refetched.join(", ") || "(no graphql requests after signing out)",
+);
+check(
+  "the landing page after signing out does not report a missing build",
+  (await page.locator("text=This build is no longer available").count()) === 0,
+);
+
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);

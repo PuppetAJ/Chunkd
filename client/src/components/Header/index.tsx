@@ -62,9 +62,29 @@ export default function Header() {
 
   const handleLogout = async () => {
     logOut();
-    // Clear every cached query so the next visitor to this tab cannot read the
-    // previous user's data out of the Apollo cache.
-    await apollo.clearStore();
+
+    // The order matters and is not obvious. Signing out while a protected page
+    // is on screen lets RequireAuth redirect to /login, remembering the page
+    // you came from, and it does that in an effect. Awaiting here yields long
+    // enough for that redirect to land, so the navigate below overrides it and
+    // sends you to the feed with nothing remembered. Navigating before the
+    // sign-out instead does not work: the redirect still wins, and you get
+    // returned to the page you left the next time you sign in.
+    //
+    // resetStore rather than clearStore. Both empty the cache, so neither
+    // leaves the previous user's data where the next person in this tab could
+    // read it, but clearStore stops there and leaves every query that is still
+    // mounted showing the result it already had. That was visible: signing out
+    // rendered the landing page from a cached feed, and if the scheduled reset
+    // had run since the tab was opened, the build ids in that feed no longer
+    // existed, so the hero viewer reported the build as unavailable until a
+    // refresh. Re-running the queries fetches current ids.
+    //
+    // It rejects as a matter of course, because `me` is one of the queries it
+    // retries and that one is unauthenticated now. Nothing is waiting on the
+    // result, and an uncaught rejection here would skip the navigate below.
+    await apollo.resetStore().catch(() => {});
+
     navigate("/", { replace: true });
   };
 
