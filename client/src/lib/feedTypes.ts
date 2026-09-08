@@ -49,3 +49,12 @@ export interface Thought {
  * has to refetch the same first page and the two must agree on its size.
  */
 export const FEED_PAGE_SIZE = 10;
+
+/**
+ * The username of the shared demo account. It has to match
+ * server/src/config/demo.ts. The landing page keeps this account's posts off
+ * the front door, because that page is the one a visitor sees without signing
+ * in and it should show curated builds rather than whatever the last stranger
+ * typed.
+ */
+export const DEMO_USERNAME = "demo";

@@ -5,7 +5,7 @@ import { Blocks, Play, Share2, Save } from "lucide-react";
 
 import { QUERY_THOUGHTS } from "../utils/queries.ts";
 import { useDemoLogin } from "../lib/useDemoLogin.ts";
-import type { Thought } from "../lib/feedTypes.ts";
+import { DEMO_USERNAME, type Thought } from "../lib/feedTypes.ts";
 import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 
@@ -31,7 +31,13 @@ export default function Landing() {
   });
 
   const thoughts: Thought[] = (data as { thoughts?: Thought[] } | undefined)?.thoughts ?? [];
-  const withBuilds = thoughts.filter((thought) => thought.build?.thumbnail);
+  // Anyone can post as the demo account, and this page carries the site's
+  // name. Only builds from real (seeded or signed-up) accounts appear here;
+  // demo posts still show in the feed, behind a sign-in, where they are
+  // clearly a sandbox.
+  const withBuilds = thoughts.filter(
+    (thought) => thought.build?.thumbnail && thought.username !== DEMO_USERNAME,
+  );
   const hero = withBuilds[0] ?? null;
   const gallery = withBuilds.slice(1, 7);
 
@@ -64,7 +70,8 @@ export default function Landing() {
           )}
 
           <p className="mt-3 text-sm text-muted-foreground">
-            The demo is a shared account, so anything you make in it is public.
+            The demo is a shared account, so anything you make in it is public. This is a
+            portfolio site: everything resets every few hours.
           </p>
         </div>
 
