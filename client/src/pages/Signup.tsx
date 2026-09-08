@@ -79,7 +79,7 @@ export default function Signup() {
   return (
     <AuthShell
       title="Make an account"
-      subtitle="Build a world and share it."
+      subtitle="Build a world and share it. This is a portfolio site, so everything resets every few hours."
       footer={
         <>
           Already have an account?{" "}

@@ -38,7 +38,8 @@ export default function DemoLoginButton() {
       </Button>
 
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        Everyone shares this account, so treat anything you make in it as public.
+        Everyone shares this account, so treat anything you make in it as public. The whole
+        site resets every few hours.
       </p>
 
       {error && (
