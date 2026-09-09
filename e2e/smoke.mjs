@@ -38,6 +38,62 @@ page.on("pageerror", (error) => {
   if (!/pointer lock/i.test(error.message)) pageErrors.push(error.message);
 });
 
+/**
+ * Wait for a condition inside the page instead of guessing at a duration.
+ *
+ * The editor checks used fixed pauses, which made this half of the suite fail
+ * roughly one run in three: anything competing for the machine pushed an
+ * assertion past its window. This returns whether the condition arrived rather
+ * than throwing, so a timeout still reaches the check below it and fails there,
+ * with a reason, instead of ending the whole run.
+ */
+const until = async (probe, arg = null, timeout = 15000) => {
+  try {
+    await page.waitForFunction(probe, arg, { timeout, polling: 100 });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Let the render loop run. Some editor state is sampled per frame rather than
+ * handled on the event, so a couple of frames is the real unit of waiting.
+ */
+const frames = (count = 2) =>
+  page.evaluate(
+    (n) =>
+      new Promise((resolve) => {
+        let left = n;
+        const step = () => {
+          left -= 1;
+          if (left <= 0) resolve();
+          else requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }),
+    count,
+  );
+
+/**
+ * The renderer has caught up with the world when it is drawing an instance for
+ * every visible block. That is the condition the old five and nine second
+ * pauses were standing in for.
+ */
+const rendererSettled = () =>
+  until(() => {
+    const world = window.__world?.getState();
+    const state = window.__r3f;
+    if (!world || !state) return false;
+    let drawn = 0;
+    state.scene.traverse((object) => {
+      if (object.isInstancedMesh) drawn += object.count;
+    });
+    return world.blocks.size > 500 && drawn === world.visible.size;
+  });
+
+const blockCount = () => page.evaluate(() => window.__world.getState().blocks.size);
+
 const stamp = Date.now();
 const user = {
   username: `e2e${stamp}`.slice(0, 20),
@@ -157,7 +213,8 @@ check("login succeeds with the right password", page.url() === `${BASE}/`);
 // ---------------------------------------------------------------------- editor
 await page.getByRole("link", { name: "Editor" }).first().click();
 await page.waitForURL("**/editor", { timeout: 15000 });
-await page.waitForTimeout(9000);
+check("the editor finishes generating and drawing a world", await rendererSettled(),
+  "the renderer never caught up with the world");
 
 // The editor is routed outside the site shell so the hotbar is not drawn over
 // the footer and the sticky header does not eat the top of the canvas.
@@ -180,7 +237,8 @@ check("clicking to play dismisses the pause screen", (await page.getByRole("butt
 // changed from run to run. That made the placement check fail every so often
 // for reasons that had nothing to do with the code under test.
 await page.evaluate(() => window.__world.getState().newWorld(20260905));
-await page.waitForTimeout(5000);
+check("the pinned world finishes drawing", await rendererSettled(),
+  "the renderer never caught up with the world");
 
 const scene = () =>
   page.evaluate(() => {
@@ -219,9 +277,9 @@ const cx = Math.round(box.x + box.width / 2);
 const cy = Math.round(box.y + box.height / 2);
 
 await page.mouse.move(cx, cy);
-await page.waitForTimeout(600);
+await frames();
 await page.mouse.click(cx, cy, { button: "left" });
-await page.waitForTimeout(1200);
+await until((want) => window.__world.getState().blocks.size === want, before.blocks - 1, 5000);
 const afterBreak = await scene();
 check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
   `${before.blocks} -> ${afterBreak.blocks}`);
@@ -232,9 +290,11 @@ check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
 let afterPlace = afterBreak;
 for (const [pitch, yaw] of [[-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1], [-0.2, 0.8], [0, 2.4]]) {
   await page.evaluate(([p, y]) => window.__r3f.camera.rotation.set(p, y, 0), [pitch, yaw]);
-  await page.waitForTimeout(500);
+  await frames();
   await page.mouse.click(cx, cy, { button: "right" });
-  await page.waitForTimeout(900);
+  // A short wait here on purpose: most of these angles are meant to fail, and
+  // the loop moves on to the next one rather than waiting out a full timeout.
+  await until((want) => window.__world.getState().blocks.size > want, afterBreak.blocks, 2000);
   afterPlace = await scene();
   if (afterPlace.blocks > afterBreak.blocks) break;
 }
@@ -261,16 +321,22 @@ await page.evaluate(() => {
   }
   camera.rotation.set(0, 0, 0, "YXZ");
 });
-await page.waitForTimeout(1200);
+await rendererSettled();
 
-const wallBefore = await page.evaluate(() => window.__world.getState().blocks.size);
+const wallBefore = await blockCount();
 for (let i = 0; i < 5; i += 1) {
+  const at = await blockCount();
+  // Press and release with nothing in between. The editor acts on pointerdown
+  // rather than on the next frame, and holding the button past REPEAT_MS in
+  // World/index.tsx starts digging again, which turned five clicks into twelve
+  // broken blocks when this waited for frames.
   await page.mouse.down({ button: "left" });
-  await page.waitForTimeout(60);
   await page.mouse.up({ button: "left" });
-  await page.waitForTimeout(400);
+  // Waiting for this click's block to go, rather than for a fixed pause, is
+  // what stops a slow frame being read as a click that did nothing.
+  await until((want) => window.__world.getState().blocks.size === want, at - 1, 5000);
 }
-const wallAfter = await page.evaluate(() => window.__world.getState().blocks.size);
+const wallAfter = await blockCount();
 check("five clicks in a row break five blocks", wallBefore - wallAfter === 5,
   `${wallBefore} -> ${wallAfter}`);
 
@@ -370,7 +436,9 @@ check("orientation does not disturb the block id", axisAt.every((one) => one.id 
 // P captures the world and opens the naming dialog. Every build used to be
 // saved as "Untitled build" because a keypress had nowhere to type a name.
 await page.keyboard.press("p");
-await page.waitForTimeout(1200);
+// The dialog previews a canvas capture, so it appears a frame or two after the
+// key press. Wait for the field itself.
+await page.locator("#buildName").waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
 check("saving asks for a name", (await page.locator("#buildName").count()) > 0);
 check("the dialog previews the captured view", (await page.locator('[role=dialog] img').count()) > 0);
 
@@ -394,11 +462,13 @@ check("the world stands still while a build is being named", moved < 1e-6, `move
 
 await page.fill("#buildName", "Ridge fort");
 await page.getByRole("button", { name: "Save build" }).click();
-// The confirmation clears itself after a couple of seconds, so look while it
-// is still on screen.
-await page.waitForTimeout(1500);
+// The confirmation clears itself after a couple of seconds. A fixed wait can
+// land either side of that window, so wait for it to arrive, check, then wait
+// for it to go rather than for a duration.
+const savedToast = page.locator("text=/build saved/i").first();
+await savedToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
 check("the save confirmation appears", (await page.locator("text=/build saved/i").count()) > 0);
-await page.waitForTimeout(2000);
+await savedToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
 
 // -------------------------------------------------------------------- profile
 // The editor is outside the site shell now, so there is no header to click.
