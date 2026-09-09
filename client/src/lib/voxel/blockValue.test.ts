@@ -9,13 +9,25 @@ import {
   axisForFaceNormal,
   blockAxisOf,
   blockIdOf,
+  blockFacingOf,
   blockShapeOf,
+  facingForYaw,
+  facingOffset,
   isSlab,
+  isStairs,
+  isUpsideDown,
   packBlock,
   slabShapeForPlacement,
+  stairsShapeForPlacement,
+  FACING_EAST,
+  FACING_NORTH,
+  FACING_SOUTH,
+  FACING_WEST,
   SHAPE_FULL,
   SHAPE_SLAB_BOTTOM,
   SHAPE_SLAB_TOP,
+  SHAPE_STAIRS_BOTTOM,
+  SHAPE_STAIRS_TOP,
   verticalExtent,
 } from "./blockValue.ts";
 
@@ -120,4 +132,72 @@ test("building against a side splits the face down the middle", () => {
   assert.equal(slabShapeForPlacement(0, -0.3), SHAPE_SLAB_BOTTOM);
   // Exactly halfway has to land somewhere rather than be undefined.
   assert.equal(slabShapeForPlacement(0, 0), SHAPE_SLAB_TOP);
+});
+
+test("id, axis, shape and facing all survive together", () => {
+  for (const shape of [SHAPE_FULL, SHAPE_SLAB_TOP, SHAPE_STAIRS_BOTTOM, SHAPE_STAIRS_TOP]) {
+    for (const facing of [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST]) {
+      const value = packBlock(BLOCK_IDS.stoneBricks, AXIS_Y, shape, facing);
+      const where = `shape ${shape} facing ${facing}`;
+      assert.equal(blockIdOf(value), BLOCK_IDS.stoneBricks, where);
+      assert.equal(blockShapeOf(value), shape, where);
+      assert.equal(blockFacingOf(value), facing, where);
+    }
+  }
+});
+
+test("a plain cube is still stored as its bare id with a facing of zero", () => {
+  assert.equal(packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_FULL, FACING_NORTH), BLOCK_IDS.stone);
+});
+
+test("stairs collide as a whole cube", () => {
+  // The decision behind step assist: exact per-shape collision was the
+  // expensive part, and a stair is a half block rise, so it is walked up.
+  for (const shape of [SHAPE_STAIRS_BOTTOM, SHAPE_STAIRS_TOP]) {
+    assert.deepEqual(verticalExtent(packBlock(BLOCK_IDS.stone, AXIS_Y, shape), 10), [9.5, 10.5]);
+  }
+});
+
+test("a stair's low step faces the player who placed it", () => {
+  // So that walking forwards goes up it. The camera looks along -Z at yaw 0,
+  // which puts the player to the south of what they are looking at.
+  assert.equal(facingForYaw(0), FACING_SOUTH);
+  assert.equal(facingForYaw(Math.PI / 2), FACING_EAST);
+  assert.equal(facingForYaw(Math.PI), FACING_NORTH);
+  assert.equal(facingForYaw(-Math.PI / 2), FACING_WEST);
+});
+
+test("a yaw between two directions picks the nearer one", () => {
+  // Yaw comes from mouse-look, so it is never exactly on a quarter turn.
+  assert.equal(facingForYaw(0.2), FACING_SOUTH);
+  assert.equal(facingForYaw(-0.2), FACING_SOUTH);
+  assert.equal(facingForYaw(Math.PI / 2 - 0.2), FACING_EAST);
+  assert.equal(facingForYaw(Math.PI + 0.3), FACING_NORTH);
+  // Wrapping past a full turn has to behave the same as not wrapping.
+  assert.equal(facingForYaw(2 * Math.PI), FACING_SOUTH);
+  assert.equal(facingForYaw(-2 * Math.PI + Math.PI / 2), FACING_EAST);
+});
+
+test("the facing offset points at the low side", () => {
+  assert.deepEqual(facingOffset(FACING_NORTH), [0, -1]);
+  assert.deepEqual(facingOffset(FACING_EAST), [1, 0]);
+  assert.deepEqual(facingOffset(FACING_SOUTH), [0, 1]);
+  assert.deepEqual(facingOffset(FACING_WEST), [-1, 0]);
+});
+
+test("stairs take the same upper or lower half rule as slabs", () => {
+  assert.equal(stairsShapeForPlacement(1, 0.5), SHAPE_STAIRS_BOTTOM);
+  assert.equal(stairsShapeForPlacement(-1, -0.5), SHAPE_STAIRS_TOP);
+  assert.equal(stairsShapeForPlacement(0, 0.3), SHAPE_STAIRS_TOP);
+  assert.equal(stairsShapeForPlacement(0, -0.3), SHAPE_STAIRS_BOTTOM);
+});
+
+test("isStairs and isUpsideDown sort the shapes", () => {
+  const at = (shape: number) => packBlock(BLOCK_IDS.stone, AXIS_Y, shape);
+  assert.equal(isStairs(at(SHAPE_STAIRS_BOTTOM)), true);
+  assert.equal(isStairs(at(SHAPE_SLAB_BOTTOM)), false);
+  assert.equal(isUpsideDown(at(SHAPE_STAIRS_TOP)), true);
+  assert.equal(isUpsideDown(at(SHAPE_SLAB_TOP)), true);
+  assert.equal(isUpsideDown(at(SHAPE_STAIRS_BOTTOM)), false);
+  assert.equal(isUpsideDown(at(SHAPE_FULL)), false);
 });

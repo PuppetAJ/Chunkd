@@ -399,7 +399,10 @@ check(
 );
 await page.keyboard.press("KeyR");
 await frames();
-check("R turns it back to whole blocks", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
+check("R steps on from a slab rather than toggling back", (await shapeOfSlot()) === 3, `shape ${await shapeOfSlot()}`);
+await page.keyboard.press("KeyR");
+await frames();
+check("R comes back to a whole block at the end", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
 
 const slabs = await page.evaluate(() => {
   const store = window.__world.getState();
@@ -504,6 +507,67 @@ await page.keyboard.down("w");
 const steppedUp = await until((want) => window.__player?.y >= want, SLAB_PAD_Y + 1.5, 15000);
 await page.keyboard.up("w");
 const afterStep = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
+// -------------------------------------------------------------------- stairs
+// R steps a slot on through the shapes its block can take, and the facing of a
+// stair comes from where the player is looking rather than the face they built
+// against, so walking forwards goes up it.
+await page.evaluate(() => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(4, 9); // stone bricks
+  store.setSelectedSlot(4);
+});
+const shapeOfFour = () =>
+  page.evaluate(() => window.__world.getState().hotbarShape[3]);
+
+await page.keyboard.press("KeyR");
+await frames();
+check("R goes from a whole block to a slab", (await shapeOfFour()) === 1, `shape ${await shapeOfFour()}`);
+await page.keyboard.press("KeyR");
+await frames();
+check("R goes on to stairs", (await shapeOfFour()) === 3, `shape ${await shapeOfFour()}`);
+await page.keyboard.press("KeyR");
+await frames();
+check("R comes back round to a whole block", (await shapeOfFour()) === 0, `shape ${await shapeOfFour()}`);
+
+// Cut sandstone has a slab in Minecraft and no stairs, so its slot has one
+// fewer shape to step through.
+await page.evaluate(() => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(5, 33); // cut sandstone
+  store.setSelectedSlot(5);
+});
+const shapeOfFive = () => page.evaluate(() => window.__world.getState().hotbarShape[4]);
+await page.keyboard.press("KeyR");
+await frames();
+check("a block with no stairs stops at a slab", (await shapeOfFive()) === 1, `shape ${await shapeOfFive()}`);
+await page.keyboard.press("KeyR");
+await frames();
+check("and comes straight back to a whole block", (await shapeOfFive()) === 0, `shape ${await shapeOfFive()}`);
+
+const stairs = await page.evaluate(() => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(4, 9);
+  store.setSelectedSlot(4);
+  const y = 44, z = 16;
+  // Facings 0 to 3 are north, east, south and west.
+  for (let facing = 0; facing < 4; facing += 1) {
+    store.placeBlock(14 + facing * 2, y, z, 0, 3, facing);
+  }
+  store.placeBlock(14, y, z + 2, 0, 4, 0); // upside down
+  const read = (x, zz) => {
+    const value = window.__world.getState().blocks.get(`${x},${y},${zz}`);
+    return { id: value & 0xff, shape: (value >> 10) & 0b111, facing: (value >> 13) & 0b11 };
+  };
+  return {
+    row: [read(14, z), read(16, z), read(18, z), read(20, z)],
+    upsideDown: read(14, z + 2),
+  };
+});
+check("stairs store their shape", stairs.row.every((one) => one.shape === 3), JSON.stringify(stairs.row));
+check("each facing is kept", stairs.row.map((one) => one.facing).join() === "0,1,2,3", JSON.stringify(stairs.row));
+check("the block id survives a facing", stairs.row.every((one) => one.id === 9), JSON.stringify(stairs.row));
+check("upside down stairs are their own shape", stairs.upsideDown.shape === 4, JSON.stringify(stairs.upsideDown));
+
 check(
   "walking into a step climbs it without a jump",
   steppedUp && Math.abs(afterStep.y - (SLAB_PAD_Y + 1.5)) < 0.01,

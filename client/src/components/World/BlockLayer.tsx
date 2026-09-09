@@ -15,8 +15,9 @@ function capacityFor(count: number): number {
 
 interface Props {
   block: BlockType;
-  /** Every instance shares a geometry, so shape belongs to the layer. */
+  /** Every instance shares a geometry, so shape and facing belong to the layer. */
   shape: number;
+  facing: number;
   /** Flat x, y, z triples for every block of this type. */
   positions: Float32Array;
   /** Which way each of those blocks is turned. */
@@ -35,9 +36,9 @@ interface Props {
  * and hay do not, so they get one material per face group, which is what lets
  * grass have a green top, a banded side and a plain dirt underside.
  */
-export default function BlockLayer({ block, shape, positions, axes, textures }: Props) {
+export default function BlockLayer({ block, shape, facing, positions, axes, textures }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const geometry = geometryForShape(shape);
+  const geometry = geometryForShape(shape, facing);
   const count = positions.length / 3;
   const capacity = capacityFor(count);
 

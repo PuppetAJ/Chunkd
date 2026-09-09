@@ -1,5 +1,17 @@
 import * as THREE from "three";
-import { AXIS_X, AXIS_Z, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./voxel/blockValue.ts";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import {
+  AXIS_X,
+  AXIS_Z,
+  FACING_EAST,
+  FACING_NORTH,
+  FACING_SOUTH,
+  FACING_WEST,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_SLAB_TOP,
+  SHAPE_STAIRS_BOTTOM,
+  SHAPE_STAIRS_TOP,
+} from "./voxel/blockValue.ts";
 
 /**
  * The unit cube every block is drawn from, with its face shading baked in.
@@ -37,73 +49,143 @@ const FACE_BRIGHTNESS = {
   eastWest: 0.55,
 };
 
-/** BoxGeometry orders its faces +X, -X, +Y, -Y, +Z, -Z, four vertices each. */
-const BRIGHTNESS_BY_FACE = [
-  FACE_BRIGHTNESS.eastWest,
-  FACE_BRIGHTNESS.eastWest,
-  FACE_BRIGHTNESS.top,
-  FACE_BRIGHTNESS.bottom,
-  FACE_BRIGHTNESS.northSouth,
-  FACE_BRIGHTNESS.northSouth,
-];
-
-const VERTICES_PER_FACE = 4;
-
-/** The four side faces of a box, in BoxGeometry's +X, -X, +Y, -Y, +Z, -Z order. */
-const SIDE_FACES = [0, 1, 4, 5];
-
 /**
- * One block's geometry, at a given height and offset inside its cell.
+ * One axis-aligned part of a block, textured as though the texture were
+ * projected through the cell.
  *
- * The offset is in the geometry, not the instance, so an instance always sits
- * at the centre of its cell. The raycast recovers which cell was hit by
- * rounding that position, and the highlight is drawn there, so offsetting the
- * instance instead would break both.
+ * Every face takes the slice of the texture its own position covers, worked
+ * out from the vertex and the direction the face points. That is what the
+ * games this borrows from do, and it is the whole reason a sandstone stair
+ * needs no special handling: a face pointing up gets top texture, a face
+ * pointing sideways gets side texture, and each gets the part of it that lines
+ * up with where the face sits in the cell.
  *
- * Side faces take the matching half of the texture rather than the whole of it
- * squeezed into half the height.
+ * `min` and `max` are corners of the cell, which runs -0.5 to 0.5 on each
+ * axis. The offset is baked into the geometry rather than applied to the
+ * instance, so an instance always sits at the centre of its cell: the raycast
+ * recovers which cell was hit by rounding that position, and the block
+ * highlight is drawn there too.
  */
-function createBlockGeometry(height = 1, offsetY = 0): THREE.BoxGeometry {
-  const geometry = new THREE.BoxGeometry(1, height, 1);
-  const vertexCount = geometry.attributes["position"]!.count;
-  const colors = new Float32Array(vertexCount * 3);
+function boxPart(min: [number, number, number], max: [number, number, number]): THREE.BoxGeometry {
+  const geometry = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
+  geometry.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
 
-  for (let vertex = 0; vertex < vertexCount; vertex += 1) {
-    const brightness = BRIGHTNESS_BY_FACE[Math.floor(vertex / VERTICES_PER_FACE)] ?? 1;
-    colors[vertex * 3] = brightness;
-    colors[vertex * 3 + 1] = brightness;
-    colors[vertex * 3 + 2] = brightness;
-  }
+  const position = geometry.attributes["position"]!;
+  const normal = geometry.attributes["normal"]!;
+  const uv = geometry.attributes["uv"]!;
+  const colors = new Float32Array(position.count * 3);
 
-  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  for (let i = 0; i < position.count; i += 1) {
+    const x = position.getX(i);
+    const y = position.getY(i);
+    const z = position.getZ(i);
+    const nx = normal.getX(i);
+    const ny = normal.getY(i);
+    const nz = normal.getZ(i);
 
-  if (height !== 1) {
-    // v runs 0 at the bottom of a face to 1 at the top.
-    const uv = geometry.attributes["uv"]!;
-    const bottom = offsetY - height / 2 + 0.5;
-    for (const face of SIDE_FACES) {
-      for (let corner = 0; corner < VERTICES_PER_FACE; corner += 1) {
-        const vertex = face * VERTICES_PER_FACE + corner;
-        uv.setY(vertex, bottom + uv.getY(vertex) * height);
-      }
+    // The signs match what BoxGeometry produces for a whole cube, so a whole
+    // cube comes out of here looking exactly as it did before.
+    let u: number;
+    let v: number;
+    let brightness: number;
+    if (Math.abs(ny) > 0.5) {
+      u = x + 0.5;
+      v = (ny > 0 ? z : -z) + 0.5;
+      brightness = ny > 0 ? FACE_BRIGHTNESS.top : FACE_BRIGHTNESS.bottom;
+    } else if (Math.abs(nx) > 0.5) {
+      u = (nx > 0 ? -z : z) + 0.5;
+      v = y + 0.5;
+      brightness = FACE_BRIGHTNESS.eastWest;
+    } else {
+      u = (nz > 0 ? x : -x) + 0.5;
+      v = y + 0.5;
+      brightness = FACE_BRIGHTNESS.northSouth;
     }
-    uv.needsUpdate = true;
+
+    uv.setXY(i, u, v);
+    colors[i * 3] = brightness;
+    colors[i * 3 + 1] = brightness;
+    colors[i * 3 + 2] = brightness;
   }
 
-  if (offsetY !== 0) geometry.translate(0, offsetY, 0);
+  uv.needsUpdate = true;
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   return geometry;
 }
 
-/** Shared by every block layer; the per-block difference is only the material. */
-export const BLOCK_GEOMETRY = createBlockGeometry();
+/**
+ * Join parts into one geometry, keeping BoxGeometry's material groups.
+ *
+ * Each part contributes six groups, so their material indices are brought back
+ * into the range 0 to 5 and BlockLayer's six-entry material array keeps
+ * working: index 2 is still the top texture, 3 the bottom, the rest the sides.
+ */
+function fuse(parts: THREE.BoxGeometry[]): THREE.BufferGeometry {
+  const merged = mergeGeometries(parts, true);
+  if (!merged) throw new Error("Could not build a block geometry");
+  for (let i = 0; i < merged.groups.length; i += 1) {
+    merged.groups[i]!.materialIndex = i % 6;
+  }
+  return merged;
+}
 
-const SLAB_BOTTOM_GEOMETRY = createBlockGeometry(0.5, -0.25);
-const SLAB_TOP_GEOMETRY = createBlockGeometry(0.5, 0.25);
+/** Shared by every block layer; the per-block difference is only the material. */
+export const BLOCK_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]);
+
+const SLAB_BOTTOM_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0, 0.5]);
+const SLAB_TOP_GEOMETRY = boxPart([-0.5, 0, -0.5], [0.5, 0.5, 0.5]);
+
+/**
+ * The two boxes a stair is built from: the half-height part that spans the
+ * whole cell, and the part that makes up the step.
+ *
+ * Facing is the direction the low step faces, so the tall part is on the
+ * opposite side. The boxes meet along an internal face, which is left in
+ * rather than trimmed away: it sits inside the solid, so an outer face is
+ * always nearer the camera and hides it.
+ *
+ * Exported because this is the part worth checking. Whether the boxes are in
+ * the right places is a decision with four cases and an upside-down variant;
+ * turning boxes into vertices is not.
+ */
+export function stairParts(
+  facing: number,
+  upsideDown: boolean,
+): { min: [number, number, number]; max: [number, number, number] }[] {
+  const tall =
+    facing === FACING_EAST
+      ? { min: [-0.5, -0.5], max: [0, 0.5] }
+      : facing === FACING_WEST
+        ? { min: [0, -0.5], max: [0.5, 0.5] }
+        : facing === FACING_SOUTH
+          ? { min: [-0.5, -0.5], max: [0.5, 0] }
+          : { min: [-0.5, 0], max: [0.5, 0.5] };
+
+  const flatLow = upsideDown ? 0 : -0.5;
+  const stepLow = upsideDown ? -0.5 : 0;
+  return [
+    { min: [-0.5, flatLow, -0.5], max: [0.5, flatLow + 0.5, 0.5] },
+    {
+      min: [tall.min[0]!, stepLow, tall.min[1]!],
+      max: [tall.max[0]!, stepLow + 0.5, tall.max[1]!],
+    },
+  ];
+}
+
+function stairsGeometry(facing: number, upsideDown: boolean): THREE.BufferGeometry {
+  return fuse(stairParts(facing, upsideDown).map((part) => boxPart(part.min, part.max)));
+}
+
+const FACINGS = [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST];
+const STAIRS_BOTTOM_GEOMETRIES = FACINGS.map((facing) => stairsGeometry(facing, false));
+const STAIRS_TOP_GEOMETRIES = FACINGS.map((facing) => stairsGeometry(facing, true));
 
 /** The geometry one render layer should be drawn with. */
-export function geometryForShape(shape: number): THREE.BoxGeometry {
+export function geometryForShape(shape: number, facing = FACING_NORTH): THREE.BufferGeometry {
   if (shape === SHAPE_SLAB_BOTTOM) return SLAB_BOTTOM_GEOMETRY;
   if (shape === SHAPE_SLAB_TOP) return SLAB_TOP_GEOMETRY;
+  if (shape === SHAPE_STAIRS_BOTTOM) return STAIRS_BOTTOM_GEOMETRIES[facing] ?? BLOCK_GEOMETRY;
+  if (shape === SHAPE_STAIRS_TOP) return STAIRS_TOP_GEOMETRIES[facing] ?? BLOCK_GEOMETRY;
   return BLOCK_GEOMETRY;
 }
 
