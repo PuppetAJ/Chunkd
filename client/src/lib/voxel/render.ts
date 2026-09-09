@@ -34,15 +34,12 @@ export type VisibleBlocks = Map<BlockKey, number>;
  * neighbour that is asking?
  *
  * `dy` is the step from the asking block to this one: +1 for the cell above,
- * -1 for the cell below, 0 for the four sides.
+ * -1 below, 0 for the four sides.
  *
- * Glass never counts, because it does not hide what is behind it. Neither does
- * half of a slab. A slab fills exactly one of its cell's six faces: a bottom
- * slab's underside, a top slab's top. Every other face it shares is half
- * covered, and half covered is not covered, so the block on the other side of
- * it still has to be drawn. Treating a slab as a full occluder, which is what
- * the old code did to anything present, left see-through holes in the terrain
- * underneath the first slab floor laid on it.
+ * Glass never counts. Nor does most of a slab: it fills exactly one of its
+ * cell's six faces, a bottom slab's underside or a top slab's top, and half
+ * covered is not covered. Treating one as a full occluder leaves see-through
+ * holes wherever a slab floor meets terrain.
  */
 function coversFace(
   blocks: Map<BlockKey, number>,
@@ -64,10 +61,8 @@ function coversFace(
 }
 
 function isHidden(blocks: Map<BlockKey, number>, x: number, y: number, z: number): boolean {
-  // A slab has an exposed surface inside its own cell, the flat top of a
-  // bottom slab or the underside of a top slab, and nothing in a neighbouring
-  // cell can cover it. So a slab is never hidden and there is nothing to work
-  // out.
+  // A slab's exposed surface is inside its own cell, where no neighbour can
+  // reach it, so a slab is never hidden.
   const self = blocks.get(toKey(x, y, z));
   if (self !== undefined && blockShapeOf(self) !== SHAPE_FULL) return false;
 
@@ -122,19 +117,12 @@ export function refreshVisibleAround(
   }
 }
 
-/**
- * How many shapes one block id can be grouped into. Used only to combine an id
- * and a shape into a single map key below.
- */
+/** Only used to combine an id and a shape into one map key. */
 const SHAPE_SLOTS = 8;
 
 /**
- * Group the visible blocks by type, ready for one instanced mesh each.
- *
- * The grouping is by block id and shape together, not by id alone, because
- * instances of one mesh all share one geometry and a slab is a different
- * geometry from a cube. A world with no slabs in it produces exactly the
- * layers it did before.
+ * Group the visible blocks by id and shape, ready for one instanced mesh each.
+ * By shape as well as id, because every instance in a mesh shares a geometry.
  */
 export function groupVisible(visible: VisibleBlocks): RenderLayer[] {
   const positionsByType = new Map<number, number[]>();

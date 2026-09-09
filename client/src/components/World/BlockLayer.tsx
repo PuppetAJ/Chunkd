@@ -15,10 +15,7 @@ function capacityFor(count: number): number {
 
 interface Props {
   block: BlockType;
-  /**
-   * Full cube, bottom slab or top slab. Every instance in one layer shares a
-   * geometry, so the shape belongs to the layer rather than to the instance.
-   */
+  /** Every instance shares a geometry, so shape belongs to the layer. */
   shape: number;
   /** Flat x, y, z triples for every block of this type. */
   positions: Float32Array;

@@ -33,10 +33,8 @@ interface WorldState {
    */
   hotbar: number[];
   /**
-   * What shape each slot places: a full cube or a slab. Kept alongside the
-   * hotbar rather than inside it so that choosing a block from the inventory
-   * and choosing how to place it stay separate, and so any block can be laid
-   * as a slab without doubling the inventory.
+   * What shape each slot places. Alongside the hotbar rather than inside it, so
+   * choosing a block and choosing how to place it stay separate.
    */
   hotbarShape: number[];
 
@@ -86,8 +84,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const blockId = get().selectedBlockId();
     const block = getBlock(blockId);
     // Only a block with a grain is turned by the face you built against, and a
-    // slab is never turned at all: half a log stood on its end is not a shape
-    // this has, and allowing it would mean a rotated half-height box.
+    // slab is never turned: there is no shape here for one stood on its end.
     const upright = shape !== SHAPE_FULL || !block?.directional;
     const value = packBlock(blockId, upright ? AXIS_Y : axis, shape);
     const key = toKey(x, y, z);
@@ -144,8 +141,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const hotbarShape = [...state.hotbarShape];
       const index = state.selectedSlot - 1;
-      // Only the two states the player chooses between. Which half of the cell
-      // a slab lands in is decided by where they aim, not here.
+      // Which half of the cell a slab lands in comes from where they aim.
       hotbarShape[index] =
         hotbarShape[index] === SHAPE_FULL ? SHAPE_SLAB_BOTTOM : SHAPE_FULL;
       return { hotbarShape };

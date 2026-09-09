@@ -1,46 +1,27 @@
 /**
- * Shared parts of the end-to-end suites.
+ * Shared parts of the end-to-end suites, so a throwaway script can reuse the
+ * setup instead of copying it:
  *
- * This exists so that a throwaway script for whatever is being worked on right
- * now can reuse the suite's setup instead of copying it. The full suite is a
- * single scenario that signs up, builds a world, posts it and comments on it,
- * so later checks depend on earlier ones and there is no way to run one in
- * isolation. Running the whole thing to see one assertion takes four minutes,
- * which is long enough that it stops being used while iterating.
- *
- * A scratch script is now about ten lines:
- *
- *   import { BASE, launch, helpers, reporter, newUser, signUp, openEditor } from "./lib.mjs";
- *   const { page, close } = await launch();
+ *   import { launch, helpers, reporter, newUser, signUp, openEditor } from "./lib.mjs";
+ *   const { page, pageErrors, close } = await launch();
  *   const wait = helpers(page);
  *   const { check, report } = reporter();
  *   await signUp(page, newUser());
  *   await openEditor(page, wait);
  *   check("the thing I am building works", ...);
  *   await close();
- *   process.exit(report());
- *
- * Because smoke.mjs is built from these same pieces, moving a check that works
- * out of a scratch script and into the suite is moving lines rather than
- * rewriting them.
+ *   process.exit(report(pageErrors));
  */
 import { chromium } from "playwright";
 
 export const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
-/**
- * Open a browser with the suite's instrumentation already in place.
- *
- * `pageErrors` collects uncaught errors from the page, which the suite treats
- * as failures in their own right. Pointer lock is recorded rather than
- * prevented: an automated browser refuses every request, so nothing here can
- * prove that mouse-look works, but it can prove that nothing asks for the
- * mouse when it should not.
- */
 export async function launch({ width = 1280, height = 800 } = {}) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width, height } });
 
+  // An automated browser refuses every pointer lock request, so the suite
+  // records who asked rather than checking whether the lock was granted.
   await page.addInitScript(() => {
     window.__lockRequests = [];
     const request = Element.prototype.requestPointerLock;
@@ -52,7 +33,6 @@ export async function launch({ width = 1280, height = 800 } = {}) {
 
   const pageErrors = [];
   page.on("pageerror", (error) => {
-    // Pointer lock cannot be granted to a headless browser. Not a defect.
     if (!/pointer lock/i.test(error.message)) pageErrors.push(error.message);
   });
 
@@ -60,15 +40,11 @@ export async function launch({ width = 1280, height = 800 } = {}) {
 }
 
 /**
- * Ways of waiting for a condition rather than for a duration.
- *
- * The suite used fixed pauses everywhere and failed roughly one run in three,
- * because anything competing for the machine pushed an assertion past its
- * window. None of these throw on a timeout: the check that follows is what
- * should fail, with its own message, rather than an exception ending the run.
+ * Ways of waiting for a condition rather than for a duration. None of them
+ * throw on a timeout, so the check that follows is what fails, with its own
+ * message, rather than an exception ending the run.
  */
 export function helpers(page) {
-  /** Wait for a condition inside the page. Returns whether it arrived. */
   const until = async (probe, arg = null, timeout = 15000) => {
     try {
       await page.waitForFunction(probe, arg, { timeout, polling: 100 });
@@ -78,15 +54,7 @@ export function helpers(page) {
     }
   };
 
-  /**
-   * Let the render loop run. Some editor state is sampled per frame rather
-   * than handled on the event, so a couple of frames is the real unit of
-   * waiting, and it is also the only sensible way to wait when the correct
-   * outcome is that nothing happens.
-   *
-   * Not cheap: a frame in a headless browser drawing a full world takes about
-   * a second, so this is for a couple of frames rather than for tens of them.
-   */
+  /** For state sampled per frame, and for when the expected outcome is that nothing happens. */
   const frames = (count = 2) =>
     page.evaluate(
       (n) =>
@@ -102,19 +70,13 @@ export function helpers(page) {
       count,
     );
 
-  /** Wait for the thing a check is about to assert on to be there. */
   const appears = (locator, timeout = 15000) =>
     locator.first().waitFor({ state: "visible", timeout }).catch(() => {});
 
-  /** Wait for it to be gone. */
   const goes = (locator, timeout = 15000) =>
     locator.first().waitFor({ state: "detached", timeout }).catch(() => {});
 
-  /**
-   * Poll a condition in the test process rather than in the page. For things
-   * this script observed, such as a request going past, which the page itself
-   * knows nothing about.
-   */
+  /** Poll here rather than in the page, for things only this script can see. */
   const waitFor = async (predicate, timeout = 15000, interval = 100) => {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
@@ -124,11 +86,7 @@ export function helpers(page) {
     return false;
   };
 
-  /**
-   * The renderer has caught up with the world when it is drawing an instance
-   * for every visible block. This is the condition the suite's old five and
-   * nine second pauses were standing in for.
-   */
+  /** The renderer is up to date when it draws an instance for every visible block. */
   const rendererSettled = () =>
     until(() => {
       const world = window.__world?.getState();
@@ -146,12 +104,6 @@ export function helpers(page) {
   return { until, frames, appears, goes, waitFor, rendererSettled, blockCount };
 }
 
-/**
- * Collects results and prints them.
- *
- * `report` returns the exit code rather than calling process.exit itself, so a
- * caller can close the browser first.
- */
 export function reporter() {
   const results = [];
   let lastCheckAt = Date.now();
@@ -163,15 +115,13 @@ export function reporter() {
     console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "   " + detail}`);
   }
 
+  /** Returns the exit code rather than exiting, so the caller can close the browser first. */
   function report(pageErrors = []) {
     const failed = results.filter((r) => !r.ok);
     console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
 
-    // Run with E2E_TIMING=1 to see where the time goes. Each figure is the
-    // time from the previous check to this one, so it covers the work in
-    // between rather than the assertion itself. Worth looking at before trying
-    // to speed this up: guessing which steps are slow is how an afternoon gets
-    // spent on the wrong ones.
+    // E2E_TIMING=1 lists the slowest steps. Each figure is the time from the
+    // previous check, so it covers the work between them, not the assertion.
     if (process.env.E2E_TIMING) {
       const slowest = [...results].sort((a, b) => b.ms - a.ms).slice(0, 20);
       const total = results.reduce((sum, r) => sum + r.ms, 0);
@@ -192,7 +142,7 @@ export function reporter() {
   return { check, report, results };
 }
 
-/** A fresh account. The stamp keeps runs from colliding with each other. */
+/** The stamp keeps concurrent runs from colliding. */
 export function newUser() {
   const stamp = Date.now();
   return {
@@ -202,9 +152,8 @@ export function newUser() {
   };
 }
 
-/** Create an account and end up signed in on the feed. */
 export async function signUp(page, user) {
-  await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
   await page.fill("#username", user.username);
   await page.fill("#email", user.email);
   await page.fill("#password", user.password);
@@ -213,22 +162,20 @@ export async function signUp(page, user) {
   return user;
 }
 
-/** Sign in as the shared demo account. Faster than signing up. */
+/** Faster than signing up, for scripts that only need to be logged in. */
 export async function signInAsDemo(page) {
-  await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /demo/i }).first().click();
   await page.waitForURL(`${BASE}/`, { timeout: 20000 });
 }
 
 /**
- * Open the editor, wait for a world to be drawn, and start play.
- *
- * Pass a seed to pin the world. A fresh editor seeds itself at random, so
- * where the player lands, and therefore whether a given camera angle can
- * legally place a block, changes from run to run.
+ * Open the editor, wait for a world to be drawn, and start play. Pass a seed
+ * to pin the world: a fresh editor seeds itself at random, so where the player
+ * lands, and what a fixed camera angle is aimed at, changes between runs.
  */
 export async function openEditor(page, wait, seed) {
-  await page.goto(`${BASE}/editor`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/editor`, { waitUntil: "domcontentloaded" });
   const ready = await wait.rendererSettled();
 
   await page.getByRole("button", { name: "Click to play" }).click();
