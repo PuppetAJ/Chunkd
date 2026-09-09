@@ -140,3 +140,96 @@ test("a world of full cubes behaves exactly as it did before shapes existed", ()
   assert.equal(body.y, 0.5);
   assert.equal(body.onGround, true);
 });
+
+test("a player walks up onto a slab instead of stopping against it", () => {
+  // Step assist. Without it every slab floor, terrace and doorstep would need
+  // a jump to get onto, which is what makes building with slabs unpleasant.
+  // A raised half step covering the far side of the floor, so the player is
+  // still standing on something once they are up.
+  const blocks = floor();
+  for (let x = 2; x <= 5; x += 1) {
+    for (let z = -5; z <= 5; z += 1) {
+      blocks.set(toKey(x, 1, z), packBlock(1, AXIS_Y, SHAPE_SLAB_BOTTOM));
+    }
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 15; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x > 2, `should have walked onto the slab, stopped at ${body.x}`);
+  assert.equal(body.y, 1, "should be standing on the slab's surface");
+  assert.equal(body.onGround, true);
+});
+
+test("a whole block is still a wall, not a step", () => {
+  // The step height sits between half a block and a whole one on purpose. If
+  // it did not, a wall could be climbed by walking into it.
+  const blocks = withWall(floor());
+  const body = standing(0, 0);
+
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x < 2, `should have stopped at the wall, got ${body.x}`);
+  assert.equal(body.y, 0.5, "should not have climbed it");
+});
+
+test("a single full block is not walked up either", () => {
+  // One block on the floor is a whole block's rise, which is a jump.
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 1, z), 1);
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x < 2, `should have stopped against it, got ${body.x}`);
+  assert.equal(body.y, 0.5);
+});
+
+test("step assist works along z as well as x", () => {
+  const blocks = floor();
+  for (let x = -5; x <= 5; x += 1) {
+    blocks.set(toKey(x, 1, 2), packBlock(1, AXIS_Y, SHAPE_SLAB_BOTTOM));
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0, 0, 0.2);
+
+  assert.ok(body.z > 2, `should have walked onto the slab, stopped at ${body.z}`);
+  assert.equal(body.y, 1);
+});
+
+test("a step with no headroom is refused rather than lifting the player into it", () => {
+  // A slab to step onto with a solid block right above it. Lifting the player
+  // regardless would put them inside that block, and the push-out branch would
+  // then shove them up through it.
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) {
+    blocks.set(toKey(2, 1, z), packBlock(1, AXIS_Y, SHAPE_SLAB_BOTTOM));
+    blocks.set(toKey(2, 2, z), 1);
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x < 2, `should have stopped, got ${body.x}`);
+  assert.equal(body.y, 0.5, "should not have been lifted");
+});
+
+test("a player in mid-air is not lifted onto a ledge by step assist", () => {
+  // Stepping up is only for someone standing on something. Without that gate,
+  // drifting into a ledge while airborne would pull the player onto it, and
+  // jumping at a wall would climb it half a block per hop.
+  const blocks = new Map<BlockKey, number>();
+  // A ledge whose top is 3.5, which is half a block above the player's feet
+  // and so within step height. Nothing underneath them at all.
+  for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 3, z), 1);
+
+  // Just short of overlapping the ledge, so the player is genuinely
+  // unsupported rather than resting on its edge.
+  const body: Body = { x: 1.19, y: 3, z: 0, onGround: false };
+  moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.equal(body.y, 3, `should not have been lifted, at ${body.y}`);
+  assert.equal(body.onGround, false);
+  assert.ok(body.x < 1.5, `should have stopped against the ledge, at ${body.x}`);
+});

@@ -119,6 +119,57 @@ const PUSH_OUT_SPEED = 0.08;
 const MAX_STEP = 0.4;
 
 /**
+ * Largest rise the player walks up instead of having to jump.
+ *
+ * Slabs are what make this necessary. A slab floor is half a block above the
+ * ground next to it, and without step assist every terrace, every doorstep and
+ * every course of slabs would need a jump to get onto, which is miserable to
+ * build with.
+ *
+ * It sits just above half a block and well below a whole one, so a slab is a
+ * step and a full block is still a jump. That line is deliberate: it is what
+ * keeps a wall a wall, rather than something to be walked up half a block at a
+ * time.
+ */
+const STEP_HEIGHT = 0.55;
+
+/**
+ * Walk up a small rise rather than stopping against it.
+ *
+ * Only from the ground: stepping up while falling past a ledge would catch the
+ * player on it, and stepping up while jumping would let them climb a wall half
+ * a block per hop.
+ *
+ * Returns whether it happened. When it does not, the caller snaps the player
+ * against the surface the way it always did.
+ */
+function tryStepUp(
+  blocks: Map<BlockKey, number>,
+  body: Body,
+  nextX: number,
+  nextZ: number,
+): boolean {
+  if (!isSupported(blocks, body)) return false;
+
+  const { highestTop } = surfacesAt(blocks, nextX, body.y, nextZ);
+  if (highestTop === -Infinity) return false;
+
+  const rise = highestTop - body.y;
+  if (rise <= 0 || rise > STEP_HEIGHT) return false;
+
+  // There has to be room to stand on top of it. Without this the player would
+  // be lifted into whatever is above the step, and the push-out branch at the
+  // top of moveBody would then shove them upwards through it.
+  if (collides(blocks, nextX, highestTop, nextZ)) return false;
+
+  body.x = nextX;
+  body.z = nextZ;
+  body.y = highestTop;
+  body.onGround = true;
+  return true;
+}
+
+/**
  * Move `body` by the given amounts, stopping at whatever it runs into.
  *
  * Mutates the body in place because it runs every frame and allocating three
@@ -175,8 +226,10 @@ export function moveBody(
     if (stepX !== 0) {
       const nextX = body.x + stepX;
       if (collides(blocks, nextX, body.y, body.z)) {
-        const side = Math.sign(stepX);
-        body.x = blockIndex(nextX + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        if (!tryStepUp(blocks, body, nextX, body.z)) {
+          const side = Math.sign(stepX);
+          body.x = blockIndex(nextX + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        }
       } else {
         body.x = nextX;
       }
@@ -185,8 +238,10 @@ export function moveBody(
     if (stepZ !== 0) {
       const nextZ = body.z + stepZ;
       if (collides(blocks, body.x, body.y, nextZ)) {
-        const side = Math.sign(stepZ);
-        body.z = blockIndex(nextZ + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        if (!tryStepUp(blocks, body, body.x, nextZ)) {
+          const side = Math.sign(stepZ);
+          body.z = blockIndex(nextZ + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        }
       } else {
         body.z = nextZ;
       }
