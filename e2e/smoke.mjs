@@ -6,103 +6,36 @@
  *
  *   pnpm dev
  *   pnpm test:e2e
- */
-import { chromium } from "playwright";
-
-const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000";
-const results = [];
-
-function check(name, ok, detail = "") {
-  results.push({ name, ok });
-  console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "   " + detail}`);
-}
-
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-
-// Record who asks for the mouse. A browser driven by automation refuses every
-// pointer lock request, so nothing here can prove that mouse-look works, but it
-// can prove that nothing asks for the mouse when it should not.
-await page.addInitScript(() => {
-  window.__lockRequests = [];
-  const request = Element.prototype.requestPointerLock;
-  Element.prototype.requestPointerLock = function (...args) {
-    window.__lockRequests.push(new Error().stack?.includes("drei") ? "drei" : "editor");
-    return request.apply(this, args);
-  };
-});
-
-const pageErrors = [];
-page.on("pageerror", (error) => {
-  // Pointer lock cannot be granted to a headless browser. It is not a defect.
-  if (!/pointer lock/i.test(error.message)) pageErrors.push(error.message);
-});
-
-/**
- * Wait for a condition inside the page instead of guessing at a duration.
  *
- * The editor checks used fixed pauses, which made this half of the suite fail
- * roughly one run in three: anything competing for the machine pushed an
- * assertion past its window. This returns whether the condition arrived rather
- * than throwing, so a timeout still reaches the check below it and fails there,
- * with a reason, instead of ending the whole run.
+ * This is one scenario rather than a set of independent tests: it signs up,
+ * builds a world, saves it, posts it, comments, follows somebody and changes
+ * its own password, and later checks depend on state earlier ones left behind.
+ * That is why there is no way to run a single check, and why the shared setup
+ * lives in lib.mjs, so a scratch script can reuse it while iterating instead
+ * of waiting out the whole run. Add E2E_TIMING=1 to see where the time goes.
+ *
+ * Navigations wait for domcontentloaded rather than networkidle. Every one of
+ * them is followed by a wait for the thing the next check is about, so waiting
+ * for the network to fall silent first only added the time the dev server
+ * takes to finish streaming modules for a page nobody is looking at yet.
  */
-const until = async (probe, arg = null, timeout = 15000) => {
-  try {
-    await page.waitForFunction(probe, arg, { timeout, polling: 100 });
-    return true;
-  } catch {
-    return false;
-  }
-};
+import {
+  BASE,
+  helpers,
+  launch,
+  newUser,
+  reporter,
+} from "./lib.mjs";
 
-/**
- * Let the render loop run. Some editor state is sampled per frame rather than
- * handled on the event, so a couple of frames is the real unit of waiting.
- */
-const frames = (count = 2) =>
-  page.evaluate(
-    (n) =>
-      new Promise((resolve) => {
-        let left = n;
-        const step = () => {
-          left -= 1;
-          if (left <= 0) resolve();
-          else requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }),
-    count,
-  );
+const { page, pageErrors, close } = await launch();
+const { until, frames, appears, goes, waitFor, rendererSettled, blockCount } = helpers(page);
+const { check, report } = reporter();
 
-/**
- * The renderer has caught up with the world when it is drawing an instance for
- * every visible block. That is the condition the old five and nine second
- * pauses were standing in for.
- */
-const rendererSettled = () =>
-  until(() => {
-    const world = window.__world?.getState();
-    const state = window.__r3f;
-    if (!world || !state) return false;
-    let drawn = 0;
-    state.scene.traverse((object) => {
-      if (object.isInstancedMesh) drawn += object.count;
-    });
-    return world.blocks.size > 500 && drawn === world.visible.size;
-  });
-
-const blockCount = () => page.evaluate(() => window.__world.getState().blocks.size);
-
-const stamp = Date.now();
-const user = {
-  username: `e2e${stamp}`.slice(0, 20),
-  email: `e2e${stamp}@chunkd.test`,
-  password: "supersecret1",
-};
+const user = newUser();
 
 // ---------------------------------------------------------------- public pages
-await page.goto(BASE, { waitUntil: "networkidle" });
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await appears(page.getByRole("heading", { name: /Build a world in your browser/ }));
 check(
   "signed-out visitors get the landing page, not the feed",
   (await page.getByRole("heading", { name: /Build a world in your browser/ }).count()) > 0,
@@ -133,13 +66,13 @@ await page
 const hovered = await flameOpacity();
 check("hovering the brand swaps to ordinary fire", hovered[0] === 0 && hovered[1] === 1, JSON.stringify(hovered));
 await page.mouse.move(0, 300);
-await page.waitForTimeout(400);
 
-await page.goto(`${BASE}/definitely-not-a-page`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/definitely-not-a-page`, { waitUntil: "domcontentloaded" });
+await appears(page.locator("text=couldn't find that page"));
 check("unknown routes show the 404 page", (await page.locator("text=couldn't find that page").count()) > 0);
 
-await page.goto(`${BASE}/editor`, { waitUntil: "networkidle" });
-await page.waitForTimeout(800);
+await page.goto(`${BASE}/editor`, { waitUntil: "domcontentloaded" });
+await page.waitForURL("**/login", { timeout: 15000 }).catch(() => {});
 check("signed-out /editor redirects to login", page.url().endsWith("/login"), page.url());
 
 // ------------------------------------------------------- sign-up form errors
@@ -149,26 +82,26 @@ check("signed-out /editor redirects to login", page.url().endsWith("/login"), pa
 const formErrors = async () =>
   (await page.locator("p.text-destructive").allTextContents()).join(" | ");
 
-await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
 await page.fill("#username", "shorty");
 await page.fill("#email", "shorty@chunkd.test");
 await page.fill("#password", "short");
 await page.getByRole("button", { name: "Create account" }).click();
-await page.waitForTimeout(500);
+await appears(page.locator("text=/8 characters/"));
 check("signup names a password that is too short", (await formErrors()).includes("8 characters"), await formErrors());
 
-await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
 await page.fill("#username", "ok");
 await page.fill("#email", "not-an-email");
 await page.fill("#password", "supersecret1");
 await page.getByRole("button", { name: "Create account" }).click();
-await page.waitForTimeout(500);
+await appears(page.locator("text=/3 characters/"));
 const shortUsername = await formErrors();
 check("signup names a username that is too short", shortUsername.includes("3 characters"), shortUsername);
 check("signup names a malformed email", shortUsername.includes("email address"), shortUsername);
 
 // ---------------------------------------------------------------------- signup
-await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
 await page.fill("#username", user.username);
 await page.fill("#email", user.email);
 await page.fill("#password", user.password);
@@ -180,20 +113,20 @@ check("header switches to the signed-in menu", (await page.getByRole("link", { n
 // --------------------------------------------------------------- login errors
 // Signing up a second time with the same email has to say so, rather than
 // failing with a message about something else.
-await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
 await page.fill("#username", `${user.username}b`.slice(0, 20));
 await page.fill("#email", user.email);
 await page.fill("#password", user.password);
 await page.getByRole("button", { name: "Create account" }).click();
-await page.waitForTimeout(1500);
+await appears(page.locator("text=/already taken/i"));
 const taken = await formErrors();
 check("signup reports an email that is already registered", taken.toLowerCase().includes("already taken"), taken);
 
-await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
 await page.fill("#email", user.email);
 await page.fill("#password", "definitely-wrong");
 await page.getByRole("button", { name: "Log in" }).click();
-await page.waitForTimeout(1500);
+await appears(page.locator("text=/incorrect email/i"));
 const wrongPassword = await formErrors();
 check("login reports a wrong password", wrongPassword.toLowerCase().includes("incorrect email"), wrongPassword);
 check("login keeps the typed email after a failure", (await page.inputValue("#email")) === user.email);
@@ -229,7 +162,7 @@ check("the pause screen lists the controls", (await page.locator("text=Open the 
 check("the pause screen offers a way back out", (await page.getByRole("link", { name: "Leave the editor" }).count()) > 0);
 
 await page.getByRole("button", { name: "Click to play" }).click();
-await page.waitForTimeout(500);
+await goes(page.getByRole("button", { name: "Click to play" }));
 check("clicking to play dismisses the pause screen", (await page.getByRole("button", { name: "Click to play" }).count()) === 0);
 
 // Pin the world. A fresh editor seeds itself at random, so where the player
@@ -284,11 +217,17 @@ const afterBreak = await scene();
 check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
   `${before.blocks} -> ${afterBreak.blocks}`);
 
-// The world is randomly seeded, so a single fixed camera angle sometimes aims
-// somewhere a block cannot legally go: at the sky, or at a cell the player is
-// standing in. Sweep a few angles and accept the first that lands one.
+// A single fixed camera angle sometimes aims somewhere a block cannot legally
+// go: at the sky, or at a cell the player is standing in. So sweep a few and
+// accept the first that lands one.
+//
+// The world is pinned to a seed above, which makes the answer deterministic,
+// so the angle that actually works is first and the rest are a fallback for
+// when the terrain or the spawn changes. It used to be last, and the six
+// failures ahead of it cost the suite 24 seconds, since a failed attempt waits
+// out its whole timeout while a successful one returns at once.
 let afterPlace = afterBreak;
-for (const [pitch, yaw] of [[-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1], [-0.2, 0.8], [0, 2.4]]) {
+for (const [pitch, yaw] of [[0, 2.4], [-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1], [-0.2, 0.8]]) {
   await page.evaluate(([p, y]) => window.__r3f.camera.rotation.set(p, y, 0), [pitch, yaw]);
   await frames();
   await page.mouse.click(cx, cy, { button: "right" });
@@ -388,23 +327,27 @@ await page.evaluate(() =>
     new WheelEvent("wheel", { deltaY: 400, ctrlKey: true, cancelable: true, bubbles: true }),
   ),
 );
-await page.waitForTimeout(400);
+// Nothing is supposed to happen here, and there is no condition to wait for
+// when the correct outcome is no change. A few frames is the real unit: the
+// wheel handler runs synchronously, so if it were going to move the slot it
+// would have done so by now.
+await frames(3);
 check("a pinch does not scrub through the hotbar", (await selectedSlot()) === beforePinch,
   `slot ${beforePinch} -> ${await selectedSlot()}`);
 
 await page.evaluate(() => window.__world.getState().setSelectedSlot(1));
 await page.keyboard.press("KeyE");
-await page.waitForTimeout(600);
+await appears(page.getByRole("heading", { name: "Blocks" }));
 check("E opens the inventory", (await page.getByRole("heading", { name: "Blocks" }).count()) > 0);
 
 // Picking a block from the inventory fills the selected slot.
 await page.getByRole("button", { name: "Obsidian" }).first().click();
-await page.waitForTimeout(300);
+await until((want) => window.__world.getState().hotbar[0] === want, 25, 10000);
 const slotOne = await page.evaluate(() => window.__world.getState().hotbar[0]);
 check("choosing a block puts it in the selected slot", slotOne === 25, `id ${slotOne}`);
 
 await page.keyboard.press("Escape");
-await page.waitForTimeout(500);
+await goes(page.getByRole("heading", { name: "Blocks" }));
 check("Escape closes the inventory", (await page.getByRole("heading", { name: "Blocks" }).count()) === 0);
 
 // ------------------------------------------------------- directional placing
@@ -591,6 +534,10 @@ const cameraNow = () => page.evaluate(() => {
 });
 const cameraBeforeTyping = await cameraNow();
 await page.keyboard.down("w");
+// Deliberately a duration, not a condition. This is how long the key is held,
+// and the point is that a held key produces no movement at all, so there is
+// nothing to wait for. Long enough that movement would be obvious if it
+// happened: the player covers several blocks in 900 ms.
 await page.waitForTimeout(900);
 await page.keyboard.up("w");
 const cameraAfterTyping = await cameraNow();
@@ -615,13 +562,13 @@ await savedToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
 // The editor is outside the site shell now, so there is no header to click.
 // Escape pauses, and leaving is done from the pause screen.
 await page.keyboard.press("Escape");
-await page.waitForTimeout(400);
+await appears(page.getByRole("link", { name: "Leave the editor" }));
 await page.getByRole("link", { name: "Leave the editor" }).click();
 await page.waitForURL(`${BASE}/`, { timeout: 15000 });
 check("Leave returns from the editor to the feed", page.url() === `${BASE}/`);
 await page.getByRole("link", { name: "My builds" }).first().click();
 await page.waitForURL("**/profile", { timeout: 15000 });
-await page.waitForTimeout(2500);
+await appears(page.getByRole("tab", { name: "Builds" }));
 check("profile page loads", (await page.getByRole("tab", { name: "Builds" }).count()) > 0);
 
 // The saved build is listed, can be opened in the 3D viewer, and belongs to the
@@ -629,23 +576,23 @@ check("profile page loads", (await page.getByRole("tab", { name: "Builds" }).cou
 check("the saved build is listed on the profile", (await page.getByRole("button", { name: "Open" }).count()) > 0);
 check("the build kept the name it was given", (await page.locator("text=Ridge fort").count()) > 0);
 await page.getByRole("button", { name: "Open" }).first().click();
-await page.waitForTimeout(3000);
+await appears(page.locator("[role=dialog] canvas"));
 check("opening a build renders it in 3D", (await page.locator("[role=dialog] canvas").count()) > 0);
 await page.keyboard.press("Escape");
-await page.waitForTimeout(500);
+await appears(page.getByRole("button", { name: /^Delete / }));
 check("a build offers a delete button to its owner", (await page.getByRole("button", { name: /^Delete / }).count()) > 0);
 
 // Nothing has been posted yet at this point in the run, so the posts tab is
 // the place to check that an empty list explains itself instead of going blank.
 await page.getByRole("tab", { name: "Posts" }).click();
-await page.waitForTimeout(500);
+await appears(page.locator("text=No posts yet"));
 check("an empty posts tab explains itself", (await page.locator("text=No posts yet").count()) > 0);
 await page.getByRole("tab", { name: "Builds" }).click();
-await page.waitForTimeout(300);
+await appears(page.getByRole("button", { name: "New post" }));
 
 // --------------------------------------------------------------- posting a build
 await page.getByRole("button", { name: "New post" }).click();
-await page.waitForTimeout(2000);
+await appears(page.locator('textarea[name="thoughtText"]'));
 check("post dialog opens", (await page.locator('textarea[name="thoughtText"]').count()) > 0);
 
 const buildOptions = await page.locator("#dropdown option").count();
@@ -656,12 +603,12 @@ check("no stray 0 is rendered next to the build picker", !/(^|\s)0(\s|$)/.test(f
 if (buildOptions >= 2) await page.selectOption("#dropdown", { index: 1 });
 await page.fill('textarea[name="thoughtText"]', "End-to-end test build");
 await page.getByRole("button", { name: "Post", exact: true }).click();
-await page.waitForTimeout(3000);
+await goes(page.locator('textarea[name="thoughtText"]'));
 check("posting closes the dialog", (await page.locator('textarea[name="thoughtText"]').count()) === 0);
 
 // ------------------------------------------------------------------- the feed
-await page.goto(BASE, { waitUntil: "networkidle" });
-await page.waitForTimeout(2000);
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await appears(page.locator("text=End-to-end test build"));
 check("the new post appears on the feed", (await page.locator("text=End-to-end test build").count()) > 0);
 // Read the rendered text, not the markup: each post carries a <time> element
 // whose datetime attribute is deliberately the raw ISO string, because that is
@@ -673,11 +620,11 @@ await page.getByRole("button", { name: "Post actions" }).first().click();
 await page.getByRole("menuitem", { name: "Edit post" }).click();
 await page.fill('textarea[aria-label="Edit post text"]', "End-to-end test build, edited");
 await page.getByRole("button", { name: "Save" }).click();
-await page.waitForTimeout(1500);
+await appears(page.locator("text=End-to-end test build, edited"));
 check("a post can be edited in place", (await page.locator("text=End-to-end test build, edited").count()) > 0);
 
-await page.reload({ waitUntil: "networkidle" });
-await page.waitForTimeout(1500);
+await page.reload({ waitUntil: "domcontentloaded" });
+await appears(page.locator("text=End-to-end test build, edited"));
 check("the edit survives a reload", (await page.locator("text=End-to-end test build, edited").count()) > 0);
 
 check("timestamps are formatted rather than raw ISO",
@@ -689,14 +636,19 @@ check("timestamps are formatted rather than raw ISO",
 // browser delivers the click to that link, which is what a reader gets when
 // they click the post text.
 await page.locator("article").first().locator("p").first().click({ force: true });
-await page.waitForTimeout(4000);
+await page.waitForURL(/\/thought\//, { timeout: 15000 }).catch(() => {});
 check("clicking a post card opens the post", /\/thought\//.test(page.url()), page.url());
-await page.goBack({ waitUntil: "networkidle" });
-await page.waitForTimeout(1500);
+await page.goBack({ waitUntil: "domcontentloaded" });
+await appears(page.getByRole("link").filter({ hasText: /the discussion/ }));
 
 await page.getByRole("link").filter({ hasText: /the discussion/ }).first().click();
-await page.waitForTimeout(4000);
+await page.waitForURL(/\/thought\//, { timeout: 15000 }).catch(() => {});
 check("the post opens on its own page", /\/thought\//.test(page.url()), page.url());
+// Arriving at the route is not the same as the page being ready. The attached
+// build is a lazy-loaded viewer, and the checks below drag it about, so wait
+// for the viewer's own handle rather than for the URL.
+await appears(page.locator("canvas"));
+await until(() => window.__viewer !== undefined, null, 20000);
 
 // The box to type in comes before the comments themselves.
 const commentOrder = await page.evaluate(() => {
@@ -723,10 +675,17 @@ const dragBy = async (shift) => {
   if (shift) await page.keyboard.down("Shift");
   await page.mouse.move(x, y);
   await page.mouse.down();
-  await page.mouse.move(x + 180, y + 50, { steps: 20 });
+  // Five steps rather than twenty. Every intermediate move makes the viewer
+  // re-render the whole build, which in a headless browser costs about a
+  // second each, and OrbitControls responds to any movement while the button
+  // is down. This was 40 seconds of the suite's runtime between the two drag
+  // checks.
+  await page.mouse.move(x + 180, y + 50, { steps: 5 });
   await page.mouse.up();
   if (shift) await page.keyboard.up("Shift");
-  await page.waitForTimeout(600);
+  // The orbit controls settle over the render loop rather than announcing
+  // anything, and part of what is checked is that a value did not change.
+  await frames(3);
   const after = await orbitTarget();
   if (!before || !after) return null;
   return Math.hypot(after[0] - before[0], after[1] - before[1], after[2] - before[2]);
@@ -740,22 +699,23 @@ check("shift and drag pans the build", panned !== null && panned > 0.5, `${panne
 // ------------------------------------------------------------------ commenting
 await page.fill('textarea[aria-label="Write a comment"]', "Nice work");
 await page.getByRole("button", { name: "Comment" }).click();
-await page.waitForTimeout(2500);
+await appears(page.locator("text=Nice work"));
 check("a comment can be added", (await page.locator("text=Nice work").count()) > 0);
 
 // deleteReaction has existed on the API since the start and had no UI. Only
 // your own comments offer the button.
 check("your own comment offers a delete button", (await page.getByRole("button", { name: "Delete comment" }).count()) === 1);
 await page.getByRole("button", { name: "Delete comment" }).click();
-await page.waitForTimeout(2000);
+await goes(page.locator("text=Nice work"));
+await appears(page.locator("text=No comments yet"));
 check("a comment can be deleted", (await page.locator("text=Nice work").count()) === 0);
 check("the empty comment list explains itself", (await page.locator("text=No comments yet").count()) > 0);
 
 // ------------------------------------------------------------------- the feed
 // The feed is paged rather than fetching every post ever written. Ten come back
 // first; scrolling to the bottom asks for the next ten.
-await page.goto(BASE, { waitUntil: "networkidle" });
-await page.waitForTimeout(2000);
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await appears(page.locator("article"));
 const firstPage = await page.locator("article").count();
 check("the feed loads one page at a time", firstPage <= 10, `${firstPage} posts`);
 
@@ -778,71 +738,78 @@ const otherAuthor = await page
   .getAttribute("href");
 
 if (otherAuthor && !otherAuthor.endsWith(user.username)) {
-  await page.goto(BASE + otherAuthor, { waitUntil: "networkidle" });
-  await page.waitForTimeout(2000);
+  await page.goto(BASE + otherAuthor, { waitUntil: "domcontentloaded" });
+  await appears(page.getByRole("button", { name: "Follow" }));
   check("someone else's profile offers Follow", (await page.getByRole("button", { name: "Follow" }).count()) > 0);
 
   await page.getByRole("button", { name: "Follow" }).click();
-  await page.waitForTimeout(2500);
+  await appears(page.locator("text=/now following/"));
   check("following is confirmed on screen", (await page.locator("text=/now following/").count()) > 0);
   check("the button flips to Unfollow", (await page.getByRole("button", { name: "Unfollow" }).count()) > 0);
 
-  await page.reload({ waitUntil: "networkidle" });
-  await page.waitForTimeout(2500);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await appears(page.getByRole("button", { name: "Unfollow" }));
   check("the follow survives a reload", (await page.getByRole("button", { name: "Unfollow" }).count()) > 0);
 
   // Following is one-way: they are in your Following tab, and you are in their
   // Followers tab, with nothing having been accepted by anyone.
   await page.getByRole("tab", { name: "Followers" }).click();
-  await page.waitForTimeout(600);
+  await appears(page.locator(`text=${user.username}`));
   check("the person you followed lists you as a follower", (await page.locator(`text=${user.username}`).count()) > 0);
 
-  await page.goto(`${BASE}/profile`, { waitUntil: "networkidle" });
-  await page.waitForTimeout(2000);
+  await page.goto(`${BASE}/profile`, { waitUntil: "domcontentloaded" });
+  await appears(page.getByRole("tab", { name: "Following", exact: true }));
   await page.getByRole("tab", { name: "Following", exact: true }).click();
-  await page.waitForTimeout(600);
   const followedName = otherAuthor.replace("/profile/", "");
+  await appears(page.locator(`text=${followedName}`));
   check("they appear in your Following tab", (await page.locator(`text=${followedName}`).count()) > 0);
 }
 
 // ------------------------------------------------------------------ settings
-await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
-await page.waitForTimeout(1500);
+await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
+// The form is filled from a query, so the field exists before it holds
+// anything. Waiting for the value is the difference between checking the form
+// and checking whether the request has landed yet.
+await until(
+  (want) => document.querySelector("#settingsUsername")?.value === want,
+  user.username,
+  15000,
+);
 check("settings loads the current details", (await page.inputValue("#settingsUsername")) === user.username);
 
 const renamed = `${user.username}x`.slice(0, 20);
 await page.fill("#settingsUsername", renamed);
 await page.getByRole("button", { name: "Save changes" }).click();
-await page.waitForTimeout(2500);
+await appears(page.locator("text=/details were saved/"));
 check("a username change is confirmed", (await page.locator("text=/details were saved/").count()) > 0);
 
-await page.goto(`${BASE}/profile`, { waitUntil: "networkidle" });
-await page.waitForTimeout(2000);
+await page.goto(`${BASE}/profile`, { waitUntil: "domcontentloaded" });
+await appears(page.locator(`text=${renamed}`));
 check("the new username shows on the profile", (await page.locator(`text=${renamed}`).count()) > 0);
 user.username = renamed;
 
 const newPassword = "supersecret2";
-await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
-await page.waitForTimeout(1500);
+await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
+await appears(page.locator("#currentPassword"));
 await page.fill("#currentPassword", "definitely-wrong");
 await page.fill("#newPassword", newPassword);
 await page.fill("#confirmPassword", newPassword);
 await page.getByRole("button", { name: "Change password" }).click();
-await page.waitForTimeout(2000);
+await appears(page.locator("text=/not your current password/"));
 check("the wrong current password is refused", (await page.locator("text=/not your current password/").count()) > 0);
 
 await page.fill("#currentPassword", user.password);
 await page.fill("#newPassword", newPassword);
 await page.fill("#confirmPassword", "something-else");
 await page.getByRole("button", { name: "Change password" }).click();
-await page.waitForTimeout(1000);
+await appears(page.locator("text=/do not match/"));
 check("mismatched new passwords are refused", (await page.locator("text=/do not match/").count()) > 0);
 
 await page.fill("#currentPassword", user.password);
 await page.fill("#newPassword", newPassword);
 await page.fill("#confirmPassword", newPassword);
 await page.getByRole("button", { name: "Change password" }).click();
-await page.waitForTimeout(2500);
+await appears(page.locator("text=/password was changed/"));
 check("the password change is confirmed", (await page.locator("text=/password was changed/").count()) > 0);
 user.password = newPassword;
 
@@ -850,11 +817,11 @@ user.password = newPassword;
 // Logging out moved into the account menu in the header.
 await page.getByRole("button", { name: "Account menu" }).click();
 await page.getByRole("menuitem", { name: "Log out" }).click();
-await page.waitForTimeout(1500);
+await appears(page.getByRole("link", { name: "Log in" }));
 check("logout returns to the signed-out header", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
 
 // The changed password is the one that now works.
-await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
 await page.fill("#email", user.email);
 await page.fill("#password", user.password);
 await page.getByRole("button", { name: "Log in" }).click();
@@ -865,8 +832,8 @@ check("the changed password logs the user back in", page.url() === `${BASE}/`, p
 // Signed out, the root is a landing page rather than the feed, because a feed
 // of strangers' posts does not tell a first-time visitor what this is.
 await page.evaluate(() => localStorage.clear());
-await page.goto(BASE, { waitUntil: "networkidle" });
-await page.waitForTimeout(3000);
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await appears(page.getByRole("heading", { name: /Build a world in your browser/ }));
 check(
   "signed out, the root explains what the app is",
   (await page.getByRole("heading", { name: /Build a world in your browser/ }).count()) > 0,
@@ -875,6 +842,9 @@ check(
   "the landing page offers a way in without an account",
   (await page.getByRole("button", { name: /Try it without an account/ }).count()) > 0,
 );
+// The hero and the gallery come from a query, so they arrive after the
+// heading above rather than with it.
+await appears(page.locator('a[href^="/thought/"] img'));
 check(
   "the landing page shows builds people have made",
   (await page.locator('a[href^="/thought/"] img').count()) > 0,
@@ -884,21 +854,23 @@ check(
 // The viewer carries its own scene controls, and the choice is a preference
 // rather than a property of one build, so it has to survive a reload.
 const firstBuildLink = await page.locator('a[href^="/thought/"]').first().getAttribute("href");
-await page.goto(BASE + firstBuildLink, { waitUntil: "networkidle" });
-await page.waitForTimeout(6000);
+// Six seconds used to stand in for this. The viewer lazy-loads three.js and
+// then the build, so what is being waited for is its chrome appearing.
+await page.goto(BASE + firstBuildLink, { waitUntil: "domcontentloaded" });
+await appears(page.getByRole("button", { name: "Scene settings" }));
 check("the viewer offers its own settings", (await page.getByRole("button", { name: "Scene settings" }).count()) > 0);
 check("the viewer names the build it is showing", (await page.locator("[data-viewer-chrome]").count()) > 0);
 
 await page.getByRole("button", { name: "Scene settings" }).click();
-await page.waitForTimeout(400);
+await appears(page.getByRole("menuitemradio", { name: "Daylight" }));
 check("the settings offer a daylight scene", (await page.getByRole("menuitemradio", { name: "Daylight" }).count()) > 0);
 await page.getByRole("menuitemradio", { name: "Daylight" }).click();
-await page.waitForTimeout(800);
+await until(() => /daylight/.test(localStorage.getItem("viewer-settings") ?? ""), null, 10000);
 const savedScene = await page.evaluate(() => localStorage.getItem("viewer-settings"));
 check("choosing a scene is remembered", /daylight/.test(savedScene ?? ""), String(savedScene));
 
-await page.reload({ waitUntil: "networkidle" });
-await page.waitForTimeout(5000);
+await page.reload({ waitUntil: "domcontentloaded" });
+await until(() => /daylight/.test(localStorage.getItem("viewer-settings") ?? ""), null, 15000);
 const afterReload = await page.evaluate(() => localStorage.getItem("viewer-settings"));
 check("the scene survives a reload", /daylight/.test(afterReload ?? ""), String(afterReload));
 // Back to the default, so nothing later in the run inherits it.
@@ -907,12 +879,14 @@ await page.evaluate(() => localStorage.removeItem("viewer-settings"));
 // ------------------------------------------------------------- the demo account
 // The point of the demo button is that someone can look round without signing
 // up, so these run on from the signed-out state above.
-await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
+await appears(page.getByRole("button", { name: /Explore with a demo account/ }));
 check(
   "the login page offers the demo",
   (await page.getByRole("button", { name: /Explore with a demo account/ }).count()) > 0,
 );
-await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
+await appears(page.getByRole("button", { name: /Explore with a demo account/ }));
 check(
   "the signup page offers the demo too",
   (await page.getByRole("button", { name: /Explore with a demo account/ }).count()) > 0,
@@ -932,8 +906,8 @@ check(
 
 // Everyone shares the account, so a change to its sign-in details would lock
 // the next visitor out. Settings says so rather than offering forms that fail.
-await page.goto(`${BASE}/settings`, { waitUntil: "networkidle" });
-await page.waitForTimeout(2000);
+await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
+await appears(page.locator("text=You are using the demo account"));
 check(
   "the demo account is told why it cannot change its details",
   (await page.locator("text=You are using the demo account").count()) > 0,
@@ -942,7 +916,8 @@ check("the demo is not offered the profile form", (await page.locator("#settings
 check("the demo is not offered the password form", (await page.locator("#newPassword").count()) === 0);
 
 // The demo is still a real account: it can do everything except change itself.
-await page.goto(`${BASE}/editor`, { waitUntil: "networkidle" });
+await page.goto(`${BASE}/editor`, { waitUntil: "domcontentloaded" });
+await appears(page.getByRole("button", { name: "Click to play" }));
 check("the demo can open the editor", (await page.getByRole("button", { name: "Click to play" }).count()) > 0);
 // A build's thumbnail is a capture of the editor's own render, so the editor
 // needs the same scene controls or the picture can only ever look one way.
@@ -951,13 +926,13 @@ check(
   (await page.getByRole("button", { name: "Scene settings" }).count()) > 0,
 );
 await page.getByRole("button", { name: "Scene settings" }).click();
-await page.waitForTimeout(400);
+await appears(page.getByRole("menuitemradio", { name: "Studio" }));
 check(
   "the editor settings offer the studio scene",
   (await page.getByRole("menuitemradio", { name: "Studio" }).count()) > 0,
 );
 await page.getByRole("menuitemradio", { name: "Studio" }).click();
-await page.waitForTimeout(600);
+await until(() => /studio/.test(localStorage.getItem("editor-settings") ?? ""), null, 10000);
 const editorScene = await page.evaluate(() => localStorage.getItem("editor-settings"));
 check("the editor keeps its own scene preference", /studio/.test(editorScene ?? ""), String(editorScene));
 
@@ -979,7 +954,7 @@ check("the pause screen is still up after changing the scene", (await page.locat
 
 // And starting play still asks for it, from the editor rather than from drei.
 await page.getByRole("button", { name: "Click to play" }).click();
-await page.waitForTimeout(1200);
+await until(() => window.__lockRequests.some((who) => who === "editor"), null, 10000);
 const locksOnPlay = await page.evaluate(() => window.__lockRequests.slice());
 check("starting play asks for the mouse", locksOnPlay.includes("editor"), locksOnPlay.join(", ") || "(none)");
 check("the pause screen goes away when play starts", (await page.locator("[data-pause-card]").count()) === 0);
@@ -991,8 +966,8 @@ check("the pause screen goes away when play starts", (await page.locator("[data-
 // database is wiped every few hours, so a tab opened before a reset held build
 // ids that no longer existed, and the landing page's hero viewer reported the
 // build as unavailable until a refresh. resetStore refetches instead.
-await page.goto(BASE, { waitUntil: "networkidle" });
-await page.waitForTimeout(2000);
+await page.goto(BASE, { waitUntil: "domcontentloaded" });
+await appears(page.locator("article"));
 
 const refetched = [];
 const watchRefetch = (response) => {
@@ -1004,7 +979,10 @@ page.on("response", watchRefetch);
 
 await page.getByRole("button", { name: "Account menu" }).click();
 await page.getByRole("menuitem", { name: "Log out" }).click();
-await page.waitForTimeout(4000);
+// The refetch is a request going past, which the page knows nothing about, so
+// this one is polled here rather than in the browser.
+await waitFor(() => refetched.includes("thoughts"));
+await appears(page.getByRole("heading", { name: /Build a world in your browser/ }));
 page.off("response", watchRefetch);
 
 check(
@@ -1017,12 +995,6 @@ check(
   (await page.locator("text=This build is no longer available").count()) === 0,
 );
 
-await browser.close();
+await close();
 
-const failed = results.filter((r) => !r.ok);
-console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
-if (pageErrors.length) {
-  console.log(`\nUncaught page errors (${pageErrors.length}):`);
-  for (const message of [...new Set(pageErrors)].slice(0, 10)) console.log("  - " + message.slice(0, 200));
-}
-process.exit(failed.length === 0 && pageErrors.length === 0 ? 0 : 1);
+process.exit(report(pageErrors));
