@@ -2,7 +2,9 @@ import { create } from "zustand";
 import { BLOCKS, DEFAULT_BLOCK_ID, DEFAULT_HOTBAR, getBlock, type BlockType } from "./blocks.ts";
 import {
   AXIS_Y,
+  blockIdOf,
   FACING_NORTH,
+  isSlab,
   packBlock,
   SHAPE_FULL,
   SHAPE_SLAB_BOTTOM,
@@ -59,6 +61,8 @@ interface WorldState {
     facing?: number,
   ) => void;
   removeBlock: (x: number, y: number, z: number) => void;
+  /** Join a slab with a second of the same block, making a whole one. */
+  fillSlab: (x: number, y: number, z: number) => void;
   setSelectedSlot: (slot: number) => void;
   /** Move along the hotbar, wrapping at both ends. Used by the scroll wheel. */
   cycleSelectedSlot: (delta: number) => void;
@@ -132,6 +136,19 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       // obviously correct without a revision counter.
       const blocks = new Map(state.blocks);
       blocks.set(key, value);
+      const visible = new Map(state.visible);
+      refreshVisibleAround(blocks, visible, x, y, z);
+      return { blocks, visible };
+    });
+  },
+
+  fillSlab: (x, y, z) => {
+    const key = toKey(x, y, z);
+    set((state) => {
+      const existing = state.blocks.get(key);
+      if (existing === undefined || !isSlab(existing)) return state;
+      const blocks = new Map(state.blocks);
+      blocks.set(key, packBlock(blockIdOf(existing)));
       const visible = new Map(state.visible);
       refreshVisibleAround(blocks, visible, x, y, z);
       return { blocks, visible };

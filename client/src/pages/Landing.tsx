@@ -97,7 +97,7 @@ export default function Landing() {
         <section>
           <h2 className="font-display text-2xl">Made in CHUNK&apos;D</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every one of these opens in 3D. Drag to turn it around.
+            Open any of them to walk around it in 3D.
           </p>
 
           <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

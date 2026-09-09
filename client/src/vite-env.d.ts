@@ -2,6 +2,7 @@
 
 import type { RootState } from "@react-three/fiber";
 import type { Body } from "./lib/voxel/collision.ts";
+import type { RenderLayer } from "./lib/voxel/render.ts";
 import type { useWorldStore } from "./lib/voxel/worldStore.ts";
 
 declare global {
@@ -14,6 +15,12 @@ declare global {
     __r3f?: RootState;
     /** Set only in development. The voxel world store, for assertions. */
     __world?: typeof useWorldStore;
+    /**
+     * Set only in development. The editor's render layers, so a test can see
+     * what was drawn. A stair's shape comes from its neighbours rather than
+     * from its stored value, so nothing else knows it.
+     */
+    __layers?: RenderLayer[];
     /**
      * Set only in development. The player's own box, so a test or a screenshot
      * script can stand them somewhere. Moving the camera instead does nothing:

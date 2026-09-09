@@ -3,15 +3,12 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import {
   AXIS_X,
   AXIS_Z,
-  FACING_EAST,
-  FACING_NORTH,
-  FACING_SOUTH,
-  FACING_WEST,
   SHAPE_SLAB_BOTTOM,
   SHAPE_SLAB_TOP,
   SHAPE_STAIRS_BOTTOM,
   SHAPE_STAIRS_TOP,
 } from "./voxel/blockValue.ts";
+import { QUADRANT_COUNT, quadrantSides } from "./voxel/stairShape.ts";
 
 /**
  * The unit cube every block is drawn from, with its face shading baked in.
@@ -136,56 +133,62 @@ const SLAB_BOTTOM_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0, 0.5]);
 const SLAB_TOP_GEOMETRY = boxPart([-0.5, 0, -0.5], [0.5, 0.5, 0.5]);
 
 /**
- * The two boxes a stair is built from: the half-height part that spans the
- * whole cell, and the part that makes up the step.
+ * The boxes a stair is built from: the half-height part that spans the whole
+ * cell, and one for each quarter of the other half that is filled.
  *
- * Facing is the direction the low step faces, so the tall part is on the
- * opposite side. The boxes meet along an internal face, which is left in
- * rather than trimmed away: it sits inside the solid, so an outer face is
- * always nearer the camera and hides it.
- *
- * Exported because this is the part worth checking. Whether the boxes are in
- * the right places is a decision with four cases and an upside-down variant;
- * turning boxes into vertices is not.
+ * Which quarters those are comes from stairShape.ts, which reads the
+ * neighbours, so a straight run gives two, an outer corner one and an inner
+ * corner three. The boxes meet along internal faces, which are left in rather
+ * than trimmed away: they sit inside the solid, so an outer face is always
+ * nearer the camera and hides them.
  */
 export function stairParts(
-  facing: number,
+  quadrants: number,
   upsideDown: boolean,
 ): { min: [number, number, number]; max: [number, number, number] }[] {
-  const tall =
-    facing === FACING_EAST
-      ? { min: [-0.5, -0.5], max: [0, 0.5] }
-      : facing === FACING_WEST
-        ? { min: [0, -0.5], max: [0.5, 0.5] }
-        : facing === FACING_SOUTH
-          ? { min: [-0.5, -0.5], max: [0.5, 0] }
-          : { min: [-0.5, 0], max: [0.5, 0.5] };
-
   const flatLow = upsideDown ? 0 : -0.5;
   const stepLow = upsideDown ? -0.5 : 0;
-  return [
+
+  const parts: { min: [number, number, number]; max: [number, number, number] }[] = [
     { min: [-0.5, flatLow, -0.5], max: [0.5, flatLow + 0.5, 0.5] },
-    {
-      min: [tall.min[0]!, stepLow, tall.min[1]!],
-      max: [tall.max[0]!, stepLow + 0.5, tall.max[1]!],
-    },
   ];
+
+  for (let index = 0; index < QUADRANT_COUNT; index += 1) {
+    if (!(quadrants & (1 << index))) continue;
+    const [sx, sz] = quadrantSides(index);
+    parts.push({
+      min: [sx > 0 ? 0 : -0.5, stepLow, sz > 0 ? 0 : -0.5],
+      max: [sx > 0 ? 0.5 : 0, stepLow + 0.5, sz > 0 ? 0.5 : 0],
+    });
+  }
+
+  return parts;
 }
 
-function stairsGeometry(facing: number, upsideDown: boolean): THREE.BufferGeometry {
-  return fuse(stairParts(facing, upsideDown).map((part) => boxPart(part.min, part.max)));
+/**
+ * Built when first asked for and kept. There are two halves times sixteen
+ * possible sets of quarters, and a build uses a handful of them.
+ */
+const stairCache = new Map<number, THREE.BufferGeometry>();
+
+function stairsGeometry(quadrants: number, upsideDown: boolean): THREE.BufferGeometry {
+  const key = quadrants * 2 + (upsideDown ? 1 : 0);
+  const cached = stairCache.get(key);
+  if (cached) return cached;
+  const built = fuse(stairParts(quadrants, upsideDown).map((part) => boxPart(part.min, part.max)));
+  stairCache.set(key, built);
+  return built;
 }
 
-const FACINGS = [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST];
-const STAIRS_BOTTOM_GEOMETRIES = FACINGS.map((facing) => stairsGeometry(facing, false));
-const STAIRS_TOP_GEOMETRIES = FACINGS.map((facing) => stairsGeometry(facing, true));
-
-/** The geometry one render layer should be drawn with. */
-export function geometryForShape(shape: number, facing = FACING_NORTH): THREE.BufferGeometry {
+/**
+ * The geometry one render layer should be drawn with. `variant` is the set of
+ * quarters a stair's tall half fills, and is ignored by every other shape.
+ */
+export function geometryForShape(shape: number, variant = 0): THREE.BufferGeometry {
   if (shape === SHAPE_SLAB_BOTTOM) return SLAB_BOTTOM_GEOMETRY;
   if (shape === SHAPE_SLAB_TOP) return SLAB_TOP_GEOMETRY;
-  if (shape === SHAPE_STAIRS_BOTTOM) return STAIRS_BOTTOM_GEOMETRIES[facing] ?? BLOCK_GEOMETRY;
-  if (shape === SHAPE_STAIRS_TOP) return STAIRS_TOP_GEOMETRIES[facing] ?? BLOCK_GEOMETRY;
+  if (shape === SHAPE_STAIRS_BOTTOM) return stairsGeometry(variant, false);
+  if (shape === SHAPE_STAIRS_TOP) return stairsGeometry(variant, true);
   return BLOCK_GEOMETRY;
 }
 
