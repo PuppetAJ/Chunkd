@@ -1,4 +1,4 @@
-import { BLOCK_IDS } from "./blockIds.ts";
+import { BLOCK_IDS, SLAB_BLOCK_IDS, STAIR_BLOCK_IDS } from "./blockIds.ts";
 
 import amethystUrl from "../../assets/textures/amethyst_block.png";
 import andesiteUrl from "../../assets/textures/andesite.png";
@@ -95,6 +95,9 @@ export interface BlockType {
    * standing upright.
    */
   readonly directional: boolean;
+  /** Whether this block can be laid as a slab, and as stairs. See blockIds.ts. */
+  readonly slab: boolean;
+  readonly stairs: boolean;
   readonly group: BlockGroup;
 }
 
@@ -123,6 +126,8 @@ function define(input: BlockInput): BlockType {
     bottom: input.bottom ?? input.top ?? fallback,
     draw: input.draw ?? "solid",
     directional: input.directional ?? false,
+    slab: SLAB_BLOCK_IDS.has(input.id),
+    stairs: STAIR_BLOCK_IDS.has(input.id),
     group: input.group,
   };
 }
