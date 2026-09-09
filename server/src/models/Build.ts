@@ -22,8 +22,15 @@ export interface BuildDocument {
   updatedAt: Date;
 }
 
-/** Used only when a client does not say which encoding it wrote. */
-export const CURRENT_BUILD_FORMAT = 2;
+/**
+ * Used only when a client does not say which encoding it wrote.
+ *
+ * The client sends its own version with every save, so this is a fallback
+ * rather than the authority. It still has to keep up: left at 2 after the
+ * client moved to 3, a save from a client that omitted the field would be
+ * labelled as an older format than it is.
+ */
+export const CURRENT_BUILD_FORMAT = 3;
 
 const buildSchema = new Schema<BuildDocument>(
   {
