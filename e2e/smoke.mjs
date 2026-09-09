@@ -568,6 +568,85 @@ check("each facing is kept", stairs.row.map((one) => one.facing).join() === "0,1
 check("the block id survives a facing", stairs.row.every((one) => one.id === 9), JSON.stringify(stairs.row));
 check("upside down stairs are their own shape", stairs.upsideDown.shape === 4, JSON.stringify(stairs.upsideDown));
 
+// Two slabs of the same block make a whole one. The player is standing on a
+// slab course, so aiming straight down and placing another fills the cell.
+await page.evaluate((y) => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(6, 9); // stone bricks, the pad's own block
+  store.setSelectedSlot(6);
+  // The step assist check above walked the player off the slab pad, so put
+  // them back on it: this one needs to be aiming at a slab.
+  const body = window.__player;
+  body.x = 30;
+  body.y = y + 1;
+  body.z = 30;
+}, SLAB_PAD_Y);
+await frames(2);
+await page.keyboard.press("KeyR");
+await frames();
+const underfoot = () =>
+  page.evaluate((y) => {
+    const value = window.__world.getState().blocks.get(`30,${y + 1},30`);
+    return value === undefined ? null : (value >> 10) & 0b111;
+  }, SLAB_PAD_Y);
+check("the pad the player is on is a slab", (await underfoot()) === 1, `shape ${await underfoot()}`);
+
+await page.evaluate(() => window.__r3f.camera.rotation.set(-Math.PI / 2, 0, 0, "YXZ"));
+await frames();
+await page.mouse.click(cx, cy, { button: "right" });
+await until((y) => {
+  const value = window.__world.getState().blocks.get(`30,${y + 1},30`);
+  return value !== undefined && ((value >> 10) & 0b111) === 0;
+}, SLAB_PAD_Y, 5000);
+check("a second slab of the same block fills the cell", (await underfoot()) === 0, `shape ${await underfoot()}`);
+
+// Stairs meeting at right angles are drawn as corners. The shape comes from
+// the neighbours rather than from the stored value, so the only way to see it
+// is to ask the renderer what it drew.
+const CORNER_AT = { x: 40, y: 48, z: 40 };
+await page.evaluate(({ x, y, z }) => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(7, 9);
+  store.setSelectedSlot(7);
+
+  // A run whose tall side faces north, turning north up its east end: the
+  // corner cell's turning neighbour is on its tall side, an outer corner.
+  for (let i = 0; i < 3; i += 1) store.placeBlock(x + i, y, z, 0, 3, 2);
+  for (let i = 1; i <= 2; i += 1) store.placeBlock(x + 2, y, z - i, 0, 3, 3);
+
+  // The same run turning the other way makes an inner corner.
+  for (let i = 0; i < 3; i += 1) store.placeBlock(x + 6 + i, y, z, 0, 3, 2);
+  for (let i = 1; i <= 2; i += 1) store.placeBlock(x + 8, y, z + i, 0, 3, 3);
+}, CORNER_AT);
+
+// The layers are rebuilt when React re-renders, not when the store changes,
+// so reading them in the same step as the placements sees the old ones.
+await rendererSettled();
+
+const corners = await page.evaluate(({ x, y, z }) => {
+  const drawn = new Map();
+  for (const layer of window.__layers ?? []) {
+    for (let i = 0; i < layer.positions.length; i += 3) {
+      drawn.set(
+        `${layer.positions[i]},${layer.positions[i + 1]},${layer.positions[i + 2]}`,
+        layer.variant,
+      );
+    }
+  }
+  const quarters = (key) => {
+    const mask = drawn.get(key);
+    return mask === undefined ? null : [0, 1, 2, 3].filter((b) => mask & (1 << b)).length;
+  };
+  return {
+    straight: quarters(`${x},${y},${z}`),
+    outer: quarters(`${x + 2},${y},${z}`),
+    inner: quarters(`${x + 8},${y},${z}`),
+  };
+}, CORNER_AT);
+check("a straight stair fills two quarters of its tall half", corners.straight === 2, JSON.stringify(corners));
+check("an outer corner is cut back to one", corners.outer === 1, JSON.stringify(corners));
+check("an inner corner is filled out to three", corners.inner === 3, JSON.stringify(corners));
+
 check(
   "walking into a step climbs it without a jump",
   steppedUp && Math.abs(afterStep.y - (SLAB_PAD_Y + 1.5)) < 0.01,

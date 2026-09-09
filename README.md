@@ -209,6 +209,15 @@ the cell they fill follows the same rule as slabs, so they can be hung upside
 down for an arch or a sloped soffit, and the step faces the way you are looking
 rather than the face you built against, so walking forwards goes up.
 
+Two stairs meeting at right angles turn a corner, filling one quarter of the
+cell on the outside of the turn and three on the inside. That shape is worked
+out from the neighbours rather than stored, which is why a staircase tidies
+itself up as you build and why breaking one leaves the rest correct.
+
+Two slabs of the same block placed in one cell join into a whole block. Aiming
+at the exposed half is what does it: from the side, a slab still places into
+the cell next door.
+
 Stairs collide as a whole cube. Exact per-shape collision was not worth it
 here: a stair is a half block rise, so step assist walks you up it and the
 difference is invisible in play.

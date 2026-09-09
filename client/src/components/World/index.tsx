@@ -8,7 +8,10 @@ import { toKey, type BlockKey } from "../../lib/voxel/coords.ts";
 import { buildRenderLayers, groupVisible } from "../../lib/voxel/render.ts";
 import {
   axisForFaceNormal,
+  blockIdOf,
+  blockShapeOf,
   facingForYaw,
+  isSlab,
   slabShapeForPlacement,
   stairsShapeForPlacement,
   verticalExtent,
@@ -68,7 +71,9 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const blocks = providedBlocks ?? storeBlocks;
   const placeBlock = useWorldStore((state) => state.placeBlock);
   const removeBlock = useWorldStore((state) => state.removeBlock);
+  const fillSlab = useWorldStore((state) => state.fillSlab);
   const selectedShape = useWorldStore((state) => state.selectedShape);
+  const selectedBlockId = useWorldStore((state) => state.selectedBlockId);
 
   const { camera, gl } = useThree();
   const groupRef = useRef<THREE.Group>(null);
@@ -103,7 +108,13 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     // The editor's world keeps its own visible set up to date as blocks are
     // placed, so only the grouping is redone here. The build viewer is handed a
     // world it does not own, so that one is worked out in full, once.
-    const raw = providedBlocks ? buildRenderLayers(providedBlocks) : groupVisible(storeVisible);
+    const raw = providedBlocks
+      ? buildRenderLayers(providedBlocks)
+      : groupVisible(storeVisible, blocks);
+    // Development-only handle for the tests. A stair's shape is worked out
+    // from its neighbours rather than stored, so this is the only place that
+    // knows what was actually drawn.
+    if (import.meta.env.DEV && editable) window.__layers = raw;
     return raw.flatMap((layer) => {
       const block = getBlock(layer.blockId);
       return block
@@ -111,14 +122,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
             {
               block,
               shape: layer.shape,
-              facing: layer.facing,
+              variant: layer.variant,
               positions: layer.positions,
               axes: layer.axes,
             },
           ]
         : [];
     });
-  }, [providedBlocks, storeVisible]);
+  }, [providedBlocks, storeVisible, blocks, editable]);
 
   const raycaster = useMemo(() => {
     const instance = new THREE.Raycaster();
@@ -152,16 +163,34 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     }
 
     if (button === 2) {
+      const chosenShape = selectedShape();
+
+      // Two slabs of the same block make a whole one, rather than the second
+      // going into the cell next door. Only when the exposed half is the one
+      // being built on: from the side, a slab still places its neighbour.
+      const targeted = blocks.get(toKey(...current.hit));
+      if (
+        chosenShape === SHAPE_SLAB_BOTTOM &&
+        targeted !== undefined &&
+        isSlab(targeted) &&
+        blockIdOf(targeted) === selectedBlockId() &&
+        (blockShapeOf(targeted) === SHAPE_SLAB_BOTTOM
+          ? current.normalY > 0.5
+          : current.normalY < -0.5)
+      ) {
+        fillSlab(...current.hit);
+        return;
+      }
+
       const [x, y, z] = current.adjacent;
       // Refuse to place a block inside the player, which would trap them.
       if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
       // The slot decides which shape; the aim decides which half of the cell
       // it fills, and for stairs which way the step faces.
-      const chosen = selectedShape();
-      let shape = chosen;
-      if (chosen === SHAPE_SLAB_BOTTOM) {
+      let shape = chosenShape;
+      if (chosenShape === SHAPE_SLAB_BOTTOM) {
         shape = slabShapeForPlacement(current.normalY, current.heightInCell);
-      } else if (chosen === SHAPE_STAIRS_BOTTOM) {
+      } else if (chosenShape === SHAPE_STAIRS_BOTTOM) {
         shape = stairsShapeForPlacement(current.normalY, current.heightInCell);
       }
 
@@ -310,13 +339,13 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   return (
     <>
       <group ref={groupRef}>
-        {layers.map(({ block, shape, facing, positions, axes }) => (
+        {layers.map(({ block, shape, variant, positions, axes }) => (
           <BlockLayer
-            // One mesh per block, shape and facing, so the key carries all three.
-            key={`${block.id}-${shape}-${facing}`}
+            // One mesh per block, shape and variant, so the key carries all three.
+            key={`${block.id}-${shape}-${variant}`}
             block={block}
             shape={shape}
-            facing={facing}
+            variant={variant}
             positions={positions}
             axes={axes}
             textures={textures}

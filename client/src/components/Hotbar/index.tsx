@@ -10,6 +10,24 @@ import { HOTBAR_SLOTS, useWorldStore } from "../../lib/voxel/worldStore.ts";
  * showed one fixed block per slot; there are far more blocks than slots now, so
  * it shows whatever the inventory has put in each one.
  */
+/**
+ * Part of a block's texture, shown through a window rather than squeezed into
+ * it.
+ *
+ * Scaling the image down to the size of the shape warped it, which is what
+ * made a slab look like squashed stone. Here the image stays the size of the
+ * whole tile and the window crops it, so the pixels stay square. The image is
+ * given 200% of whichever of the window's axes is half a tile, and anchored to
+ * the edge that keeps the matching part of the texture in view.
+ */
+function TexturePiece({ src, window: where, image }: { src: string; window: string; image: string }) {
+  return (
+    <span className={`absolute overflow-hidden ${where}`}>
+      <img src={src} alt="" className={`absolute ${image}`} style={{ imageRendering: "pixelated" }} />
+    </span>
+  );
+}
+
 /** What to add to a block's name for the shape the slot is set to. */
 function shapeSuffix(shape: number): string {
   if (shape === SHAPE_SLAB_BOTTOM) return " Slab";
@@ -55,26 +73,28 @@ export default function Hotbar() {
                 }`}
               >
                 {/* The tile shows the shape itself rather than a badge to be
-                    learned: a slab is a half-height strip, and stairs are that
-                    strip with a half-width piece stacked on it. */}
-                {block && (
+                    learned: a slab is the bottom half, stairs are that plus a
+                    quarter above it. */}
+                {block && shape === SHAPE_FULL && (
+                  <img
+                    src={block.side}
+                    alt=""
+                    className="absolute inset-0 h-full w-full"
+                    style={{ imageRendering: "pixelated" }}
+                  />
+                )}
+                {block && shape !== SHAPE_FULL && (
                   <>
-                    <img
+                    <TexturePiece
                       src={block.side}
-                      alt=""
-                      className={
-                        shape === SHAPE_FULL
-                          ? "absolute inset-0 h-full w-full"
-                          : "absolute inset-x-0 bottom-0 h-1/2 w-full"
-                      }
-                      style={{ imageRendering: "pixelated" }}
+                      window="inset-x-0 bottom-0 h-1/2"
+                      image="bottom-0 left-0 h-[200%] w-full"
                     />
                     {shape === SHAPE_STAIRS_BOTTOM && (
-                      <img
+                      <TexturePiece
                         src={block.side}
-                        alt=""
-                        className="absolute bottom-1/2 left-1/2 h-1/2 w-1/2"
-                        style={{ imageRendering: "pixelated" }}
+                        window="right-0 top-0 h-1/2 w-1/2"
+                        image="right-0 top-0 h-[200%] w-[200%]"
                       />
                     )}
                   </>
