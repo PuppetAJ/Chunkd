@@ -365,11 +365,34 @@ const shapeOfSlot = () =>
     return state.hotbarShape[state.selectedSlot - 1];
   });
 
-await page.evaluate(() => window.__world.getState().setSelectedSlot(3));
+// Stone bricks explicitly, rather than whatever slot 3 holds by default: only
+// the blocks Minecraft gives slabs to can be cut, so this check depends on the
+// slot holding one of them.
+await page.evaluate(() => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(3, 9); // stone bricks
+  store.setSelectedSlot(3);
+});
 check("a slot places whole blocks to begin with", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
 await page.keyboard.press("KeyR");
 await frames();
 check("R turns the slot over to slabs", (await shapeOfSlot()) === 1, `shape ${await shapeOfSlot()}`);
+
+// A block with no slab in the game cannot be cut, and putting one into a slot
+// that was set to slabs has to clear the slot rather than leave it unplaceable.
+await page.evaluate(() => window.__world.getState().setHotbarBlock(3, 5)); // oak log
+check("choosing a block with no slab clears the slot's shape", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
+await page.keyboard.press("KeyR");
+await frames();
+check("R does nothing for a block with no slab", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
+
+await page.evaluate(() => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(3, 9);
+  store.setSelectedSlot(3);
+});
+await page.keyboard.press("KeyR");
+await frames();
 check(
   "the hotbar says the slot is holding a slab",
   (await page.locator('[aria-label*="slab, slot 3"]').count()) > 0,
@@ -380,9 +403,6 @@ check("R turns it back to whole blocks", (await shapeOfSlot()) === 0, `shape ${a
 
 const slabs = await page.evaluate(() => {
   const store = window.__world.getState();
-  const STONE_BRICKS = 9;
-  store.setHotbarBlock(3, STONE_BRICKS);
-  store.setSelectedSlot(3);
 
   // Somewhere empty and well clear of the player, as with the logs above.
   const x = 12, y = 40, z = 12;

@@ -187,10 +187,16 @@ kept in the browser.
 
 ## Slabs
 
-Any block can be laid as a slab, half a block tall, filling either the lower or
-the upper half of its cell. Press R to switch the selected hotbar slot between
-whole blocks and slabs; the slot remembers which, so a block and its slab can
-sit side by side. Which half of the cell a slab fills is decided by where you
+The blocks Minecraft gives slabs to can be laid as a slab, half a block tall,
+filling either the lower or the upper half of its cell. Press R to switch the
+selected hotbar slot between whole blocks and slabs; the slot remembers which,
+so a block and its slab can sit side by side.
+
+Which blocks those are is listed in `SLAB_BLOCK_IDS` in
+`client/src/lib/voxel/blockIds.ts`, taken from the game rather than worked out
+from our own textures: the stones, the worked stones and the planks, but not
+logs, leaves, glass or the loose ground blocks. Cut sandstone has a slab and no
+stairs, which is why there are two sets. Which half of the cell a slab fills is decided by where you
 aim: on a top face it lies on it, under a bottom face it hangs from it, and
 against a side the face splits down the middle, so aiming high gives a top slab
 and aiming low a bottom one.

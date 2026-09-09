@@ -85,8 +85,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     const block = getBlock(blockId);
     // Only a block with a grain is turned by the face you built against, and a
     // slab is never turned: there is no shape here for one stood on its end.
-    const upright = shape !== SHAPE_FULL || !block?.directional;
-    const value = packBlock(blockId, upright ? AXIS_Y : axis, shape);
+    // A block only takes the shapes Minecraft gives it. The picker already
+    // refuses the rest, so this is the net for a build or a script that asks
+    // for one anyway.
+    const cut = block?.slab ? shape : SHAPE_FULL;
+    const upright = cut !== SHAPE_FULL || !block?.directional;
+    const value = packBlock(blockId, upright ? AXIS_Y : axis, cut);
     const key = toKey(x, y, z);
     set((state) => {
       if (state.blocks.has(key)) return state;
@@ -133,11 +137,16 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const hotbar = [...state.hotbar];
       hotbar[slot - 1] = blockId;
-      return { hotbar };
+      // Putting a block that has no slab into a slot set to slabs would leave
+      // the slot in a state it cannot place.
+      const hotbarShape = [...state.hotbarShape];
+      if (!getBlock(blockId)?.slab) hotbarShape[slot - 1] = SHAPE_FULL;
+      return { hotbar, hotbarShape };
     });
   },
 
   toggleSelectedShape: () => {
+    if (!getBlock(get().selectedBlockId())?.slab) return;
     set((state) => {
       const hotbarShape = [...state.hotbarShape];
       const index = state.selectedSlot - 1;

@@ -86,6 +86,51 @@ export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
  * It lives here rather than in blocks.ts so the culling pass stays free of
  * image imports and can still be tested outside a browser.
  */
+/**
+ * The blocks that can be laid as slabs, and as stairs.
+ *
+ * These are the blocks Minecraft gives those variants to, taken from the game
+ * rather than worked out from our own textures. Sandstone has three textures
+ * and is in; plain deepslate has two and is out, because only its cobbled,
+ * polished, brick and tile variants are cut in the game and we carry the tiles
+ * alone. A block cut in half wraps the expected face onto the new shape, so
+ * how many textures it has does not come into it.
+ *
+ * Two sets because they differ by one: cut sandstone has a slab and no stairs.
+ *
+ * They live here rather than in blocks.ts so they can be tested and consulted
+ * without pulling in the texture imports, the same reason the id table itself
+ * is here.
+ */
+export const SLAB_BLOCK_IDS: ReadonlySet<number> = new Set([
+  BLOCK_IDS.stone,
+  BLOCK_IDS.cobblestone,
+  BLOCK_IDS.mossyCobblestone,
+  BLOCK_IDS.granite,
+  BLOCK_IDS.diorite,
+  BLOCK_IDS.andesite,
+  BLOCK_IDS.tuff,
+  BLOCK_IDS.blackstone,
+  BLOCK_IDS.stoneBricks,
+  BLOCK_IDS.bricks,
+  BLOCK_IDS.mudBricks,
+  BLOCK_IDS.sandstone,
+  BLOCK_IDS.cutSandstone,
+  BLOCK_IDS.polishedGranite,
+  BLOCK_IDS.polishedDiorite,
+  BLOCK_IDS.polishedAndesite,
+  BLOCK_IDS.deepslateTiles,
+  BLOCK_IDS.oakPlanks,
+  BLOCK_IDS.sprucePlanks,
+  BLOCK_IDS.birchPlanks,
+  BLOCK_IDS.cherryPlanks,
+]);
+
+/** Everything with a slab except cut sandstone, which has no stairs. */
+export const STAIR_BLOCK_IDS: ReadonlySet<number> = new Set(
+  [...SLAB_BLOCK_IDS].filter((id) => id !== BLOCK_IDS.cutSandstone),
+);
+
 export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.glass,
   BLOCK_IDS.oakLeaves,
