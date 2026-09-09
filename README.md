@@ -143,6 +143,7 @@ works on any device, including turning a saved build around with a finger.
 | Right click | Place a block. Hold to keep placing |
 | 1 to 9 | Choose a hotbar slot |
 | Scroll wheel | Move along the hotbar, wrapping at both ends |
+| R | Switch the selected slot between a whole block and a slab |
 | E | Open the block inventory |
 | Shift and drag | Pan, when looking at a saved build |
 | P | Name and save the current world |
@@ -153,6 +154,10 @@ comes back to it, and that screen is also where you leave the editor.
 
 A jump clears a little over one block, so you can place a block under your own
 feet and build upwards.
+
+Anything half a block high or less is walked up rather than jumped onto, so a
+slab floor, a terrace or a doorstep needs no jump. A whole block still does,
+which is what keeps a wall a wall.
 
 Holding either mouse button repeats the action about six times a second. On a
 Mac trackpad this avoids the two-finger double tap that macOS reads as Smart
@@ -180,6 +185,25 @@ you press P, so without them every thumbnail could only ever be a bright dayligh
 one. The editor and the viewer remember their choices separately, and both are
 kept in the browser.
 
+## Slabs
+
+Any block can be laid as a slab, half a block tall, filling either the lower or
+the upper half of its cell. Press R to switch the selected hotbar slot between
+whole blocks and slabs; the slot remembers which, so a block and its slab can
+sit side by side. Which half of the cell a slab fills is decided by where you
+aim: on a top face it lies on it, under a bottom face it hangs from it, and
+against a side the face splits down the middle, so aiming high gives a top slab
+and aiming low a bottom one.
+
+A slab is stored in the same number as the block's id and orientation, in three
+bits above them, so it costs a saved build nothing. Two bits above that are kept
+clear for stairs.
+
+Across X and Z a slab still fills its cell, so walls and doorways behave as
+they always did. Height is the part that comes from the block: you stand on a
+slab's own surface rather than on top of its cell, and a top slab is a ceiling
+half a block lower than the cell it is in.
+
 ## How builds are saved
 
 A saved build stores the world seed and the blocks you changed, not the world
@@ -193,6 +217,12 @@ different world, with no error to tell you. `format.test.ts` holds a hash of the
 terrain for four fixed seeds to catch that. If it fails, either put the terrain
 back the way it was, or raise `BUILD_FORMAT_VERSION` and keep the old generator
 for old builds.
+
+The format is at version 3, which added slabs. Version 2 builds are still read,
+because they are exactly readable: no shape bits means every block is a whole
+cube, which is what a version 2 build is. `READABLE_VERSIONS` in `format.ts` is
+the list, kept explicit so that accepting an old version stays a decision
+rather than something that happens by default.
 
 ## Deploying
 
