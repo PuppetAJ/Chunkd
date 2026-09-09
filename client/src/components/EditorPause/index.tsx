@@ -44,6 +44,10 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
       onClick={onPlay}
     >
       <div
+        // Named so a test can find the pause screen without matching on
+        // class names, and without going through the accessibility tree, which
+        // hides everything behind an open menu.
+        data-pause-card
         className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl"
         // The card is part of the click target for playing, but the two links
         // inside it are not, so stop those clicks from also locking the mouse.

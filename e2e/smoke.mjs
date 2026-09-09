@@ -20,6 +20,18 @@ function check(name, ok, detail = "") {
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 
+// Record who asks for the mouse. A browser driven by automation refuses every
+// pointer lock request, so nothing here can prove that mouse-look works, but it
+// can prove that nothing asks for the mouse when it should not.
+await page.addInitScript(() => {
+  window.__lockRequests = [];
+  const request = Element.prototype.requestPointerLock;
+  Element.prototype.requestPointerLock = function (...args) {
+    window.__lockRequests.push(new Error().stack?.includes("drei") ? "drei" : "editor");
+    return request.apply(this, args);
+  };
+});
+
 const pageErrors = [];
 page.on("pageerror", (error) => {
   // Pointer lock cannot be granted to a headless browser. It is not a defect.
@@ -737,6 +749,29 @@ await page.getByRole("menuitemradio", { name: "Studio" }).click();
 await page.waitForTimeout(600);
 const editorScene = await page.evaluate(() => localStorage.getItem("editor-settings"));
 check("the editor keeps its own scene preference", /studio/.test(editorScene ?? ""), String(editorScene));
+
+// Changing the scene needs a cursor, and the pause screen is the only place
+// there is one. drei's pointer lock controls attach their click-to-lock handler
+// to the whole document unless told otherwise, so opening this menu used to
+// take the mouse and hand back mouse-look with the pause screen still on top.
+const locksWhilePaused = await page.evaluate(() => {
+  const seen = window.__lockRequests.slice();
+  window.__lockRequests.length = 0;
+  return seen;
+});
+check(
+  "changing the scene while paused does not grab the mouse",
+  locksWhilePaused.length === 0,
+  locksWhilePaused.join(", ") || "(none)",
+);
+check("the pause screen is still up after changing the scene", (await page.locator("[data-pause-card]").count()) > 0);
+
+// And starting play still asks for it, from the editor rather than from drei.
+await page.getByRole("button", { name: "Click to play" }).click();
+await page.waitForTimeout(1200);
+const locksOnPlay = await page.evaluate(() => window.__lockRequests.slice());
+check("starting play asks for the mouse", locksOnPlay.includes("editor"), locksOnPlay.join(", ") || "(none)");
+check("the pause screen goes away when play starts", (await page.locator("[data-pause-card]").count()) === 0);
 
 // ------------------------------------------------------------ signing out
 // Signing out has to re-run the queries that are on screen, not just empty the
