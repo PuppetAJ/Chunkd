@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { AXIS_X, AXIS_Z } from "./voxel/blockValue.ts";
+import { AXIS_X, AXIS_Z, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./voxel/blockValue.ts";
 
 /**
  * The unit cube every block is drawn from, with its face shading baked in.
@@ -49,8 +49,26 @@ const BRIGHTNESS_BY_FACE = [
 
 const VERTICES_PER_FACE = 4;
 
-function createBlockGeometry(): THREE.BoxGeometry {
-  const geometry = new THREE.BoxGeometry(1, 1, 1);
+/** The four side faces of a box, in BoxGeometry's +X, -X, +Y, -Y, +Z, -Z order. */
+const SIDE_FACES = [0, 1, 4, 5];
+
+/**
+ * One block's geometry, at a given height and sitting at a given offset inside
+ * its cell.
+ *
+ * A slab is the same cube half as tall, moved into the half of the cell it
+ * occupies, so the instance's position stays exactly the centre of the cell.
+ * That matters beyond tidiness: the raycast recovers which cell was hit by
+ * rounding the instance's position, and the block highlight is drawn there
+ * too, so moving the geometry rather than the instance keeps both correct
+ * without either of them having to know that slabs exist.
+ *
+ * The side faces are given the matching half of the texture rather than the
+ * whole of it squeezed into half the height, which is what makes a stone slab
+ * read as a course of stone rather than as squashed stone.
+ */
+function createBlockGeometry(height = 1, offsetY = 0): THREE.BoxGeometry {
+  const geometry = new THREE.BoxGeometry(1, height, 1);
   const vertexCount = geometry.attributes["position"]!.count;
   const colors = new Float32Array(vertexCount * 3);
 
@@ -62,11 +80,38 @@ function createBlockGeometry(): THREE.BoxGeometry {
   }
 
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+  if (height !== 1) {
+    // Take the slice of the texture the block actually occupies. v runs 0 at
+    // the bottom of the face to 1 at the top, and the block sits `offsetY`
+    // above the middle of its cell, so the slice starts there.
+    const uv = geometry.attributes["uv"]!;
+    const bottom = offsetY - height / 2 + 0.5;
+    for (const face of SIDE_FACES) {
+      for (let corner = 0; corner < VERTICES_PER_FACE; corner += 1) {
+        const vertex = face * VERTICES_PER_FACE + corner;
+        uv.setY(vertex, bottom + uv.getY(vertex) * height);
+      }
+    }
+    uv.needsUpdate = true;
+  }
+
+  if (offsetY !== 0) geometry.translate(0, offsetY, 0);
   return geometry;
 }
 
 /** Shared by every block layer; the per-block difference is only the material. */
 export const BLOCK_GEOMETRY = createBlockGeometry();
+
+const SLAB_BOTTOM_GEOMETRY = createBlockGeometry(0.5, -0.25);
+const SLAB_TOP_GEOMETRY = createBlockGeometry(0.5, 0.25);
+
+/** The geometry one render layer should be drawn with. */
+export function geometryForShape(shape: number): THREE.BoxGeometry {
+  if (shape === SHAPE_SLAB_BOTTOM) return SLAB_BOTTOM_GEOMETRY;
+  if (shape === SHAPE_SLAB_TOP) return SLAB_TOP_GEOMETRY;
+  return BLOCK_GEOMETRY;
+}
 
 /**
  * Which way a block is turned, as a rotation of the shared cube.

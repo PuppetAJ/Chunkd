@@ -431,6 +431,118 @@ check("a log placed against an east face lies east to west", axisAt[1].axis === 
 check("a log placed against a north face lies north to south", axisAt[2].axis === 2, JSON.stringify(axisAt[2]));
 check("orientation does not disturb the block id", axisAt.every((one) => one.id === 5), JSON.stringify(axisAt));
 
+// --------------------------------------------------------------------- slabs
+// R turns the selected hotbar slot between placing a whole block and placing a
+// slab. The shape belongs to the slot, so a block and its slab can sit side by
+// side, and it rides in the stored value above the id and the orientation.
+const shapeOfSlot = () =>
+  page.evaluate(() => {
+    const state = window.__world.getState();
+    return state.hotbarShape[state.selectedSlot - 1];
+  });
+
+await page.evaluate(() => window.__world.getState().setSelectedSlot(3));
+check("a slot places whole blocks to begin with", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
+await page.keyboard.press("KeyR");
+await frames();
+check("R turns the slot over to slabs", (await shapeOfSlot()) === 1, `shape ${await shapeOfSlot()}`);
+check(
+  "the hotbar says the slot is holding a slab",
+  (await page.locator('[aria-label*="slab, slot 3"]').count()) > 0,
+);
+await page.keyboard.press("KeyR");
+await frames();
+check("R turns it back to whole blocks", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
+
+const slabs = await page.evaluate(() => {
+  const store = window.__world.getState();
+  const STONE_BRICKS = 9;
+  store.setHotbarBlock(3, STONE_BRICKS);
+  store.setSelectedSlot(3);
+
+  // Somewhere empty and well clear of the player, as with the logs above.
+  const x = 12, y = 40, z = 12;
+  store.placeBlock(x, y, z, 0, 0);       // a whole block
+  store.placeBlock(x + 2, y, z, 0, 1);   // a slab in the lower half of its cell
+  store.placeBlock(x + 4, y, z, 0, 2);   // a slab in the upper half
+
+  const read = (bx) => {
+    const value = window.__world.getState().blocks.get(`${bx},${y},${z}`);
+    return { id: value & 0xff, axis: (value >> 8) & 0b11, shape: (value >> 10) & 0b111 };
+  };
+  return [read(x), read(x + 2), read(x + 4)];
+});
+check("a whole block stores shape 0", slabs[0].shape === 0, JSON.stringify(slabs));
+check("a bottom slab stores shape 1", slabs[1].shape === 1, JSON.stringify(slabs));
+check("a top slab stores shape 2", slabs[2].shape === 2, JSON.stringify(slabs));
+check("the shape does not disturb the block id", slabs.every((one) => one.id === 9), JSON.stringify(slabs));
+
+// A slab has an exposed surface inside its own cell, so nothing can bury it.
+// Getting this wrong leaves see-through holes where a slab floor meets terrain.
+const buried = await page.evaluate(() => {
+  const store = window.__world.getState();
+  const x = 20, y = 30, z = 20;
+
+  // Box in the cell at y - 1 completely, with a bottom slab as its lid. Only
+  // that cell is fully enclosed, which is what makes it the one to look at:
+  // a block is culled when all six of its faces are covered, so the test has
+  // to cover all six rather than only the interesting one.
+  store.placeBlock(x, y - 1, z, 0, 0);
+  store.placeBlock(x, y - 2, z, 0, 0);
+  store.placeBlock(x + 1, y - 1, z, 0, 0);
+  store.placeBlock(x - 1, y - 1, z, 0, 0);
+  store.placeBlock(x, y - 1, z + 1, 0, 0);
+  store.placeBlock(x, y - 1, z - 1, 0, 0);
+  store.placeBlock(x, y, z, 0, 1);
+
+  const state = window.__world.getState();
+  return {
+    slabDrawn: state.visible.has(`${x},${y},${z}`),
+    // A bottom slab's underside fills its cell's bottom face exactly, so it
+    // covers the block below and that one should still be culled.
+    belowDrawn: state.visible.has(`${x},${y - 1},${z}`),
+  };
+});
+check("a slab is drawn however buried", buried.slabDrawn, JSON.stringify(buried));
+check("a slab lying flush on a block still hides it", !buried.belowDrawn, JSON.stringify(buried));
+
+// The player stands on the slab's surface, halfway up its cell, rather than on
+// top of the cell. Standing on the cell top left them floating a quarter of a
+// block above every slab floor.
+const SLAB_PAD_Y = 35;
+await page.evaluate((y) => {
+  const store = window.__world.getState();
+  const x = 30, z = 30;
+
+  // A pad of whole blocks with a course of slabs on top of it.
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      store.placeBlock(x + dx, y, z + dz, 0, 0);
+      store.placeBlock(x + dx, y + 1, z + dz, 0, 1);
+    }
+  }
+
+  // Drop the player onto it. The frame loop does the falling.
+  const body = window.__player;
+  body.x = x;
+  body.y = y + 4;
+  body.z = z;
+  body.onGround = false;
+}, SLAB_PAD_Y);
+
+// Wait for the landing rather than for a duration. A headless browser renders
+// this world at a handful of frames a second, and the fall advances per frame,
+// so a fixed wait measures the machine rather than the game.
+const landed = await until(() => window.__player?.onGround === true, null, 20000);
+const feet = await page.evaluate(() => window.__player.y);
+check(
+  "the player stands on a slab's surface, not on top of its cell",
+  // The slab fills the lower half of cell y + 1, so its surface is at y + 1.
+  // Landing on the cell's top instead would put them at y + 1.5.
+  landed && Math.abs(feet - (SLAB_PAD_Y + 1)) < 0.01,
+  `landed ${landed}, feet ${feet}, expected ${SLAB_PAD_Y + 1}`,
+);
+
 // P saves the world. The key state is sampled inside the render loop, so a
 // press has to last longer than a frame to be seen.
 // P captures the world and opens the naming dialog. Every build used to be

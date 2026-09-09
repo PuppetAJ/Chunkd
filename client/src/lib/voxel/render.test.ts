@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { BLOCK_IDS } from "./blockIds.ts";
+import { AXIS_Y, packBlock, SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { buildRenderLayers, computeVisible, refreshVisibleAround } from "./render.ts";
 import { generateTerrain } from "./terrain.ts";
@@ -112,4 +113,58 @@ test("updating around a change matches working the whole world out again", () =>
     [...thorough.entries()].sort(),
     "the values must match too, not just which blocks are visible",
   );
+});
+
+test("a slab does not hide the block underneath it", () => {
+  // The reason face culling had to learn about shapes at all. A slab covers
+  // half of each side face, and half covered is not covered, so treating it as
+  // an occluder left see-through holes wherever a slab floor met the terrain.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_TOP));
+  const drawn = drawnPositions(blocks);
+  assert.equal(drawn.has("0,0,0"), true);
+});
+
+test("a slab flush against a face still hides what is behind that face", () => {
+  // The other half of the rule. A bottom slab fills its cell's underside
+  // exactly, so the block below it is covered and there is no reason to draw
+  // it. Getting this wrong would cost the saving that culling exists for.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
+  assert.equal(drawnPositions(blocks).has("0,0,0"), false);
+});
+
+test("a slab is always drawn, however buried", () => {
+  // A bottom slab's top surface is inside its own cell, so no neighbour can
+  // cover it and it can never be culled.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
+  assert.equal(drawnPositions(blocks).has("0,0,0"), true);
+});
+
+test("cubes and slabs of one block are drawn as separate layers", () => {
+  // Every instance in a mesh shares one geometry, so a cube and a slab of the
+  // same stone cannot be in the same layer.
+  const blocks = new Map<BlockKey, number>([
+    [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone)],
+    [toKey(2, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM)],
+    [toKey(4, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_TOP)],
+  ]);
+
+  const layers = buildRenderLayers(blocks);
+  assert.equal(layers.length, 3);
+  assert.deepEqual(layers.map((layer) => layer.blockId), [BLOCK_IDS.stone, BLOCK_IDS.stone, BLOCK_IDS.stone]);
+  assert.deepEqual(layers.map((layer) => layer.shape), [SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP]);
+});
+
+test("updating around a slab matches working the whole world out again", () => {
+  // The incremental path and the from-scratch path have to agree, and the
+  // shape rules are new enough to be worth checking on both.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  const visible = computeVisible(blocks);
+
+  blocks.set(toKey(0, 2, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
+  refreshVisibleAround(blocks, visible, 0, 2, 0);
+
+  assert.deepEqual([...visible.keys()].sort(), [...computeVisible(blocks).keys()].sort());
 });

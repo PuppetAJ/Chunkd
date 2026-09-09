@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 
+import { BLOCK_IDS } from "./blockIds.ts";
+import { AXIS_Y, blockIdOf, packBlock, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { BUILD_FORMAT_VERSION, deserializeWorld, serializeWorld } from "./format.ts";
 import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
@@ -96,9 +98,10 @@ test("a saved build is small", () => {
   );
 });
 
-test("builds from an older format are refused rather than misread", () => {
-  const older = JSON.stringify({
-    v: BUILD_FORMAT_VERSION - 1,
+test("builds from an unreadable format are refused rather than misread", () => {
+  const ancient = JSON.stringify({ v: 1, size: 64, seed: 1, removed: [], added: [] });
+  const future = JSON.stringify({
+    v: BUILD_FORMAT_VERSION + 1,
     size: 64,
     seed: 1,
     removed: [],
@@ -108,7 +111,47 @@ test("builds from an older format are refused rather than misread", () => {
   // Returning null is what shows the "saved in an older format" message.
   // Guessing at the payload instead would load a world that is not the one
   // that was saved.
-  assert.equal(deserializeWorld(older), null);
+  assert.equal(deserializeWorld(ancient), null);
+  assert.equal(deserializeWorld(future), null);
+});
+
+test("builds saved before slabs existed still load", () => {
+  // Version 2 is exactly readable: it has no shape bits, and no shape bits
+  // means a full cube, which is what every block in a version 2 build is.
+  // Refusing them would have thrown away every build already saved.
+  const seed = 42;
+  const version2 = JSON.stringify({
+    v: 2,
+    size: WORLD_SIZE,
+    seed,
+    removed: [[3, 40, 3]],
+    added: [[5, 41, 5, 3]],
+  });
+
+  const loaded = deserializeWorld(version2);
+  assert.ok(loaded, "a version 2 build should still load");
+  assert.equal(loaded.seed, seed);
+  assert.equal(loaded.blocks.get(toKey(5, 41, 5)), 3);
+  assert.equal(loaded.blocks.has(toKey(3, 40, 3)), false);
+});
+
+test("slabs survive a save and a load", () => {
+  const seed = 1337;
+  const blocks = generateTerrain(seed);
+  const edited = new Map(blocks);
+
+  const bottom = packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM);
+  const top = packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_TOP);
+  edited.set(toKey(4, 45, 4), bottom);
+  edited.set(toKey(5, 45, 4), top);
+
+  const loaded = deserializeWorld(serializeWorld(seed, edited));
+  assert.ok(loaded, "should have loaded");
+  assert.equal(loaded.blocks.get(toKey(4, 45, 4)), bottom);
+  assert.equal(loaded.blocks.get(toKey(5, 45, 4)), top);
+  // The id has to come back out of the packed value unharmed, or a saved slab
+  // would load as some other block entirely.
+  assert.equal(blockIdOf(loaded.blocks.get(toKey(5, 45, 4)) ?? 0), BLOCK_IDS.stone);
 });
 
 test("unreadable payloads are refused rather than thrown", () => {
