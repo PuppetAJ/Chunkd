@@ -543,6 +543,35 @@ check(
   `landed ${landed}, feet ${feet}, expected ${SLAB_PAD_Y + 1}`,
 );
 
+// Step assist. A slab is half a block up, and without this every terrace and
+// doorstep would need a jump to get onto.
+await page.evaluate((y) => {
+  const store = window.__world.getState();
+  const x = 30, z = 30;
+  // The player is standing on the slab course laid above, whose surface is at
+  // y + 1. Run whole blocks on from there, so their tops are at y + 1.5 and
+  // walking on is a half block rise: a step, not a jump.
+  for (let dx = 2; dx <= 7; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) store.placeBlock(x + dx, y + 1, z + dz, 0, 0);
+  }
+  const body = window.__player;
+  body.x = x;
+  body.y = y + 1;
+  body.z = z;
+}, SLAB_PAD_Y);
+
+// Hold walk-forward with the camera aimed along +x, and never press jump.
+await page.evaluate(() => window.__r3f.camera.rotation.set(0, -Math.PI / 2, 0, "YXZ"));
+await page.keyboard.down("w");
+const steppedUp = await until((want) => window.__player?.y >= want, SLAB_PAD_Y + 1.5, 15000);
+await page.keyboard.up("w");
+const afterStep = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
+check(
+  "walking into a step climbs it without a jump",
+  steppedUp && Math.abs(afterStep.y - (SLAB_PAD_Y + 1.5)) < 0.01,
+  `${JSON.stringify(afterStep)}, expected y ${SLAB_PAD_Y + 1.5}`,
+);
+
 // P saves the world. The key state is sampled inside the render loop, so a
 // press has to last longer than a frame to be seen.
 // P captures the world and opens the naming dialog. Every build used to be
