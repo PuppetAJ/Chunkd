@@ -143,6 +143,18 @@ export default function Editor() {
     // oxlint-disable-next-line exhaustive-deps
   }, [seed, spawnPoint]);
 
+  // Development-only handle on the player's box, so a test can stand them
+  // somewhere. This is an effect rather than part of the canvas setup because
+  // a new world makes a new body, and the canvas is only created once: set
+  // there, the handle would point at the body of the world before last.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    window.__player = body;
+    return () => {
+      delete window.__player;
+    };
+  }, [body]);
+
   return (
     <>
       <Canvas

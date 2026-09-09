@@ -1,13 +1,20 @@
+import { verticalExtent } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 
 /**
  * Collision between the player and the block grid.
  *
- * There is no physics engine. Every block is a unit cube on integer
- * coordinates and the player is an upright box, so an exact answer is a few
- * comparisons rather than a general solver. Moving one axis at a time and
- * snapping to the surface that was hit is the standard way to do this, and it
- * gives sliding along walls for free: being blocked on X does not stop Z.
+ * There is no physics engine. Every block fills its cell across X and Z and
+ * the player is an upright box, so an exact answer is a few comparisons rather
+ * than a general solver. Moving one axis at a time and snapping to the surface
+ * that was hit is the standard way to do this, and it gives sliding along walls
+ * for free: being blocked on X does not stop Z.
+ *
+ * Height is the one thing a cell does not decide on its own. A slab fills half
+ * of its cell, so the surface the player stands on comes from the block rather
+ * than from the cell it is in. That is the only way slabs differ here: across X
+ * and Z a slab still fills its cell, so walls, sliding and the reach checks are
+ * all unchanged.
  */
 
 export const PLAYER_HALF_WIDTH = 0.3;
@@ -20,12 +27,19 @@ export function blockIndex(worldCoordinate: number): number {
   return Math.floor(worldCoordinate + 0.5);
 }
 
-/** Is the player's box, with its feet at (x, y, z), inside any block? */
-export function collides(
+/**
+ * Every block the player's box would overlap, with its feet at (x, y, z).
+ *
+ * `visit` is called with the top and bottom of each one. Returning true from it
+ * stops the search, which is what makes the plain yes-or-no question below cost
+ * the same as it did before this had to look at heights at all.
+ */
+function forEachOverlap(
   blocks: Map<BlockKey, number>,
   x: number,
   y: number,
   z: number,
+  visit: (low: number, high: number) => boolean,
 ): boolean {
   const minX = blockIndex(x - PLAYER_HALF_WIDTH);
   const maxX = blockIndex(x + PLAYER_HALF_WIDTH);
@@ -33,15 +47,52 @@ export function collides(
   const maxY = blockIndex(y + PLAYER_HEIGHT);
   const minZ = blockIndex(z - PLAYER_HALF_WIDTH);
   const maxZ = blockIndex(z + PLAYER_HALF_WIDTH);
+  const head = y + PLAYER_HEIGHT;
 
   for (let bx = minX; bx <= maxX; bx += 1) {
     for (let by = minY; by <= maxY; by += 1) {
       for (let bz = minZ; bz <= maxZ; bz += 1) {
-        if (blocks.has(toKey(bx, by, bz))) return true;
+        const value = blocks.get(toKey(bx, by, bz));
+        if (value === undefined) continue;
+        const [low, high] = verticalExtent(value, by);
+        // Touching is not overlapping, so both comparisons are strict. For a
+        // full cube this is always true for every cell the loops reach, which
+        // is why worlds without slabs behave exactly as they did.
+        if (y < high && head > low && visit(low, high)) return true;
       }
     }
   }
   return false;
+}
+
+/** Is the player's box, with its feet at (x, y, z), inside any block? */
+export function collides(
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+): boolean {
+  return forEachOverlap(blocks, x, y, z, () => true);
+}
+
+/**
+ * The highest surface among the blocks the player is overlapping, which is what
+ * they land on, and the lowest, which is what they hit their head on.
+ */
+function surfacesAt(
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+): { highestTop: number; lowestBottom: number } {
+  let highestTop = -Infinity;
+  let lowestBottom = Infinity;
+  forEachOverlap(blocks, x, y, z, (low, high) => {
+    if (high > highestTop) highestTop = high;
+    if (low < lowestBottom) lowestBottom = low;
+    return false;
+  });
+  return { highestTop, lowestBottom };
 }
 
 export interface Body {
@@ -103,15 +154,18 @@ export function moveBody(
   for (let i = 0; i < steps; i += 1) {
     if (stepY !== 0) {
       const nextY = body.y + stepY;
-      if (collides(blocks, body.x, nextY, body.z)) {
+      const { highestTop, lowestBottom } = surfacesAt(blocks, body.x, nextY, body.z);
+      if (highestTop !== -Infinity) {
         if (stepY < 0) {
-          // Landed. Rest exactly on the surface of the block underfoot rather
-          // than wherever the frame happened to stop.
-          body.y = blockIndex(nextY) + 0.5;
+          // Landed. Rest exactly on the surface underfoot rather than wherever
+          // the frame happened to stop. That surface used to be assumed to be
+          // the top of the cell, which left the player standing a quarter of a
+          // block above any slab floor.
+          body.y = highestTop;
           body.onGround = true;
         } else {
           // Hit a ceiling. Sit just below it.
-          body.y = blockIndex(nextY + PLAYER_HEIGHT) - 0.5 - PLAYER_HEIGHT - SKIN;
+          body.y = lowestBottom - PLAYER_HEIGHT - SKIN;
         }
       } else {
         body.y = nextY;

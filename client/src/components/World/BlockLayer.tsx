@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { BlockType } from "../../lib/voxel/blocks.ts";
 import { applyBlockTextureSettings, type BlockTextures } from "../../lib/blockTextures.ts";
-import { BLOCK_GEOMETRY, rotationForAxis } from "../../lib/blockGeometry.ts";
+import { geometryForShape, rotationForAxis } from "../../lib/blockGeometry.ts";
 
 const matrix = new THREE.Matrix4();
 const position = new THREE.Vector3();
@@ -15,6 +15,11 @@ function capacityFor(count: number): number {
 
 interface Props {
   block: BlockType;
+  /**
+   * Full cube, bottom slab or top slab. Every instance in one layer shares a
+   * geometry, so the shape belongs to the layer rather than to the instance.
+   */
+  shape: number;
   /** Flat x, y, z triples for every block of this type. */
   positions: Float32Array;
   /** Which way each of those blocks is turned. */
@@ -33,8 +38,9 @@ interface Props {
  * and hay do not, so they get one material per face group, which is what lets
  * grass have a green top, a banded side and a plain dirt underside.
  */
-export default function BlockLayer({ block, positions, axes, textures }: Props) {
+export default function BlockLayer({ block, shape, positions, axes, textures }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
+  const geometry = geometryForShape(shape);
   const count = positions.length / 3;
   const capacity = capacityFor(count);
 
@@ -93,7 +99,7 @@ export default function BlockLayer({ block, positions, axes, textures }: Props) 
     // geometry, a single cube at the origin, and the renderer culls the entire
     // world as soon as the origin leaves the view.
     mesh.computeBoundingSphere();
-  }, [positions, axes, count]);
+  }, [positions, axes, count, geometry]);
 
   return (
     <instancedMesh
@@ -101,7 +107,7 @@ export default function BlockLayer({ block, positions, axes, textures }: Props) 
       // rather than the exact count.
       key={capacity}
       ref={meshRef}
-      args={[BLOCK_GEOMETRY, undefined, capacity]}
+      args={[geometry, undefined, capacity]}
       material={material}
       // Glass lets nearly all the light through, so casting from it would draw a
       // solid black block on the ground.

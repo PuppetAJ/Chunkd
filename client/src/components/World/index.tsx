@@ -4,9 +4,14 @@ import * as THREE from "three";
 
 import BlockLayer from "./BlockLayer.tsx";
 import { getBlock } from "../../lib/voxel/blocks.ts";
-import { type BlockKey } from "../../lib/voxel/coords.ts";
+import { toKey, type BlockKey } from "../../lib/voxel/coords.ts";
 import { buildRenderLayers, groupVisible } from "../../lib/voxel/render.ts";
-import { axisForFaceNormal } from "../../lib/voxel/blockValue.ts";
+import {
+  axisForFaceNormal,
+  slabShapeForPlacement,
+  verticalExtent,
+  SHAPE_FULL,
+} from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { isEditorPaused } from "../../lib/editorUiStore.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
@@ -23,6 +28,10 @@ interface Target {
   adjacent: [number, number, number];
   /** Which way a block with a grain should lie if placed here. */
   axis: number;
+  /** How far up the face the crosshair is, from -0.5 at its foot to 0.5 at its top. */
+  heightInCell: number;
+  /** The up component of the face's normal, which says whether it is a top, a bottom or a side. */
+  normalY: number;
 }
 
 /**
@@ -56,6 +65,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const blocks = providedBlocks ?? storeBlocks;
   const placeBlock = useWorldStore((state) => state.placeBlock);
   const removeBlock = useWorldStore((state) => state.removeBlock);
+  const selectedShape = useWorldStore((state) => state.selectedShape);
 
   const { camera, gl } = useThree();
   const groupRef = useRef<THREE.Group>(null);
@@ -93,7 +103,9 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     const raw = providedBlocks ? buildRenderLayers(providedBlocks) : groupVisible(storeVisible);
     return raw.flatMap((layer) => {
       const block = getBlock(layer.blockId);
-      return block ? [{ block, positions: layer.positions, axes: layer.axes }] : [];
+      return block
+        ? [{ block, shape: layer.shape, positions: layer.positions, axes: layer.axes }]
+        : [];
     });
   }, [providedBlocks, storeVisible]);
 
@@ -131,7 +143,13 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       const [x, y, z] = current.adjacent;
       // Refuse to place a block inside the player, which would trap them.
       if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
-      placeBlock(x, y, z, current.axis);
+      // The hotbar slot decides whether this is a slab at all; where the
+      // crosshair is on the face decides which half of the cell it fills.
+      const shape =
+        selectedShape() === SHAPE_FULL
+          ? SHAPE_FULL
+          : slabShapeForPlacement(current.normalY, current.heightInCell);
+      placeBlock(x, y, z, current.axis, shape);
     }
   };
 
@@ -188,12 +206,22 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         block[2] + Math.round(normal.z),
       ],
       axis: axisForFaceNormal(normal.x, normal.y, normal.z),
+      // The instance sits at the centre of its cell whatever shape it is, so
+      // the offset from it is where on the block the crosshair landed.
+      heightInCell: hit.point.y - block[1],
+      normalY: normal.y,
     };
 
     target.current = found;
     if (highlightRef.current) {
+      // Outline what is actually there. A slab drawn inside a full cube of
+      // wireframe reads as a bug rather than as a half block.
+      const value = blocks.get(toKey(block[0], block[1], block[2]));
+      const [low, high] =
+        value === undefined ? [block[1] - 0.5, block[1] + 0.5] : verticalExtent(value, block[1]);
       highlightRef.current.visible = true;
-      highlightRef.current.position.set(block[0], block[1], block[2]);
+      highlightRef.current.position.set(block[0], (low + high) / 2, block[2]);
+      highlightRef.current.scale.set(1, high - low, 1);
     }
     return found;
   };
@@ -263,10 +291,12 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   return (
     <>
       <group ref={groupRef}>
-        {layers.map(({ block, positions, axes }) => (
+        {layers.map(({ block, shape, positions, axes }) => (
           <BlockLayer
-            key={block.id}
+            // One mesh per block and shape, so the key has to carry both.
+            key={`${block.id}-${shape}`}
             block={block}
+            shape={shape}
             positions={positions}
             axes={axes}
             textures={textures}

@@ -1,9 +1,11 @@
 import { SEE_THROUGH_BLOCK_IDS } from "./blockIds.ts";
-import { blockAxisOf, blockIdOf } from "./blockValue.ts";
+import { blockAxisOf, blockIdOf, blockShapeOf, SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./blockValue.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
 export interface RenderLayer {
   blockId: number;
+  /** Full cube, bottom slab or top slab. One mesh is one id and one shape. */
+  shape: number;
   /** Flat x, y, z triples. */
   positions: Float32Array;
   /** Which way each of those blocks is turned, one entry per position. */
@@ -27,20 +29,55 @@ export interface RenderLayer {
  */
 export type VisibleBlocks = Map<BlockKey, number>;
 
-/** Glass does not hide what is behind it, so it never counts as an occluder. */
-function isOpaqueAt(blocks: Map<BlockKey, number>, x: number, y: number, z: number): boolean {
+/**
+ * Does the block in this cell cover the whole of the face it shares with the
+ * neighbour that is asking?
+ *
+ * `dy` is the step from the asking block to this one: +1 for the cell above,
+ * -1 for the cell below, 0 for the four sides.
+ *
+ * Glass never counts, because it does not hide what is behind it. Neither does
+ * half of a slab. A slab fills exactly one of its cell's six faces: a bottom
+ * slab's underside, a top slab's top. Every other face it shares is half
+ * covered, and half covered is not covered, so the block on the other side of
+ * it still has to be drawn. Treating a slab as a full occluder, which is what
+ * the old code did to anything present, left see-through holes in the terrain
+ * underneath the first slab floor laid on it.
+ */
+function coversFace(
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+  dy: number,
+): boolean {
   const value = blocks.get(toKey(x, y, z));
-  return value !== undefined && !SEE_THROUGH_BLOCK_IDS.has(blockIdOf(value));
+  if (value === undefined) return false;
+  if (SEE_THROUGH_BLOCK_IDS.has(blockIdOf(value))) return false;
+
+  const shape = blockShapeOf(value);
+  if (shape === SHAPE_FULL) return true;
+  // The neighbour is above, so the face they share is this slab's underside.
+  if (shape === SHAPE_SLAB_BOTTOM) return dy === 1;
+  if (shape === SHAPE_SLAB_TOP) return dy === -1;
+  return true;
 }
 
 function isHidden(blocks: Map<BlockKey, number>, x: number, y: number, z: number): boolean {
+  // A slab has an exposed surface inside its own cell, the flat top of a
+  // bottom slab or the underside of a top slab, and nothing in a neighbouring
+  // cell can cover it. So a slab is never hidden and there is nothing to work
+  // out.
+  const self = blocks.get(toKey(x, y, z));
+  if (self !== undefined && blockShapeOf(self) !== SHAPE_FULL) return false;
+
   return (
-    isOpaqueAt(blocks, x + 1, y, z) &&
-    isOpaqueAt(blocks, x - 1, y, z) &&
-    isOpaqueAt(blocks, x, y + 1, z) &&
-    isOpaqueAt(blocks, x, y - 1, z) &&
-    isOpaqueAt(blocks, x, y, z + 1) &&
-    isOpaqueAt(blocks, x, y, z - 1)
+    coversFace(blocks, x + 1, y, z, 0) &&
+    coversFace(blocks, x - 1, y, z, 0) &&
+    coversFace(blocks, x, y + 1, z, 1) &&
+    coversFace(blocks, x, y - 1, z, -1) &&
+    coversFace(blocks, x, y, z + 1, 0) &&
+    coversFace(blocks, x, y, z - 1, 0)
   );
 }
 
@@ -85,34 +122,48 @@ export function refreshVisibleAround(
   }
 }
 
-/** Group the visible blocks by type, ready for one instanced mesh each. */
+/**
+ * How many shapes one block id can be grouped into. Used only to combine an id
+ * and a shape into a single map key below.
+ */
+const SHAPE_SLOTS = 8;
+
+/**
+ * Group the visible blocks by type, ready for one instanced mesh each.
+ *
+ * The grouping is by block id and shape together, not by id alone, because
+ * instances of one mesh all share one geometry and a slab is a different
+ * geometry from a cube. A world with no slabs in it produces exactly the
+ * layers it did before.
+ */
 export function groupVisible(visible: VisibleBlocks): RenderLayer[] {
   const positionsByType = new Map<number, number[]>();
   const axesByType = new Map<number, number[]>();
 
   for (const [key, value] of visible) {
     const [x, y, z] = fromKey(key);
-    const id = blockIdOf(value);
-    let positions = positionsByType.get(id);
-    let axes = axesByType.get(id);
+    const type = blockIdOf(value) * SHAPE_SLOTS + blockShapeOf(value);
+    let positions = positionsByType.get(type);
+    let axes = axesByType.get(type);
     if (!positions || !axes) {
       positions = [];
       axes = [];
-      positionsByType.set(id, positions);
-      axesByType.set(id, axes);
+      positionsByType.set(type, positions);
+      axesByType.set(type, axes);
     }
     positions.push(x, y, z);
     axes.push(blockAxisOf(value));
   }
 
-  // Sorted by id so layer order is stable between edits, which keeps React
-  // from tearing down and rebuilding instanced meshes on every block placed.
+  // Sorted so layer order is stable between edits, which keeps React from
+  // tearing down and rebuilding instanced meshes on every block placed.
   return [...positionsByType.keys()]
     .sort((a, b) => a - b)
-    .map((blockId) => ({
-      blockId,
-      positions: new Float32Array(positionsByType.get(blockId)!),
-      axes: Uint8Array.from(axesByType.get(blockId)!),
+    .map((type) => ({
+      blockId: Math.floor(type / SHAPE_SLOTS),
+      shape: type % SHAPE_SLOTS,
+      positions: new Float32Array(positionsByType.get(type)!),
+      axes: Uint8Array.from(axesByType.get(type)!),
     }));
 }
 

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { BLOCKS, DEFAULT_BLOCK_ID, DEFAULT_HOTBAR, getBlock } from "./blocks.ts";
-import { AXIS_Y, packBlock } from "./blockValue.ts";
+import { AXIS_Y, packBlock, SHAPE_FULL, SHAPE_SLAB_BOTTOM } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { generateTerrain, randomSeed, spawnPointFor } from "./terrain.ts";
 import { deserializeWorld, serializeWorld } from "./format.ts";
@@ -32,18 +32,28 @@ interface WorldState {
    * so the inventory writes into this rather than the hotbar being a fixed list.
    */
   hotbar: number[];
+  /**
+   * What shape each slot places: a full cube or a slab. Kept alongside the
+   * hotbar rather than inside it so that choosing a block from the inventory
+   * and choosing how to place it stay separate, and so any block can be laid
+   * as a slab without doubling the inventory.
+   */
+  hotbarShape: number[];
 
   newWorld: (seed?: number) => void;
   loadBuild: (payload: string) => boolean;
   serialize: () => string;
 
-  placeBlock: (x: number, y: number, z: number, axis?: number) => void;
+  placeBlock: (x: number, y: number, z: number, axis?: number, shape?: number) => void;
   removeBlock: (x: number, y: number, z: number) => void;
   setSelectedSlot: (slot: number) => void;
   /** Move along the hotbar, wrapping at both ends. Used by the scroll wheel. */
   cycleSelectedSlot: (delta: number) => void;
   setHotbarBlock: (slot: number, blockId: number) => void;
+  /** Swap the selected slot between placing a full cube and placing a slab. */
+  toggleSelectedShape: () => void;
   selectedBlockId: () => number;
+  selectedShape: () => number;
   spawnPoint: () => [number, number, number];
 }
 
@@ -56,6 +66,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   visible: computeVisible(initialBlocks),
   selectedSlot: 1,
   hotbar: [...DEFAULT_HOTBAR],
+  hotbarShape: Array.from({ length: HOTBAR_SLOTS }, () => SHAPE_FULL),
 
   newWorld: (seed = randomSeed()) => {
     const blocks = generateTerrain(seed);
@@ -71,11 +82,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   serialize: () => serializeWorld(get().seed, get().blocks),
 
-  placeBlock: (x, y, z, axis = AXIS_Y) => {
+  placeBlock: (x, y, z, axis = AXIS_Y, shape = get().selectedShape()) => {
     const blockId = get().selectedBlockId();
     const block = getBlock(blockId);
-    // Only a block with a grain is turned by the face you built against.
-    const value = packBlock(blockId, block?.directional ? axis : AXIS_Y);
+    // Only a block with a grain is turned by the face you built against, and a
+    // slab is never turned at all: half a log stood on its end is not a shape
+    // this has, and allowing it would mean a rotated half-height box.
+    const upright = shape !== SHAPE_FULL || !block?.directional;
+    const value = packBlock(blockId, upright ? AXIS_Y : axis, shape);
     const key = toKey(x, y, z);
     set((state) => {
       if (state.blocks.has(key)) return state;
@@ -126,7 +140,21 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     });
   },
 
+  toggleSelectedShape: () => {
+    set((state) => {
+      const hotbarShape = [...state.hotbarShape];
+      const index = state.selectedSlot - 1;
+      // Only the two states the player chooses between. Which half of the cell
+      // a slab lands in is decided by where they aim, not here.
+      hotbarShape[index] =
+        hotbarShape[index] === SHAPE_FULL ? SHAPE_SLAB_BOTTOM : SHAPE_FULL;
+      return { hotbarShape };
+    });
+  },
+
   selectedBlockId: () => get().hotbar[get().selectedSlot - 1] ?? DEFAULT_BLOCK_ID,
+
+  selectedShape: () => get().hotbarShape[get().selectedSlot - 1] ?? SHAPE_FULL,
 
   spawnPoint: () => spawnPointFor(get().blocks),
 }));

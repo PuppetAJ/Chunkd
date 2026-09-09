@@ -23,6 +23,7 @@ const CONTROLS: [string, string][] = [
   ["Shift", "Move slowly"],
   ["1 - 9", "Choose a hotbar slot"],
   ["Scroll wheel", "Move along the hotbar"],
+  ["R", "Whole block or slab"],
   ["E", "Open the block inventory"],
   ["P", "Save the build"],
   ["Esc", "Release the mouse"],
