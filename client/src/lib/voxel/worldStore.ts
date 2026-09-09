@@ -1,6 +1,14 @@
 import { create } from "zustand";
-import { BLOCKS, DEFAULT_BLOCK_ID, DEFAULT_HOTBAR, getBlock } from "./blocks.ts";
-import { AXIS_Y, packBlock, SHAPE_FULL, SHAPE_SLAB_BOTTOM } from "./blockValue.ts";
+import { BLOCKS, DEFAULT_BLOCK_ID, DEFAULT_HOTBAR, getBlock, type BlockType } from "./blocks.ts";
+import {
+  AXIS_Y,
+  FACING_NORTH,
+  packBlock,
+  SHAPE_FULL,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_SLAB_TOP,
+  SHAPE_STAIRS_BOTTOM,
+} from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { generateTerrain, randomSeed, spawnPointFor } from "./terrain.ts";
 import { deserializeWorld, serializeWorld } from "./format.ts";
@@ -42,17 +50,38 @@ interface WorldState {
   loadBuild: (payload: string) => boolean;
   serialize: () => string;
 
-  placeBlock: (x: number, y: number, z: number, axis?: number, shape?: number) => void;
+  placeBlock: (
+    x: number,
+    y: number,
+    z: number,
+    axis?: number,
+    shape?: number,
+    facing?: number,
+  ) => void;
   removeBlock: (x: number, y: number, z: number) => void;
   setSelectedSlot: (slot: number) => void;
   /** Move along the hotbar, wrapping at both ends. Used by the scroll wheel. */
   cycleSelectedSlot: (delta: number) => void;
   setHotbarBlock: (slot: number, blockId: number) => void;
-  /** Swap the selected slot between placing a full cube and placing a slab. */
-  toggleSelectedShape: () => void;
+  /** Step the selected slot on to the next shape it can place. */
+  cycleSelectedShape: () => void;
   selectedBlockId: () => number;
   selectedShape: () => number;
   spawnPoint: () => [number, number, number];
+}
+
+/**
+ * The shape this block can actually take, falling back to something it can.
+ *
+ * Slabs and stairs exist only for the blocks Minecraft gives them to, and a
+ * stair asked of a block that only has a slab becomes a slab.
+ */
+function shapeFor(block: BlockType | undefined, shape: number): number {
+  if (shape === SHAPE_FULL) return SHAPE_FULL;
+  if (!block?.slab) return SHAPE_FULL;
+  const isSlabShape = shape === SHAPE_SLAB_BOTTOM || shape === SHAPE_SLAB_TOP;
+  if (!block.stairs && !isSlabShape) return SHAPE_SLAB_BOTTOM;
+  return shape;
 }
 
 const initialSeed = randomSeed();
@@ -80,17 +109,21 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   serialize: () => serializeWorld(get().seed, get().blocks),
 
-  placeBlock: (x, y, z, axis = AXIS_Y, shape = get().selectedShape()) => {
+  placeBlock: (
+    x,
+    y,
+    z,
+    axis = AXIS_Y,
+    shape = get().selectedShape(),
+    facing = FACING_NORTH,
+  ) => {
     const blockId = get().selectedBlockId();
     const block = getBlock(blockId);
     // Only a block with a grain is turned by the face you built against, and a
-    // slab is never turned: there is no shape here for one stood on its end.
-    // A block only takes the shapes Minecraft gives it. The picker already
-    // refuses the rest, so this is the net for a build or a script that asks
-    // for one anyway.
-    const cut = block?.slab ? shape : SHAPE_FULL;
+    // cut block is never turned: there is no shape here for one on its end.
+    const cut = shapeFor(block, shape);
     const upright = cut !== SHAPE_FULL || !block?.directional;
-    const value = packBlock(blockId, upright ? AXIS_Y : axis, cut);
+    const value = packBlock(blockId, upright ? AXIS_Y : axis, cut, facing);
     const key = toKey(x, y, z);
     set((state) => {
       if (state.blocks.has(key)) return state;
@@ -137,22 +170,28 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const hotbar = [...state.hotbar];
       hotbar[slot - 1] = blockId;
-      // Putting a block that has no slab into a slot set to slabs would leave
-      // the slot in a state it cannot place.
+      // A slot left on a shape the new block cannot take is unplaceable.
       const hotbarShape = [...state.hotbarShape];
-      if (!getBlock(blockId)?.slab) hotbarShape[slot - 1] = SHAPE_FULL;
+      const index = slot - 1;
+      hotbarShape[index] = shapeFor(getBlock(blockId), hotbarShape[index] ?? SHAPE_FULL);
       return { hotbar, hotbarShape };
     });
   },
 
-  toggleSelectedShape: () => {
-    if (!getBlock(get().selectedBlockId())?.slab) return;
+  cycleSelectedShape: () => {
+    const block = getBlock(get().selectedBlockId());
+    if (!block?.slab) return;
     set((state) => {
       const hotbarShape = [...state.hotbarShape];
       const index = state.selectedSlot - 1;
-      // Which half of the cell a slab lands in comes from where they aim.
-      hotbarShape[index] =
-        hotbarShape[index] === SHAPE_FULL ? SHAPE_SLAB_BOTTOM : SHAPE_FULL;
+      // Whole block, slab, stairs, back to the start. Which half of the cell
+      // it lands in, and which way stairs face, come from where the player
+      // aims rather than from here.
+      const order = block.stairs
+        ? [SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_STAIRS_BOTTOM]
+        : [SHAPE_FULL, SHAPE_SLAB_BOTTOM];
+      const at = order.indexOf(hotbarShape[index] ?? SHAPE_FULL);
+      hotbarShape[index] = order[(at + 1) % order.length]!;
       return { hotbarShape };
     });
   },

@@ -8,9 +8,12 @@ import { toKey, type BlockKey } from "../../lib/voxel/coords.ts";
 import { buildRenderLayers, groupVisible } from "../../lib/voxel/render.ts";
 import {
   axisForFaceNormal,
+  facingForYaw,
   slabShapeForPlacement,
+  stairsShapeForPlacement,
   verticalExtent,
-  SHAPE_FULL,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_STAIRS_BOTTOM,
 } from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { isEditorPaused } from "../../lib/editorUiStore.ts";
@@ -104,7 +107,15 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     return raw.flatMap((layer) => {
       const block = getBlock(layer.blockId);
       return block
-        ? [{ block, shape: layer.shape, positions: layer.positions, axes: layer.axes }]
+        ? [
+            {
+              block,
+              shape: layer.shape,
+              facing: layer.facing,
+              positions: layer.positions,
+              axes: layer.axes,
+            },
+          ]
         : [];
     });
   }, [providedBlocks, storeVisible]);
@@ -121,6 +132,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const instanceMatrix = useMemo(() => new THREE.Matrix4(), []);
   const normal = useMemo(() => new THREE.Vector3(), []);
   const blockCentre = useMemo(() => new THREE.Vector3(), []);
+  const lookDirection = useMemo(() => new THREE.Vector3(), []);
 
   // Kept in a ref so the pointer handlers can act without being re-created,
   // and so useFrame can repeat the action while a button is held.
@@ -143,12 +155,22 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       const [x, y, z] = current.adjacent;
       // Refuse to place a block inside the player, which would trap them.
       if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
-      // The slot decides whether it is a slab; the aim decides which half.
-      const shape =
-        selectedShape() === SHAPE_FULL
-          ? SHAPE_FULL
-          : slabShapeForPlacement(current.normalY, current.heightInCell);
-      placeBlock(x, y, z, current.axis, shape);
+      // The slot decides which shape; the aim decides which half of the cell
+      // it fills, and for stairs which way the step faces.
+      const chosen = selectedShape();
+      let shape = chosen;
+      if (chosen === SHAPE_SLAB_BOTTOM) {
+        shape = slabShapeForPlacement(current.normalY, current.heightInCell);
+      } else if (chosen === SHAPE_STAIRS_BOTTOM) {
+        shape = stairsShapeForPlacement(current.normalY, current.heightInCell);
+      }
+
+      // Taken from the direction the camera looks rather than camera.rotation,
+      // so it does not depend on the rotation order the controls happen to use.
+      camera.getWorldDirection(lookDirection);
+      const facing = facingForYaw(Math.atan2(-lookDirection.x, -lookDirection.z));
+
+      placeBlock(x, y, z, current.axis, shape, facing);
     }
   };
 
@@ -288,12 +310,13 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   return (
     <>
       <group ref={groupRef}>
-        {layers.map(({ block, shape, positions, axes }) => (
+        {layers.map(({ block, shape, facing, positions, axes }) => (
           <BlockLayer
-            // One mesh per block and shape, so the key has to carry both.
-            key={`${block.id}-${shape}`}
+            // One mesh per block, shape and facing, so the key carries all three.
+            key={`${block.id}-${shape}-${facing}`}
             block={block}
             shape={shape}
+            facing={facing}
             positions={positions}
             axes={axes}
             textures={textures}

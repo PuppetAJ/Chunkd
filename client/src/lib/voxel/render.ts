@@ -1,11 +1,24 @@
 import { SEE_THROUGH_BLOCK_IDS } from "./blockIds.ts";
-import { blockAxisOf, blockIdOf, blockShapeOf, SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./blockValue.ts";
+import {
+  blockAxisOf,
+  blockFacingOf,
+  blockIdOf,
+  blockShapeOf,
+  facingOffset,
+  SHAPE_FULL,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_SLAB_TOP,
+  SHAPE_STAIRS_BOTTOM,
+  SHAPE_STAIRS_TOP,
+} from "./blockValue.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
 export interface RenderLayer {
   blockId: number;
-  /** Full cube, bottom slab or top slab. One mesh is one id and one shape. */
+  /** Whole block, slab or stairs. One mesh is one id, shape and facing. */
   shape: number;
+  /** Only meaningful for stairs, the one shape that differs by side. */
+  facing: number;
   /** Flat x, y, z triples. */
   positions: Float32Array;
   /** Which way each of those blocks is turned, one entry per position. */
@@ -33,20 +46,24 @@ export type VisibleBlocks = Map<BlockKey, number>;
  * Does the block in this cell cover the whole of the face it shares with the
  * neighbour that is asking?
  *
- * `dy` is the step from the asking block to this one: +1 for the cell above,
- * -1 below, 0 for the four sides.
+ * `d` is the step from the asking block to this one, so the face they share is
+ * this block's face pointing back along it: for `dy` of +1 this block is above
+ * and the shared face is its underside.
  *
- * Glass never counts. Nor does most of a slab: it fills exactly one of its
- * cell's six faces, a bottom slab's underside or a top slab's top, and half
- * covered is not covered. Treating one as a full occluder leaves see-through
- * holes wherever a slab floor meets terrain.
+ * Glass never counts. Nor does most of a cut block. A slab fills exactly one
+ * of its cell's six faces, its underside or its top, and half covered is not
+ * covered. A stair fills two: the same one, and the whole side away from its
+ * facing, where its tall half reaches the full height. Treating either as a
+ * full occluder leaves see-through holes where a cut floor meets terrain.
  */
 function coversFace(
   blocks: Map<BlockKey, number>,
   x: number,
   y: number,
   z: number,
+  dx: number,
   dy: number,
+  dz: number,
 ): boolean {
   const value = blocks.get(toKey(x, y, z));
   if (value === undefined) return false;
@@ -54,9 +71,20 @@ function coversFace(
 
   const shape = blockShapeOf(value);
   if (shape === SHAPE_FULL) return true;
-  // The neighbour is above, so the face they share is this slab's underside.
   if (shape === SHAPE_SLAB_BOTTOM) return dy === 1;
   if (shape === SHAPE_SLAB_TOP) return dy === -1;
+
+  if (shape === SHAPE_STAIRS_BOTTOM || shape === SHAPE_STAIRS_TOP) {
+    // The flat half fills the cell's footprint, so its outer face is whole.
+    if (shape === SHAPE_STAIRS_BOTTOM && dy === 1) return true;
+    if (shape === SHAPE_STAIRS_TOP && dy === -1) return true;
+    if (dy !== 0) return false;
+    // Sideways, the whole face is the one the tall half backs onto. That is
+    // the side this block's own facing points at from the asker's position.
+    const [fx, fz] = facingOffset(blockFacingOf(value));
+    return dx === fx && dz === fz;
+  }
+
   return true;
 }
 
@@ -67,12 +95,12 @@ function isHidden(blocks: Map<BlockKey, number>, x: number, y: number, z: number
   if (self !== undefined && blockShapeOf(self) !== SHAPE_FULL) return false;
 
   return (
-    coversFace(blocks, x + 1, y, z, 0) &&
-    coversFace(blocks, x - 1, y, z, 0) &&
-    coversFace(blocks, x, y + 1, z, 1) &&
-    coversFace(blocks, x, y - 1, z, -1) &&
-    coversFace(blocks, x, y, z + 1, 0) &&
-    coversFace(blocks, x, y, z - 1, 0)
+    coversFace(blocks, x + 1, y, z, 1, 0, 0) &&
+    coversFace(blocks, x - 1, y, z, -1, 0, 0) &&
+    coversFace(blocks, x, y + 1, z, 0, 1, 0) &&
+    coversFace(blocks, x, y - 1, z, 0, -1, 0) &&
+    coversFace(blocks, x, y, z + 1, 0, 0, 1) &&
+    coversFace(blocks, x, y, z - 1, 0, 0, -1)
   );
 }
 
@@ -117,12 +145,15 @@ export function refreshVisibleAround(
   }
 }
 
-/** Only used to combine an id and a shape into one map key. */
+/** Only used to combine an id, a shape and a facing into one map key. */
 const SHAPE_SLOTS = 8;
+const FACING_SLOTS = 4;
 
 /**
- * Group the visible blocks by id and shape, ready for one instanced mesh each.
- * By shape as well as id, because every instance in a mesh shares a geometry.
+ * Group the visible blocks by id, shape and facing, ready for one instanced
+ * mesh each. Every instance in a mesh shares a geometry, and a stair's facing
+ * is baked into its geometry rather than rotated per instance, so that its
+ * faces keep the brightness and the texture of the way they actually point.
  */
 export function groupVisible(visible: VisibleBlocks): RenderLayer[] {
   const positionsByType = new Map<number, number[]>();
@@ -130,7 +161,9 @@ export function groupVisible(visible: VisibleBlocks): RenderLayer[] {
 
   for (const [key, value] of visible) {
     const [x, y, z] = fromKey(key);
-    const type = blockIdOf(value) * SHAPE_SLOTS + blockShapeOf(value);
+    const type =
+      (blockIdOf(value) * SHAPE_SLOTS + blockShapeOf(value)) * FACING_SLOTS +
+      blockFacingOf(value);
     let positions = positionsByType.get(type);
     let axes = axesByType.get(type);
     if (!positions || !axes) {
@@ -148,8 +181,9 @@ export function groupVisible(visible: VisibleBlocks): RenderLayer[] {
   return [...positionsByType.keys()]
     .sort((a, b) => a - b)
     .map((type) => ({
-      blockId: Math.floor(type / SHAPE_SLOTS),
-      shape: type % SHAPE_SLOTS,
+      blockId: Math.floor(type / (SHAPE_SLOTS * FACING_SLOTS)),
+      shape: Math.floor(type / FACING_SLOTS) % SHAPE_SLOTS,
+      facing: type % FACING_SLOTS,
       positions: new Float32Array(positionsByType.get(type)!),
       axes: Uint8Array.from(axesByType.get(type)!),
     }));

@@ -143,7 +143,7 @@ works on any device, including turning a saved build around with a finger.
 | Right click | Place a block. Hold to keep placing |
 | 1 to 9 | Choose a hotbar slot |
 | Scroll wheel | Move along the hotbar, wrapping at both ends |
-| R | Switch the selected slot between a whole block and a slab |
+| R | Step the selected slot through whole block, slab and stairs |
 | E | Open the block inventory |
 | Shift and drag | Pan, when looking at a saved build |
 | P | Name and save the current world |
@@ -201,14 +201,42 @@ aim: on a top face it lies on it, under a bottom face it hangs from it, and
 against a side the face splits down the middle, so aiming high gives a top slab
 and aiming low a bottom one.
 
-A slab is stored in the same number as the block's id and orientation, in three
-bits above them, so it costs a saved build nothing. Two bits above that are kept
-clear for stairs.
+## Stairs
 
-Across X and Z a slab still fills its cell, so walls and doorways behave as
-they always did. Height is the part that comes from the block: you stand on a
-slab's own surface rather than on top of its cell, and a top slab is a ceiling
-half a block lower than the cell it is in.
+The same blocks take stairs, except cut sandstone, which has a slab in
+Minecraft and no stairs. Press R twice to put a slot on stairs. Which half of
+the cell they fill follows the same rule as slabs, so they can be hung upside
+down for an arch or a sloped soffit, and the step faces the way you are looking
+rather than the face you built against, so walking forwards goes up.
+
+Stairs collide as a whole cube. Exact per-shape collision was not worth it
+here: a stair is a half block rise, so step assist walks you up it and the
+difference is invisible in play.
+
+## How the shapes are stored
+
+A shape and a facing ride in the same number as the block's id and
+orientation, in the bits above them, so they cost a saved build nothing:
+
+```
+  bits 13-14   bits 10-12   bits 8-9   bits 0-7
+    facing        shape        axis        id
+```
+
+Everything defaults to zero, so a plain upright cube is still stored as exactly
+its id and every build saved before any of this loads unchanged.
+
+Across X and Z a cut block still fills its cell, so walls and doorways behave
+as they always did. Height is the part that comes from the block: you stand on
+a slab's own surface rather than on top of its cell, and a top slab is a
+ceiling half a block lower than the cell it is in.
+
+Faces are textured by the direction they point, worked out from the vertex
+rather than from a table, which is what Minecraft does. A face pointing up gets
+the top texture and a face pointing sideways gets the side texture, whatever
+shape the block is, so a sandstone stair needs no special handling: stand level
+with it and the risers read as one continuous side, look down and both treads
+are top texture.
 
 ## How builds are saved
 
