@@ -53,19 +53,15 @@ const VERTICES_PER_FACE = 4;
 const SIDE_FACES = [0, 1, 4, 5];
 
 /**
- * One block's geometry, at a given height and sitting at a given offset inside
- * its cell.
+ * One block's geometry, at a given height and offset inside its cell.
  *
- * A slab is the same cube half as tall, moved into the half of the cell it
- * occupies, so the instance's position stays exactly the centre of the cell.
- * That matters beyond tidiness: the raycast recovers which cell was hit by
- * rounding the instance's position, and the block highlight is drawn there
- * too, so moving the geometry rather than the instance keeps both correct
- * without either of them having to know that slabs exist.
+ * The offset is in the geometry, not the instance, so an instance always sits
+ * at the centre of its cell. The raycast recovers which cell was hit by
+ * rounding that position, and the highlight is drawn there, so offsetting the
+ * instance instead would break both.
  *
- * The side faces are given the matching half of the texture rather than the
- * whole of it squeezed into half the height, which is what makes a stone slab
- * read as a course of stone rather than as squashed stone.
+ * Side faces take the matching half of the texture rather than the whole of it
+ * squeezed into half the height.
  */
 function createBlockGeometry(height = 1, offsetY = 0): THREE.BoxGeometry {
   const geometry = new THREE.BoxGeometry(1, height, 1);
@@ -82,9 +78,7 @@ function createBlockGeometry(height = 1, offsetY = 0): THREE.BoxGeometry {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
   if (height !== 1) {
-    // Take the slice of the texture the block actually occupies. v runs 0 at
-    // the bottom of the face to 1 at the top, and the block sits `offsetY`
-    // above the middle of its cell, so the slice starts there.
+    // v runs 0 at the bottom of a face to 1 at the top.
     const uv = geometry.attributes["uv"]!;
     const bottom = offsetY - height / 2 + 0.5;
     for (const face of SIDE_FACES) {

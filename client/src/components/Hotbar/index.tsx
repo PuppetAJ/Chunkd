@@ -48,10 +48,8 @@ export default function Hotbar() {
                 }`}
               >
                 {block && (
-                  // A slab slot shows the block as a half-height strip along
-                  // the bottom of the tile, which is what it will place. A
-                  // badge or a letter would have to be learned; this is the
-                  // shape itself.
+                  // A slab slot shows a half-height strip: the shape itself
+                  // rather than a badge to be learned.
                   <img
                     src={block.side}
                     alt=""

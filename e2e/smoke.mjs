@@ -7,17 +7,10 @@
  *   pnpm dev
  *   pnpm test:e2e
  *
- * This is one scenario rather than a set of independent tests: it signs up,
- * builds a world, saves it, posts it, comments, follows somebody and changes
- * its own password, and later checks depend on state earlier ones left behind.
- * That is why there is no way to run a single check, and why the shared setup
- * lives in lib.mjs, so a scratch script can reuse it while iterating instead
- * of waiting out the whole run. Add E2E_TIMING=1 to see where the time goes.
- *
- * Navigations wait for domcontentloaded rather than networkidle. Every one of
- * them is followed by a wait for the thing the next check is about, so waiting
- * for the network to fall silent first only added the time the dev server
- * takes to finish streaming modules for a page nobody is looking at yet.
+ * One scenario rather than a set of independent tests: later checks depend on
+ * state earlier ones leave behind, so there is no way to run just one. Shared
+ * setup is in lib.mjs, for scratch scripts that need it without the whole run.
+ * E2E_TIMING=1 shows where the time goes.
  */
 import {
   BASE,
@@ -217,15 +210,10 @@ const afterBreak = await scene();
 check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
   `${before.blocks} -> ${afterBreak.blocks}`);
 
-// A single fixed camera angle sometimes aims somewhere a block cannot legally
-// go: at the sky, or at a cell the player is standing in. So sweep a few and
-// accept the first that lands one.
-//
-// The world is pinned to a seed above, which makes the answer deterministic,
-// so the angle that actually works is first and the rest are a fallback for
-// when the terrain or the spawn changes. It used to be last, and the six
-// failures ahead of it cost the suite 24 seconds, since a failed attempt waits
-// out its whole timeout while a successful one returns at once.
+// A fixed camera angle sometimes aims where a block cannot legally go: at the
+// sky, or at the cell the player stands in. Sweep until one lands. The world is
+// pinned above, so the angle that works is deterministic and goes first; a
+// failed attempt waits out its whole timeout, so order is worth 20 seconds.
 let afterPlace = afterBreak;
 for (const [pitch, yaw] of [[0, 2.4], [-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1], [-0.2, 0.8]]) {
   await page.evaluate(([p, y]) => window.__r3f.camera.rotation.set(p, y, 0), [pitch, yaw]);
@@ -265,14 +253,10 @@ await rendererSettled();
 const wallBefore = await blockCount();
 for (let i = 0; i < 5; i += 1) {
   const at = await blockCount();
-  // Press and release with nothing in between. The editor acts on pointerdown
-  // rather than on the next frame, and holding the button past REPEAT_MS in
-  // World/index.tsx starts digging again, which turned five clicks into twelve
-  // broken blocks when this waited for frames.
+  // Nothing between press and release. The editor acts on pointerdown, and
+  // holding past REPEAT_MS starts digging again, so a wait here breaks this.
   await page.mouse.down({ button: "left" });
   await page.mouse.up({ button: "left" });
-  // Waiting for this click's block to go, rather than for a fixed pause, is
-  // what stops a slow frame being read as a click that did nothing.
   await until((want) => window.__world.getState().blocks.size === want, at - 1, 5000);
 }
 const wallAfter = await blockCount();
@@ -327,10 +311,8 @@ await page.evaluate(() =>
     new WheelEvent("wheel", { deltaY: 400, ctrlKey: true, cancelable: true, bubbles: true }),
   ),
 );
-// Nothing is supposed to happen here, and there is no condition to wait for
-// when the correct outcome is no change. A few frames is the real unit: the
-// wheel handler runs synchronously, so if it were going to move the slot it
-// would have done so by now.
+// The correct outcome is that nothing changes, so there is no condition to
+// wait for. The wheel handler is synchronous; a few frames is enough.
 await frames(3);
 check("a pinch does not scrub through the hotbar", (await selectedSlot()) === beforePinch,
   `slot ${beforePinch} -> ${await selectedSlot()}`);
@@ -375,9 +357,8 @@ check("a log placed against a north face lies north to south", axisAt[2].axis ==
 check("orientation does not disturb the block id", axisAt.every((one) => one.id === 5), JSON.stringify(axisAt));
 
 // --------------------------------------------------------------------- slabs
-// R turns the selected hotbar slot between placing a whole block and placing a
-// slab. The shape belongs to the slot, so a block and its slab can sit side by
-// side, and it rides in the stored value above the id and the orientation.
+// R turns the selected slot between whole blocks and slabs. The shape belongs
+// to the slot and rides in the stored value above the id and the orientation.
 const shapeOfSlot = () =>
   page.evaluate(() => {
     const state = window.__world.getState();
@@ -426,10 +407,8 @@ const buried = await page.evaluate(() => {
   const store = window.__world.getState();
   const x = 20, y = 30, z = 20;
 
-  // Box in the cell at y - 1 completely, with a bottom slab as its lid. Only
-  // that cell is fully enclosed, which is what makes it the one to look at:
-  // a block is culled when all six of its faces are covered, so the test has
-  // to cover all six rather than only the interesting one.
+  // Enclose the cell at y - 1 on all six sides, with a bottom slab as its lid.
+  // Culling needs every face covered, not only the interesting one.
   store.placeBlock(x, y - 1, z, 0, 0);
   store.placeBlock(x, y - 2, z, 0, 0);
   store.placeBlock(x + 1, y - 1, z, 0, 0);
@@ -473,9 +452,7 @@ await page.evaluate((y) => {
   body.onGround = false;
 }, SLAB_PAD_Y);
 
-// Wait for the landing rather than for a duration. A headless browser renders
-// this world at a handful of frames a second, and the fall advances per frame,
-// so a fixed wait measures the machine rather than the game.
+// The fall advances per frame, and frames are slow here, so wait for it.
 const landed = await until(() => window.__player?.onGround === true, null, 20000);
 const feet = await page.evaluate(() => window.__player.y);
 check(
@@ -486,14 +463,12 @@ check(
   `landed ${landed}, feet ${feet}, expected ${SLAB_PAD_Y + 1}`,
 );
 
-// Step assist. A slab is half a block up, and without this every terrace and
-// doorstep would need a jump to get onto.
+// Step assist: a slab is half a block up, and should not need a jump.
 await page.evaluate((y) => {
   const store = window.__world.getState();
   const x = 30, z = 30;
-  // The player is standing on the slab course laid above, whose surface is at
-  // y + 1. Run whole blocks on from there, so their tops are at y + 1.5 and
-  // walking on is a half block rise: a step, not a jump.
+  // The player stands on the slab course above, surface at y + 1. Whole blocks
+  // from here have tops at y + 1.5, so walking on is a half block rise.
   for (let dx = 2; dx <= 7; dx += 1) {
     for (let dz = -1; dz <= 1; dz += 1) store.placeBlock(x + dx, y + 1, z + dz, 0, 0);
   }
@@ -520,8 +495,7 @@ check(
 // P captures the world and opens the naming dialog. Every build used to be
 // saved as "Untitled build" because a keypress had nowhere to type a name.
 await page.keyboard.press("p");
-// The dialog previews a canvas capture, so it appears a frame or two after the
-// key press. Wait for the field itself.
+// The dialog previews a canvas capture, so it lags the key press.
 await page.locator("#buildName").waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
 check("saving asks for a name", (await page.locator("#buildName").count()) > 0);
 check("the dialog previews the captured view", (await page.locator('[role=dialog] img').count()) > 0);
@@ -534,10 +508,8 @@ const cameraNow = () => page.evaluate(() => {
 });
 const cameraBeforeTyping = await cameraNow();
 await page.keyboard.down("w");
-// Deliberately a duration, not a condition. This is how long the key is held,
-// and the point is that a held key produces no movement at all, so there is
-// nothing to wait for. Long enough that movement would be obvious if it
-// happened: the player covers several blocks in 900 ms.
+// A duration on purpose: this is how long the key is held, and long enough
+// that any movement would be obvious.
 await page.waitForTimeout(900);
 await page.keyboard.up("w");
 const cameraAfterTyping = await cameraNow();
@@ -550,9 +522,7 @@ check("the world stands still while a build is being named", moved < 1e-6, `move
 
 await page.fill("#buildName", "Ridge fort");
 await page.getByRole("button", { name: "Save build" }).click();
-// The confirmation clears itself after a couple of seconds. A fixed wait can
-// land either side of that window, so wait for it to arrive, check, then wait
-// for it to go rather than for a duration.
+// The confirmation clears itself, so wait for it to arrive and then to go.
 const savedToast = page.locator("text=/build saved/i").first();
 await savedToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
 check("the save confirmation appears", (await page.locator("text=/build saved/i").count()) > 0);
@@ -644,9 +614,7 @@ await appears(page.getByRole("link").filter({ hasText: /the discussion/ }));
 await page.getByRole("link").filter({ hasText: /the discussion/ }).first().click();
 await page.waitForURL(/\/thought\//, { timeout: 15000 }).catch(() => {});
 check("the post opens on its own page", /\/thought\//.test(page.url()), page.url());
-// Arriving at the route is not the same as the page being ready. The attached
-// build is a lazy-loaded viewer, and the checks below drag it about, so wait
-// for the viewer's own handle rather than for the URL.
+// The route is not the page. The checks below drag the viewer, so wait for it.
 await appears(page.locator("canvas"));
 await until(() => window.__viewer !== undefined, null, 20000);
 
@@ -675,16 +643,11 @@ const dragBy = async (shift) => {
   if (shift) await page.keyboard.down("Shift");
   await page.mouse.move(x, y);
   await page.mouse.down();
-  // Five steps rather than twenty. Every intermediate move makes the viewer
-  // re-render the whole build, which in a headless browser costs about a
-  // second each, and OrbitControls responds to any movement while the button
-  // is down. This was 40 seconds of the suite's runtime between the two drag
-  // checks.
+  // Few steps: each one re-renders the whole build, and OrbitControls responds
+  // to any movement while the button is down.
   await page.mouse.move(x + 180, y + 50, { steps: 5 });
   await page.mouse.up();
   if (shift) await page.keyboard.up("Shift");
-  // The orbit controls settle over the render loop rather than announcing
-  // anything, and part of what is checked is that a value did not change.
   await frames(3);
   const after = await orbitTarget();
   if (!before || !after) return null;
@@ -767,9 +730,7 @@ if (otherAuthor && !otherAuthor.endsWith(user.username)) {
 
 // ------------------------------------------------------------------ settings
 await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
-// The form is filled from a query, so the field exists before it holds
-// anything. Waiting for the value is the difference between checking the form
-// and checking whether the request has landed yet.
+// The field exists before the query fills it, so wait for the value.
 await until(
   (want) => document.querySelector("#settingsUsername")?.value === want,
   user.username,
@@ -842,8 +803,7 @@ check(
   "the landing page offers a way in without an account",
   (await page.getByRole("button", { name: /Try it without an account/ }).count()) > 0,
 );
-// The hero and the gallery come from a query, so they arrive after the
-// heading above rather than with it.
+// The gallery comes from a query, so it arrives after the heading.
 await appears(page.locator('a[href^="/thought/"] img'));
 check(
   "the landing page shows builds people have made",
@@ -854,8 +814,7 @@ check(
 // The viewer carries its own scene controls, and the choice is a preference
 // rather than a property of one build, so it has to survive a reload.
 const firstBuildLink = await page.locator('a[href^="/thought/"]').first().getAttribute("href");
-// Six seconds used to stand in for this. The viewer lazy-loads three.js and
-// then the build, so what is being waited for is its chrome appearing.
+// The viewer lazy-loads three.js and then the build.
 await page.goto(BASE + firstBuildLink, { waitUntil: "domcontentloaded" });
 await appears(page.getByRole("button", { name: "Scene settings" }));
 check("the viewer offers its own settings", (await page.getByRole("button", { name: "Scene settings" }).count()) > 0);
@@ -979,8 +938,7 @@ page.on("response", watchRefetch);
 
 await page.getByRole("button", { name: "Account menu" }).click();
 await page.getByRole("menuitem", { name: "Log out" }).click();
-// The refetch is a request going past, which the page knows nothing about, so
-// this one is polled here rather than in the browser.
+// A request going past is something only this script can see.
 await waitFor(() => refetched.includes("thoughts"));
 await appears(page.getByRole("heading", { name: /Build a world in your browser/ }));
 page.off("response", watchRefetch);

@@ -10,11 +10,9 @@ import { toKey, type BlockKey } from "./coords.ts";
  * that was hit is the standard way to do this, and it gives sliding along walls
  * for free: being blocked on X does not stop Z.
  *
- * Height is the one thing a cell does not decide on its own. A slab fills half
- * of its cell, so the surface the player stands on comes from the block rather
- * than from the cell it is in. That is the only way slabs differ here: across X
- * and Z a slab still fills its cell, so walls, sliding and the reach checks are
- * all unchanged.
+ * Height is the one thing the cell does not decide: a slab fills half of it,
+ * so the surface underfoot comes from the block. Across X and Z a slab still
+ * fills its cell, so walls, sliding and the reach checks are unchanged.
  */
 
 export const PLAYER_HALF_WIDTH = 0.3;
@@ -29,10 +27,7 @@ export function blockIndex(worldCoordinate: number): number {
 
 /**
  * Every block the player's box would overlap, with its feet at (x, y, z).
- *
- * `visit` is called with the top and bottom of each one. Returning true from it
- * stops the search, which is what makes the plain yes-or-no question below cost
- * the same as it did before this had to look at heights at all.
+ * `visit` gets the top and bottom of each; returning true stops the search.
  */
 function forEachOverlap(
   blocks: Map<BlockKey, number>,
@@ -55,9 +50,7 @@ function forEachOverlap(
         const value = blocks.get(toKey(bx, by, bz));
         if (value === undefined) continue;
         const [low, high] = verticalExtent(value, by);
-        // Touching is not overlapping, so both comparisons are strict. For a
-        // full cube this is always true for every cell the loops reach, which
-        // is why worlds without slabs behave exactly as they did.
+        // Touching is not overlapping, so both comparisons are strict.
         if (y < high && head > low && visit(low, high)) return true;
       }
     }
@@ -119,29 +112,15 @@ const PUSH_OUT_SPEED = 0.08;
 const MAX_STEP = 0.4;
 
 /**
- * Largest rise the player walks up instead of having to jump.
- *
- * Slabs are what make this necessary. A slab floor is half a block above the
- * ground next to it, and without step assist every terrace, every doorstep and
- * every course of slabs would need a jump to get onto, which is miserable to
- * build with.
- *
- * It sits just above half a block and well below a whole one, so a slab is a
- * step and a full block is still a jump. That line is deliberate: it is what
- * keeps a wall a wall, rather than something to be walked up half a block at a
- * time.
+ * Largest rise the player walks up instead of jumping. Just above half a block
+ * and well below a whole one, so a slab is a step and a wall stays a wall.
  */
 const STEP_HEIGHT = 0.55;
 
 /**
- * Walk up a small rise rather than stopping against it.
- *
- * Only from the ground: stepping up while falling past a ledge would catch the
- * player on it, and stepping up while jumping would let them climb a wall half
- * a block per hop.
- *
- * Returns whether it happened. When it does not, the caller snaps the player
- * against the surface the way it always did.
+ * Walk up a small rise rather than stopping against it, and say whether that
+ * happened. Only from the ground: doing it mid-air would catch a falling
+ * player on a ledge, and let a jumping one climb a wall half a block per hop.
  */
 function tryStepUp(
   blocks: Map<BlockKey, number>,
@@ -157,9 +136,8 @@ function tryStepUp(
   const rise = highestTop - body.y;
   if (rise <= 0 || rise > STEP_HEIGHT) return false;
 
-  // There has to be room to stand on top of it. Without this the player would
-  // be lifted into whatever is above the step, and the push-out branch at the
-  // top of moveBody would then shove them upwards through it.
+  // Room to stand there. Otherwise the player is lifted into whatever is above
+  // the step and the push-out branch shoves them up through it.
   if (collides(blocks, nextX, highestTop, nextZ)) return false;
 
   body.x = nextX;
@@ -208,10 +186,7 @@ export function moveBody(
       const { highestTop, lowestBottom } = surfacesAt(blocks, body.x, nextY, body.z);
       if (highestTop !== -Infinity) {
         if (stepY < 0) {
-          // Landed. Rest exactly on the surface underfoot rather than wherever
-          // the frame happened to stop. That surface used to be assumed to be
-          // the top of the cell, which left the player standing a quarter of a
-          // block above any slab floor.
+          // Rest on the surface underfoot, which is not always the cell's top.
           body.y = highestTop;
           body.onGround = true;
         } else {

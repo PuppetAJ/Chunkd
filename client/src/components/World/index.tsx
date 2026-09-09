@@ -143,8 +143,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       const [x, y, z] = current.adjacent;
       // Refuse to place a block inside the player, which would trap them.
       if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
-      // The hotbar slot decides whether this is a slab at all; where the
-      // crosshair is on the face decides which half of the cell it fills.
+      // The slot decides whether it is a slab; the aim decides which half.
       const shape =
         selectedShape() === SHAPE_FULL
           ? SHAPE_FULL
@@ -206,16 +205,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         block[2] + Math.round(normal.z),
       ],
       axis: axisForFaceNormal(normal.x, normal.y, normal.z),
-      // The instance sits at the centre of its cell whatever shape it is, so
-      // the offset from it is where on the block the crosshair landed.
+      // Instances sit at the centre of their cell whatever the shape.
       heightInCell: hit.point.y - block[1],
       normalY: normal.y,
     };
 
     target.current = found;
     if (highlightRef.current) {
-      // Outline what is actually there. A slab drawn inside a full cube of
-      // wireframe reads as a bug rather than as a half block.
+      // Outline what is actually there, or a slab gets a full cube of wireframe.
       const value = blocks.get(toKey(block[0], block[1], block[2]));
       const [low, high] =
         value === undefined ? [block[1] - 0.5, block[1] + 0.5] : verticalExtent(value, block[1]);

@@ -20,9 +20,8 @@
  *   (reserved)     shape        axis        id
  * ```
  *
- * Three bits for the shape is more than the two shapes here need. Stairs are
- * next and will want four of the eight, plus a facing, which is what the two
- * bits above the shape are being kept clear for.
+ * Shape has three bits for the two shapes here because stairs are next and
+ * want more, plus a facing, which the two bits above are kept clear for.
  */
 
 /** Upright: the block's top face points up. The default. */
@@ -61,18 +60,14 @@ export function blockShapeOf(value: number): number {
   return (value >> AXIS_BITS) & SHAPE_MASK;
 }
 
-/** Is this value a half block? Asked often enough to be worth a name. */
 export function isSlab(value: number): boolean {
   const shape = blockShapeOf(value);
   return shape === SHAPE_SLAB_BOTTOM || shape === SHAPE_SLAB_TOP;
 }
 
 /**
- * How far up and down a block reaches inside its own cell.
- *
- * A cell centred on integer `y` covers y - 0.5 to y + 0.5. A full cube fills
- * that; a slab fills half of it. Collision and face culling both need this and
- * both used to assume the answer was always the whole cell.
+ * How far up and down a block reaches inside its own cell, which for a slab is
+ * half of it. A cell centred on integer `y` covers y - 0.5 to y + 0.5.
  */
 export function verticalExtent(value: number, y: number): [number, number] {
   const shape = blockShapeOf(value);
@@ -82,13 +77,9 @@ export function verticalExtent(value: number, y: number): [number, number] {
 }
 
 /**
- * Which half of a cell a slab should fill, given where on a face it was placed.
- *
- * Building on a top face gives a slab resting on it; building under a bottom
- * face gives one hanging from it; building against a side splits the face down
- * the middle, so aiming high gives a top slab and aiming low a bottom one.
- * This is the rule the games this borrows from use, and it is what lets you
- * lay a floor and a ceiling with the same block.
+ * Which half of a cell a slab fills, from where on a face it was placed. A top
+ * face gives one resting on it, a bottom face one hanging from it, and a side
+ * splits down the middle. Same rule as the games this borrows from.
  */
 export function slabShapeForPlacement(faceNormalY: number, hitHeightInCell: number): number {
   if (faceNormalY > 0.5) return SHAPE_SLAB_BOTTOM;
