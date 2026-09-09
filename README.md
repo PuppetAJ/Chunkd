@@ -231,9 +231,18 @@ Add a second Railway service from the same repository:
 
 ```
 Cron schedule:  0 */6 * * *
-Start command:  pnpm --filter server seed
+Config file:    railway.reset.json
 Variables:      MONGODB_URI, NODE_ENV=production, SEED_ALLOW_PRODUCTION=1
 ```
+
+Point that service's config file at `railway.reset.json` rather than leaving it
+on the default. Both services are built from the same repository, so without
+this the reset service reads `railway.json` and inherits the API's start
+command and healthcheck: it would run the API instead of the seeder, never
+exit, and the schedule would do nothing. `railway.reset.json` sets the start
+command to the seeder, skips the client build the reset does not need, and
+turns off restart-on-failure so a failed run waits for the next schedule
+instead of retrying in a loop.
 
 Set `SEED_ALLOW_PRODUCTION=1` on the reset service only, never on the API
 service. Without it the seeder refuses to touch a production database, which
