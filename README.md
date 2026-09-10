@@ -329,10 +329,15 @@ Check the production path locally before deploying. Development and production
 differ in ways the ordinary test suite cannot see, so there is a suite for this:
 
 ```sh
+lsof -ti tcp:4000 | xargs kill     # anything left from a previous run
 pnpm build
-NODE_ENV=production PORT=4000 pnpm start
+NODE_ENV=production PORT=4000 CLIENT_ORIGIN=http://localhost:4000 pnpm start
 pnpm test:prod                     # in another terminal
 ```
+
+The kill line is not paranoia. A server still running from an earlier session
+holds the port, the new one prints that it is ready regardless, and the suite
+then tests a build from whenever that process started.
 
 It signs up, builds and saves a world, posts it, opens the post in 3D and
 comments, and fails on any console error. The same command checks a real

@@ -15,8 +15,12 @@
  * Usage:
  *
  *   pnpm build
- *   NODE_ENV=production PORT=4000 pnpm start
+ *   NODE_ENV=production PORT=4000 CLIENT_ORIGIN=http://localhost:4000 pnpm start
  *   pnpm test:prod
+ *
+ * Check the port is free first. A server left running from an earlier session
+ * keeps it, the new one reports itself ready anyway, and the suite then tests
+ * whatever was built days ago.
  *
  * Point it elsewhere with BASE, which is how you check a real deployment:
  *
@@ -37,11 +41,21 @@ const page = await (await browser.newContext({ viewport: { width: 1280, height: 
 const errors = [];
 page.on("pageerror", (e) => { if (!/pointer lock/i.test(e.message)) errors.push(e.message); });
 page.on("console", (m) => { if (m.type() === "error" && !/pointer lock/i.test(m.text())) errors.push(m.text()); });
+page.on("response", async (res) => {
+  if (res.status() < 400) return;
+  const operation = res.request().postDataJSON?.()?.operationName ?? "";
+  let detail = "";
+  try { detail = (await res.text()).slice(0, 200); } catch {}
+  errors.push(`${res.status()} ${res.url()} ${operation} ${detail}`);
+});
 
 const user = `prod${Date.now().toString().slice(-8)}`;
 
 await page.goto(BASE, { waitUntil: "networkidle" });
-check("the feed loads from the production server", (await page.locator("text=Recent builds").count()) > 0);
+check(
+  "the landing page loads from the production server",
+  (await page.getByRole("heading", { name: /Build a world in your browser/ }).count()) > 0,
+);
 check("no dev-only handles are exposed", await page.evaluate(() => !window.__world && !window.__r3f));
 
 await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
