@@ -116,8 +116,7 @@ Everything else works: build a world, save it, post it, comment on other posts.
 
 Signing in, signing up and the demo button are each limited per address on top
 of the general request limit, and a query that is nested too deep or asks for
-too many fields is refused before it runs. The reasoning behind all of this is
-written up in [docs/SECURITY.md](docs/SECURITY.md).
+too many fields is refused before it runs.
 
 Sign up to create an account. Once you are logged in you can read the feed,
 open a build in 3D, comment on a post, and follow other users. The editor is
