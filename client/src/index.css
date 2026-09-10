@@ -222,3 +222,27 @@
   z-index: 50;
 }
 
+/* ---------------------------------------------------------------------------
+   Page gutter
+   ---------------------------------------------------------------------------
+   The header, the main content and the footer all sit in a max-w-6xl column,
+   so they have to agree about their side padding or their edges stop lining
+   up. One utility keeps them together. It widens on bigger screens: on a phone
+   the content needs the width more than the margin, on a desktop the reverse.
+   ------------------------------------------------------------------------- */
+
+@utility page-gutter {
+  padding-inline: 1rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 1.5rem;
+  }
+
+  @media (width >= 64rem) {
+    padding-inline: 2.5rem;
+  }
+
+  @media (width >= 80rem) {
+    padding-inline: 4rem;
+  }
+}
