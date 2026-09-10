@@ -59,8 +59,11 @@ export default function Home() {
     return () => observer.disconnect();
   }, [fetchMore, loading, loadingMore, reachedEnd, thoughts.length]);
 
+  // Same reasoning as the landing page: until lg the sidebar sits underneath
+  // rather than beside, and a feed stretched the full width of a tablet is one
+  // very wide column. Cap it and let the spare width fall on both sides.
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="mx-auto grid max-w-2xl gap-8 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="min-w-0">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
