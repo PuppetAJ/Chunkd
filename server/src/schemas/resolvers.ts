@@ -378,7 +378,7 @@ export const resolvers = {
             },
           },
         },
-        { new: true, runValidators: true },
+        { returnDocument: "after", runValidators: true },
       );
 
       if (!thought) throw notFound("That post no longer exists.");
@@ -483,7 +483,7 @@ export const resolvers = {
       const user = await User.findByIdAndUpdate(
         auth._id,
         { $addToSet: { following: userId } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!user) throw notFound("Your account no longer exists.");
       return user;
@@ -495,7 +495,7 @@ export const resolvers = {
       const user = await User.findByIdAndUpdate(
         auth._id,
         { $pull: { following: toObjectId(args.userId, "User id") } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!user) throw notFound("Your account no longer exists.");
       return user;
