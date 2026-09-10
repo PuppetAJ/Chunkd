@@ -116,8 +116,7 @@ Everything else works: build a world, save it, post it, comment on other posts.
 
 Signing in, signing up and the demo button are each limited per address on top
 of the general request limit, and a query that is nested too deep or asks for
-too many fields is refused before it runs. The reasoning behind all of this is
-written up in the local `docs/SECURITY.md`.
+too many fields is refused before it runs.
 
 Sign up to create an account. Once you are logged in you can read the feed,
 open a build in 3D, comment on a post, and follow other users. The editor is
@@ -143,6 +142,7 @@ works on any device, including turning a saved build around with a finger.
 | Right click | Place a block. Hold to keep placing |
 | 1 to 9 | Choose a hotbar slot |
 | Scroll wheel | Move along the hotbar, wrapping at both ends |
+| R | Step the selected slot through whole block, slab and stairs |
 | E | Open the block inventory |
 | Shift and drag | Pan, when looking at a saved build |
 | P | Name and save the current world |
@@ -153,6 +153,10 @@ comes back to it, and that screen is also where you leave the editor.
 
 A jump clears a little over one block, so you can place a block under your own
 feet and build upwards.
+
+Anything half a block high or less is walked up rather than jumped onto, so a
+slab floor, a terrace or a doorstep needs no jump. A whole block still does,
+which is what keeps a wall a wall.
 
 Holding either mouse button repeats the action about six times a second. On a
 Mac trackpad this avoids the two-finger double tap that macOS reads as Smart
@@ -180,6 +184,68 @@ you press P, so without them every thumbnail could only ever be a bright dayligh
 one. The editor and the viewer remember their choices separately, and both are
 kept in the browser.
 
+## Slabs
+
+The blocks Minecraft gives slabs to can be laid as a slab, half a block tall,
+filling either the lower or the upper half of its cell. Press R to switch the
+selected hotbar slot between whole blocks and slabs; the slot remembers which,
+so a block and its slab can sit side by side.
+
+Which blocks those are is listed in `SLAB_BLOCK_IDS` in
+`client/src/lib/voxel/blockIds.ts`, taken from the game rather than worked out
+from our own textures: the stones, the worked stones and the planks, but not
+logs, leaves, glass or the loose ground blocks. Cut sandstone has a slab and no
+stairs, which is why there are two sets. Which half of the cell a slab fills is decided by where you
+aim: on a top face it lies on it, under a bottom face it hangs from it, and
+against a side the face splits down the middle, so aiming high gives a top slab
+and aiming low a bottom one.
+
+## Stairs
+
+The same blocks take stairs, except cut sandstone, which has a slab in
+Minecraft and no stairs. Press R twice to put a slot on stairs. Which half of
+the cell they fill follows the same rule as slabs, so they can be hung upside
+down for an arch or a sloped soffit, and the step faces the way you are looking
+rather than the face you built against, so walking forwards goes up.
+
+Two stairs meeting at right angles turn a corner, filling one quarter of the
+cell on the outside of the turn and three on the inside. That shape is worked
+out from the neighbours rather than stored, which is why a staircase tidies
+itself up as you build and why breaking one leaves the rest correct.
+
+Two slabs of the same block placed in one cell join into a whole block. Aiming
+at the exposed half is what does it: from the side, a slab still places into
+the cell next door.
+
+Stairs collide as a whole cube. Exact per-shape collision was not worth it
+here: a stair is a half block rise, so step assist walks you up it and the
+difference is invisible in play.
+
+## How the shapes are stored
+
+A shape and a facing ride in the same number as the block's id and
+orientation, in the bits above them, so they cost a saved build nothing:
+
+```
+  bits 13-14   bits 10-12   bits 8-9   bits 0-7
+    facing        shape        axis        id
+```
+
+Everything defaults to zero, so a plain upright cube is still stored as exactly
+its id and every build saved before any of this loads unchanged.
+
+Across X and Z a cut block still fills its cell, so walls and doorways behave
+as they always did. Height is the part that comes from the block: you stand on
+a slab's own surface rather than on top of its cell, and a top slab is a
+ceiling half a block lower than the cell it is in.
+
+Faces are textured by the direction they point, worked out from the vertex
+rather than from a table, which is what Minecraft does. A face pointing up gets
+the top texture and a face pointing sideways gets the side texture, whatever
+shape the block is, so a sandstone stair needs no special handling: stand level
+with it and the risers read as one continuous side, look down and both treads
+are top texture.
+
 ## How builds are saved
 
 A saved build stores the world seed and the blocks you changed, not the world
@@ -193,6 +259,12 @@ different world, with no error to tell you. `format.test.ts` holds a hash of the
 terrain for four fixed seeds to catch that. If it fails, either put the terrain
 back the way it was, or raise `BUILD_FORMAT_VERSION` and keep the old generator
 for old builds.
+
+The format is at version 3, which added slabs. Version 2 builds are still read,
+because they are exactly readable: no shape bits means every block is a whole
+cube, which is what a version 2 build is. `READABLE_VERSIONS` in `format.ts` is
+the list, kept explicit so that accepting an old version stays a decision
+rather than something that happens by default.
 
 ## Deploying
 
@@ -231,9 +303,18 @@ Add a second Railway service from the same repository:
 
 ```
 Cron schedule:  0 */6 * * *
-Start command:  pnpm --filter server seed
+Config file:    railway.reset.json
 Variables:      MONGODB_URI, NODE_ENV=production, SEED_ALLOW_PRODUCTION=1
 ```
+
+Point that service's config file at `railway.reset.json` rather than leaving it
+on the default. Both services are built from the same repository, so without
+this the reset service reads `railway.json` and inherits the API's start
+command and healthcheck: it would run the API instead of the seeder, never
+exit, and the schedule would do nothing. `railway.reset.json` sets the start
+command to the seeder, skips the client build the reset does not need, and
+turns off restart-on-failure so a failed run waits for the next schedule
+instead of retrying in a loop.
 
 Set `SEED_ALLOW_PRODUCTION=1` on the reset service only, never on the API
 service. Without it the seeder refuses to touch a production database, which
@@ -248,10 +329,15 @@ Check the production path locally before deploying. Development and production
 differ in ways the ordinary test suite cannot see, so there is a suite for this:
 
 ```sh
+lsof -ti tcp:4000 | xargs kill     # anything left from a previous run
 pnpm build
-NODE_ENV=production PORT=4000 pnpm start
+NODE_ENV=production PORT=4000 CLIENT_ORIGIN=http://localhost:4000 pnpm start
 pnpm test:prod                     # in another terminal
 ```
+
+The kill line is not paranoia. A server still running from an earlier session
+holds the port, the new one prints that it is ready regardless, and the suite
+then tests a build from whenever that process started.
 
 It signs up, builds and saves a world, posts it, opens the post in 3D and
 comments, and fails on any console error. The same command checks a real

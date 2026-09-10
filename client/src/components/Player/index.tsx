@@ -54,6 +54,7 @@ export default function Player({ body }: Props) {
 
   const setSelectedSlot = useWorldStore((state) => state.setSelectedSlot);
   const cycleSelectedSlot = useWorldStore((state) => state.cycleSelectedSlot);
+  const cycleSelectedShape = useWorldStore((state) => state.cycleSelectedShape);
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   useKeyPress((code) => {
@@ -63,6 +64,10 @@ export default function Player({ body }: Props) {
       const slot = Number(code.slice(5));
       if (slot >= 1 && slot <= HOTBAR_SLOTS) setSelectedSlot(slot);
     }
+    // R steps the selected slot through the shapes that block can take. It
+    // belongs to the slot rather than being one global setting, so a block and
+    // its slab can sit side by side on the hotbar.
+    if (code === "KeyR") cycleSelectedShape();
   });
 
   // How much scrolling counts as one step along the hotbar. A mouse wheel sends

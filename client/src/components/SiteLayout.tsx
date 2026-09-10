@@ -23,7 +23,7 @@ export default function SiteLayout() {
   return (
     <div className="flex min-h-full w-full shrink-0 flex-col">
       <Header />
-      <main className="mx-auto w-full max-w-6xl grow px-4 py-8">
+      <main className="page-gutter mx-auto w-full max-w-6xl grow py-8">
         {/* Both boundaries sit inside the shell rather than around it, so a
             page that fails or is still downloading leaves the header and footer
             in place instead of blanking the window. */}

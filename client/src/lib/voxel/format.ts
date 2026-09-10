@@ -3,7 +3,7 @@ import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
 /**
- * Saved build format, version 2.
+ * Saved build format, version 3.
  *
  * Version 1 was the whole world written out as JSON, every block position
  * included, which is why a single save ran to megabytes and the API had to
@@ -13,13 +13,28 @@ import { fromKey, toKey, type BlockKey } from "./coords.ts";
  * differences are recorded: blocks the player removed, and blocks they added.
  * A build is therefore proportional to what the player actually did rather than
  * to the size of the world.
+ *
+ * Version 3 added slabs. Nothing about the shape of the file changed: a placed
+ * block was always stored as its packed value rather than a bare id, and the
+ * shape rides in that number alongside the id and the orientation. The version
+ * went up anyway so that a payload says what it needs, and version 2 is still
+ * read because it is exactly readable: no shape bits means every block is a
+ * full cube, which is what version 2 builds are.
  */
-export const BUILD_FORMAT_VERSION = 2;
+export const BUILD_FORMAT_VERSION = 3;
+
+/**
+ * The versions this can load. Kept as a list rather than "anything up to the
+ * current one", so adding a version is a decision about whether the old ones
+ * still mean what they used to say rather than something that happens by
+ * default.
+ */
+const READABLE_VERSIONS = [2, 3] as const;
 
 const positionSchema = z.tuple([z.number().int(), z.number().int(), z.number().int()]);
 
 const buildSchema = z.object({
-  v: z.literal(BUILD_FORMAT_VERSION),
+  v: z.union([z.literal(READABLE_VERSIONS[0]), z.literal(READABLE_VERSIONS[1])]),
   size: z.number().int().positive(),
   seed: z.number().int().nonnegative(),
   removed: z.array(positionSchema),

@@ -1,13 +1,18 @@
+import { verticalExtent } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 
 /**
  * Collision between the player and the block grid.
  *
- * There is no physics engine. Every block is a unit cube on integer
- * coordinates and the player is an upright box, so an exact answer is a few
- * comparisons rather than a general solver. Moving one axis at a time and
- * snapping to the surface that was hit is the standard way to do this, and it
- * gives sliding along walls for free: being blocked on X does not stop Z.
+ * There is no physics engine. Every block fills its cell across X and Z and
+ * the player is an upright box, so an exact answer is a few comparisons rather
+ * than a general solver. Moving one axis at a time and snapping to the surface
+ * that was hit is the standard way to do this, and it gives sliding along walls
+ * for free: being blocked on X does not stop Z.
+ *
+ * Height is the one thing the cell does not decide: a slab fills half of it,
+ * so the surface underfoot comes from the block. Across X and Z a slab still
+ * fills its cell, so walls, sliding and the reach checks are unchanged.
  */
 
 export const PLAYER_HALF_WIDTH = 0.3;
@@ -20,12 +25,16 @@ export function blockIndex(worldCoordinate: number): number {
   return Math.floor(worldCoordinate + 0.5);
 }
 
-/** Is the player's box, with its feet at (x, y, z), inside any block? */
-export function collides(
+/**
+ * Every block the player's box would overlap, with its feet at (x, y, z).
+ * `visit` gets the top and bottom of each; returning true stops the search.
+ */
+function forEachOverlap(
   blocks: Map<BlockKey, number>,
   x: number,
   y: number,
   z: number,
+  visit: (low: number, high: number) => boolean,
 ): boolean {
   const minX = blockIndex(x - PLAYER_HALF_WIDTH);
   const maxX = blockIndex(x + PLAYER_HALF_WIDTH);
@@ -33,15 +42,50 @@ export function collides(
   const maxY = blockIndex(y + PLAYER_HEIGHT);
   const minZ = blockIndex(z - PLAYER_HALF_WIDTH);
   const maxZ = blockIndex(z + PLAYER_HALF_WIDTH);
+  const head = y + PLAYER_HEIGHT;
 
   for (let bx = minX; bx <= maxX; bx += 1) {
     for (let by = minY; by <= maxY; by += 1) {
       for (let bz = minZ; bz <= maxZ; bz += 1) {
-        if (blocks.has(toKey(bx, by, bz))) return true;
+        const value = blocks.get(toKey(bx, by, bz));
+        if (value === undefined) continue;
+        const [low, high] = verticalExtent(value, by);
+        // Touching is not overlapping, so both comparisons are strict.
+        if (y < high && head > low && visit(low, high)) return true;
       }
     }
   }
   return false;
+}
+
+/** Is the player's box, with its feet at (x, y, z), inside any block? */
+export function collides(
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+): boolean {
+  return forEachOverlap(blocks, x, y, z, () => true);
+}
+
+/**
+ * The highest surface among the blocks the player is overlapping, which is what
+ * they land on, and the lowest, which is what they hit their head on.
+ */
+function surfacesAt(
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+): { highestTop: number; lowestBottom: number } {
+  let highestTop = -Infinity;
+  let lowestBottom = Infinity;
+  forEachOverlap(blocks, x, y, z, (low, high) => {
+    if (high > highestTop) highestTop = high;
+    if (low < lowestBottom) lowestBottom = low;
+    return false;
+  });
+  return { highestTop, lowestBottom };
 }
 
 export interface Body {
@@ -66,6 +110,42 @@ const PUSH_OUT_SPEED = 0.08;
 
 /** Largest move per sub-step. Anything faster is split so it cannot skip a block. */
 const MAX_STEP = 0.4;
+
+/**
+ * Largest rise the player walks up instead of jumping. Just above half a block
+ * and well below a whole one, so a slab is a step and a wall stays a wall.
+ */
+const STEP_HEIGHT = 0.55;
+
+/**
+ * Walk up a small rise rather than stopping against it, and say whether that
+ * happened. Only from the ground: doing it mid-air would catch a falling
+ * player on a ledge, and let a jumping one climb a wall half a block per hop.
+ */
+function tryStepUp(
+  blocks: Map<BlockKey, number>,
+  body: Body,
+  nextX: number,
+  nextZ: number,
+): boolean {
+  if (!isSupported(blocks, body)) return false;
+
+  const { highestTop } = surfacesAt(blocks, nextX, body.y, nextZ);
+  if (highestTop === -Infinity) return false;
+
+  const rise = highestTop - body.y;
+  if (rise <= 0 || rise > STEP_HEIGHT) return false;
+
+  // Room to stand there. Otherwise the player is lifted into whatever is above
+  // the step and the push-out branch shoves them up through it.
+  if (collides(blocks, nextX, highestTop, nextZ)) return false;
+
+  body.x = nextX;
+  body.z = nextZ;
+  body.y = highestTop;
+  body.onGround = true;
+  return true;
+}
 
 /**
  * Move `body` by the given amounts, stopping at whatever it runs into.
@@ -103,15 +183,15 @@ export function moveBody(
   for (let i = 0; i < steps; i += 1) {
     if (stepY !== 0) {
       const nextY = body.y + stepY;
-      if (collides(blocks, body.x, nextY, body.z)) {
+      const { highestTop, lowestBottom } = surfacesAt(blocks, body.x, nextY, body.z);
+      if (highestTop !== -Infinity) {
         if (stepY < 0) {
-          // Landed. Rest exactly on the surface of the block underfoot rather
-          // than wherever the frame happened to stop.
-          body.y = blockIndex(nextY) + 0.5;
+          // Rest on the surface underfoot, which is not always the cell's top.
+          body.y = highestTop;
           body.onGround = true;
         } else {
           // Hit a ceiling. Sit just below it.
-          body.y = blockIndex(nextY + PLAYER_HEIGHT) - 0.5 - PLAYER_HEIGHT - SKIN;
+          body.y = lowestBottom - PLAYER_HEIGHT - SKIN;
         }
       } else {
         body.y = nextY;
@@ -121,8 +201,10 @@ export function moveBody(
     if (stepX !== 0) {
       const nextX = body.x + stepX;
       if (collides(blocks, nextX, body.y, body.z)) {
-        const side = Math.sign(stepX);
-        body.x = blockIndex(nextX + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        if (!tryStepUp(blocks, body, nextX, body.z)) {
+          const side = Math.sign(stepX);
+          body.x = blockIndex(nextX + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        }
       } else {
         body.x = nextX;
       }
@@ -131,8 +213,10 @@ export function moveBody(
     if (stepZ !== 0) {
       const nextZ = body.z + stepZ;
       if (collides(blocks, body.x, body.y, nextZ)) {
-        const side = Math.sign(stepZ);
-        body.z = blockIndex(nextZ + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        if (!tryStepUp(blocks, body, body.x, nextZ)) {
+          const side = Math.sign(stepZ);
+          body.z = blockIndex(nextZ + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
+        }
       } else {
         body.z = nextZ;
       }

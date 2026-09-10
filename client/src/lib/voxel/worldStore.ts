@@ -1,6 +1,16 @@
 import { create } from "zustand";
-import { BLOCKS, DEFAULT_BLOCK_ID, DEFAULT_HOTBAR, getBlock } from "./blocks.ts";
-import { AXIS_Y, packBlock } from "./blockValue.ts";
+import { BLOCKS, DEFAULT_BLOCK_ID, DEFAULT_HOTBAR, getBlock, type BlockType } from "./blocks.ts";
+import {
+  AXIS_Y,
+  blockIdOf,
+  FACING_NORTH,
+  isSlab,
+  packBlock,
+  SHAPE_FULL,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_SLAB_TOP,
+  SHAPE_STAIRS_BOTTOM,
+} from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { generateTerrain, randomSeed, spawnPointFor } from "./terrain.ts";
 import { deserializeWorld, serializeWorld } from "./format.ts";
@@ -32,19 +42,50 @@ interface WorldState {
    * so the inventory writes into this rather than the hotbar being a fixed list.
    */
   hotbar: number[];
+  /**
+   * What shape each slot places. Alongside the hotbar rather than inside it, so
+   * choosing a block and choosing how to place it stay separate.
+   */
+  hotbarShape: number[];
 
   newWorld: (seed?: number) => void;
   loadBuild: (payload: string) => boolean;
   serialize: () => string;
 
-  placeBlock: (x: number, y: number, z: number, axis?: number) => void;
+  placeBlock: (
+    x: number,
+    y: number,
+    z: number,
+    axis?: number,
+    shape?: number,
+    facing?: number,
+  ) => void;
   removeBlock: (x: number, y: number, z: number) => void;
+  /** Join a slab with a second of the same block, making a whole one. */
+  fillSlab: (x: number, y: number, z: number) => void;
   setSelectedSlot: (slot: number) => void;
   /** Move along the hotbar, wrapping at both ends. Used by the scroll wheel. */
   cycleSelectedSlot: (delta: number) => void;
   setHotbarBlock: (slot: number, blockId: number) => void;
+  /** Step the selected slot on to the next shape it can place. */
+  cycleSelectedShape: () => void;
   selectedBlockId: () => number;
+  selectedShape: () => number;
   spawnPoint: () => [number, number, number];
+}
+
+/**
+ * The shape this block can actually take, falling back to something it can.
+ *
+ * Slabs and stairs exist only for the blocks Minecraft gives them to, and a
+ * stair asked of a block that only has a slab becomes a slab.
+ */
+function shapeFor(block: BlockType | undefined, shape: number): number {
+  if (shape === SHAPE_FULL) return SHAPE_FULL;
+  if (!block?.slab) return SHAPE_FULL;
+  const isSlabShape = shape === SHAPE_SLAB_BOTTOM || shape === SHAPE_SLAB_TOP;
+  if (!block.stairs && !isSlabShape) return SHAPE_SLAB_BOTTOM;
+  return shape;
 }
 
 const initialSeed = randomSeed();
@@ -56,6 +97,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   visible: computeVisible(initialBlocks),
   selectedSlot: 1,
   hotbar: [...DEFAULT_HOTBAR],
+  hotbarShape: Array.from({ length: HOTBAR_SLOTS }, () => SHAPE_FULL),
 
   newWorld: (seed = randomSeed()) => {
     const blocks = generateTerrain(seed);
@@ -71,11 +113,21 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   serialize: () => serializeWorld(get().seed, get().blocks),
 
-  placeBlock: (x, y, z, axis = AXIS_Y) => {
+  placeBlock: (
+    x,
+    y,
+    z,
+    axis = AXIS_Y,
+    shape = get().selectedShape(),
+    facing = FACING_NORTH,
+  ) => {
     const blockId = get().selectedBlockId();
     const block = getBlock(blockId);
-    // Only a block with a grain is turned by the face you built against.
-    const value = packBlock(blockId, block?.directional ? axis : AXIS_Y);
+    // Only a block with a grain is turned by the face you built against, and a
+    // cut block is never turned: there is no shape here for one on its end.
+    const cut = shapeFor(block, shape);
+    const upright = cut !== SHAPE_FULL || !block?.directional;
+    const value = packBlock(blockId, upright ? AXIS_Y : axis, cut, facing);
     const key = toKey(x, y, z);
     set((state) => {
       if (state.blocks.has(key)) return state;
@@ -84,6 +136,19 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       // obviously correct without a revision counter.
       const blocks = new Map(state.blocks);
       blocks.set(key, value);
+      const visible = new Map(state.visible);
+      refreshVisibleAround(blocks, visible, x, y, z);
+      return { blocks, visible };
+    });
+  },
+
+  fillSlab: (x, y, z) => {
+    const key = toKey(x, y, z);
+    set((state) => {
+      const existing = state.blocks.get(key);
+      if (existing === undefined || !isSlab(existing)) return state;
+      const blocks = new Map(state.blocks);
+      blocks.set(key, packBlock(blockIdOf(existing)));
       const visible = new Map(state.visible);
       refreshVisibleAround(blocks, visible, x, y, z);
       return { blocks, visible };
@@ -122,11 +187,35 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const hotbar = [...state.hotbar];
       hotbar[slot - 1] = blockId;
-      return { hotbar };
+      // A slot left on a shape the new block cannot take is unplaceable.
+      const hotbarShape = [...state.hotbarShape];
+      const index = slot - 1;
+      hotbarShape[index] = shapeFor(getBlock(blockId), hotbarShape[index] ?? SHAPE_FULL);
+      return { hotbar, hotbarShape };
+    });
+  },
+
+  cycleSelectedShape: () => {
+    const block = getBlock(get().selectedBlockId());
+    if (!block?.slab) return;
+    set((state) => {
+      const hotbarShape = [...state.hotbarShape];
+      const index = state.selectedSlot - 1;
+      // Whole block, slab, stairs, back to the start. Which half of the cell
+      // it lands in, and which way stairs face, come from where the player
+      // aims rather than from here.
+      const order = block.stairs
+        ? [SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_STAIRS_BOTTOM]
+        : [SHAPE_FULL, SHAPE_SLAB_BOTTOM];
+      const at = order.indexOf(hotbarShape[index] ?? SHAPE_FULL);
+      hotbarShape[index] = order[(at + 1) % order.length]!;
+      return { hotbarShape };
     });
   },
 
   selectedBlockId: () => get().hotbar[get().selectedSlot - 1] ?? DEFAULT_BLOCK_ID,
+
+  selectedShape: () => get().hotbarShape[get().selectedSlot - 1] ?? SHAPE_FULL,
 
   spawnPoint: () => spawnPointFor(get().blocks),
 }));

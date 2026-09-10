@@ -59,6 +59,12 @@ const RECIPES = [
     caption: "Open on all sides, cherry wood throughout. Best thing I have made so far.",
   },
   {
+    key: "keep",
+    seed: 6614,
+    name: "Greywall Keep",
+    caption: "Walled it in properly this time. The corner towers are the only bit I would redo.",
+  },
+  {
     key: "village",
     seed: 2255,
     name: "Three Roofs",
@@ -324,6 +330,64 @@ function buildInWorld(key) {
     for (const [x, z] of [[X - 9, Z - 9], [X + 9, Z + 9], [X - 9, Z + 9], [X + 9, Z - 9]])
       tree(x, z, g, B.cherryLog, B.cherryLeaves);
     return [X, g + 6, Z];
+  }
+
+  if (key === "keep") {
+    const g = pad(X - 12, Z - 12, X + 12, Z + 12);
+    clearTrees(X - 20, Z - 20, X + 20, Z + 20, g);
+    box(X - 10, g + 1, Z - 10, X + 10, g + 1, Z + 10, B.cobblestone);
+
+    // Curtain wall. Walls are laid one course at a time rather than filled and
+    // hollowed out: placing a block copies the world map, so the solid-then-
+    // clear approach would cost several times as much for the same shape.
+    const top = g + 6;
+    for (let y = g + 2; y <= top; y += 1) for (let d = -10; d <= 10; d += 1) {
+      put(X + d, y, Z - 10, B.stoneBricks); put(X + d, y, Z + 10, B.stoneBricks);
+      put(X - 10, y, Z + d, B.stoneBricks); put(X + 10, y, Z + d, B.stoneBricks);
+    }
+    // Walkway, then battlements every other block along it.
+    for (let d = -10; d <= 10; d += 1) {
+      put(X + d, top + 1, Z - 10, B.stoneBricks); put(X + d, top + 1, Z + 10, B.stoneBricks);
+      put(X - 10, top + 1, Z + d, B.stoneBricks); put(X + 10, top + 1, Z + d, B.stoneBricks);
+    }
+    for (let d = -10; d <= 10; d += 2) for (const [x, z] of [[X + d, Z - 10], [X + d, Z + 10], [X - 10, Z + d], [X + 10, Z + d]])
+      put(x, top + 2, z, B.stoneBricks);
+
+    // Corner towers, standing above the wall.
+    for (const [cx, cz] of [[X - 10, Z - 10], [X - 10, Z + 10], [X + 10, Z - 10], [X + 10, Z + 10]]) {
+      for (let y = g + 2; y <= g + 10; y += 1) for (let d = -2; d <= 2; d += 1) {
+        put(cx + d, y, cz - 2, B.stoneBricks); put(cx + d, y, cz + 2, B.stoneBricks);
+        put(cx - 2, y, cz + d, B.stoneBricks); put(cx + 2, y, cz + d, B.stoneBricks);
+      }
+      box(cx - 2, g + 11, cz - 2, cx + 2, g + 11, cz + 2, B.deepslate);
+      for (const [dx, dz] of [[-2,-2],[-2,0],[-2,2],[0,-2],[0,2],[2,-2],[2,0],[2,2]])
+        put(cx + dx, g + 12, cz + dz, B.stoneBricks);
+    }
+
+    // Gate through the south wall, with a mossy arch and a road out.
+    clear(X - 1, g + 2, Z + 10, X + 1, g + 4, Z + 10);
+    for (const dx of [-2, -1, 0, 1, 2]) put(X + dx, g + 5, Z + 10, B.mossyCobblestone);
+    for (const dx of [-2, 2]) put(X + dx, g + 2, Z + 10, B.mossyCobblestone);
+    for (let dz = 11; dz <= 12; dz += 1) for (const dx of [-1, 0, 1]) put(X + dx, g + 1, Z + dz, B.cobblestone);
+
+    // The keep in the middle, taller than everything around it.
+    for (let y = g + 2; y <= g + 14; y += 1) for (let d = -4; d <= 4; d += 1) {
+      put(X + d, y, Z - 4, B.stoneBricks); put(X + d, y, Z + 4, B.stoneBricks);
+      put(X - 4, y, Z + d, B.stoneBricks); put(X + 4, y, Z + d, B.stoneBricks);
+    }
+    box(X - 3, g + 1, Z - 3, X + 3, g + 1, Z + 3, B.oakPlanks);
+    for (const y of [g + 5, g + 6, g + 10, g + 11]) for (const d of [-2, 0, 2]) {
+      put(X + d, y, Z - 4, B.glass); put(X + d, y, Z + 4, B.glass);
+      put(X - 4, y, Z + d, B.glass); put(X + 4, y, Z + d, B.glass);
+    }
+    clear(X, g + 2, Z + 4, X, g + 3, Z + 4);
+    box(X - 5, g + 15, Z - 5, X + 5, g + 15, Z + 5, B.deepslate);
+    for (let d = -5; d <= 5; d += 2) for (const [x, z] of [[X + d, Z - 5], [X + d, Z + 5], [X - 5, Z + d], [X + 5, Z + d]])
+      put(x, g + 16, z, B.stoneBricks);
+
+    tree(X - 7, Z + 6, g, B.cherryLog, B.cherryLeaves);
+    tree(X + 7, Z - 6, g, B.oakLog, B.oakLeaves);
+    return [X, g + 8, Z];
   }
 
   // village

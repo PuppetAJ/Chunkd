@@ -117,9 +117,13 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
   }
 
   if (error || !payload) {
+    // Usually means the build was deleted. On this site it more often means the
+    // page is holding an id from before the scheduled reset, and reloading is
+    // what fixes that, so say so rather than leaving a dead end.
     return (
-      <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-        This build is no longer available.
+      <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-4 text-center text-sm text-muted-foreground">
+        <p>This build is no longer available.</p>
+        <p className="text-xs">Reload the page if it was here a moment ago.</p>
       </div>
     );
   }
@@ -138,7 +142,11 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
   // The component fills whatever box it is given. It used to carry its own
   // fixed 50%-of-the-page sizing, which was wrong everywhere it was reused.
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-lg border border-border bg-[#0d0c10]">
+    // @container makes the chrome below respond to the width of the viewer
+    // rather than the width of the window. The same viewer appears in a landing
+    // page column, a dialog and a full-width page, so the window says nothing
+    // useful about how much room the overlay actually has.
+    <div className="@container relative h-full w-full overflow-hidden rounded-lg border border-border bg-[#0d0c10]">
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -163,7 +171,7 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
         // Named so the thumbnail generator can hide it, and so a test can find
         // it without matching on class names.
         data-viewer-chrome
-        className="pointer-events-none absolute inset-0 p-3 sm:p-4"
+        className="pointer-events-none absolute inset-0 p-3 @sm:p-4"
       >
         {showName && build?.name && (
           <div>
@@ -173,14 +181,19 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
             <p className={`mt-0.5 font-display text-lg ${titleClass}`}>{build.name}</p>
           </div>
         )}
+        {/* Each clause needs room to sit on one line, so they are added back
+            as the viewer gets wider. The first one alone is the gesture nobody
+            can guess. */}
         <p
-          className={`absolute right-3 bottom-3 font-mono text-[0.625rem] tracking-[0.15em] uppercase sm:right-4 sm:bottom-4 ${labelClass}`}
+          className={`absolute inset-x-3 bottom-3 text-right font-mono text-[0.625rem] tracking-[0.15em] uppercase @sm:inset-x-4 @sm:bottom-4 ${labelClass}`}
         >
-          Drag to orbit &middot; shift drag to pan &middot; scroll to zoom
+          Drag to orbit
+          <span className="hidden @xs:inline"> &middot; shift drag to pan</span>
+          <span className="hidden @md:inline"> &middot; scroll to zoom</span>
         </p>
 
         {/* The only thing in the overlay that takes a click. */}
-        <div className="pointer-events-auto absolute top-3 right-3 sm:top-4 sm:right-4">
+        <div className="pointer-events-auto absolute top-3 right-3 @sm:top-4 @sm:right-4">
           <SceneSettingsMenu settings={settings} onChange={setSettings} onLightSky={onLightSky} />
         </div>
       </div>

@@ -2,8 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { BLOCK_IDS } from "./blockIds.ts";
+import {
+  AXIS_Y,
+  packBlock,
+  FACING_EAST,
+  FACING_NORTH,
+  FACING_SOUTH,
+  FACING_WEST,
+  SHAPE_FULL,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_SLAB_TOP,
+  SHAPE_STAIRS_BOTTOM,
+  SHAPE_STAIRS_TOP,
+} from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { buildRenderLayers, computeVisible, refreshVisibleAround } from "./render.ts";
+import { straightQuadrants } from "./stairShape.ts";
 import { generateTerrain } from "./terrain.ts";
 
 /** A 3x3x3 cube of one block type, centred on the origin. */
@@ -112,4 +126,143 @@ test("updating around a change matches working the whole world out again", () =>
     [...thorough.entries()].sort(),
     "the values must match too, not just which blocks are visible",
   );
+});
+
+test("a slab does not hide the block underneath it", () => {
+  // The reason face culling had to learn about shapes at all. A slab covers
+  // half of each side face, and half covered is not covered, so treating it as
+  // an occluder left see-through holes wherever a slab floor met the terrain.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_TOP));
+  const drawn = drawnPositions(blocks);
+  assert.equal(drawn.has("0,0,0"), true);
+});
+
+test("a slab flush against a face still hides what is behind that face", () => {
+  // The other half of the rule. A bottom slab fills its cell's underside
+  // exactly, so the block below it is covered and there is no reason to draw
+  // it. Getting this wrong would cost the saving that culling exists for.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
+  assert.equal(drawnPositions(blocks).has("0,0,0"), false);
+});
+
+test("a slab is always drawn, however buried", () => {
+  // A bottom slab's top surface is inside its own cell, so no neighbour can
+  // cover it and it can never be culled.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
+  assert.equal(drawnPositions(blocks).has("0,0,0"), true);
+});
+
+test("cubes and slabs of one block are drawn as separate layers", () => {
+  // Every instance in a mesh shares one geometry, so a cube and a slab of the
+  // same stone cannot be in the same layer.
+  const blocks = new Map<BlockKey, number>([
+    [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone)],
+    [toKey(2, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM)],
+    [toKey(4, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_TOP)],
+  ]);
+
+  const layers = buildRenderLayers(blocks);
+  assert.equal(layers.length, 3);
+  assert.deepEqual(layers.map((layer) => layer.blockId), [BLOCK_IDS.stone, BLOCK_IDS.stone, BLOCK_IDS.stone]);
+  assert.deepEqual(layers.map((layer) => layer.shape), [SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP]);
+});
+
+test("updating around a slab matches working the whole world out again", () => {
+  // The incremental path and the from-scratch path have to agree, and the
+  // shape rules are new enough to be worth checking on both.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  const visible = computeVisible(blocks);
+
+  blocks.set(toKey(0, 2, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
+  refreshVisibleAround(blocks, visible, 0, 2, 0);
+
+  assert.deepEqual([...visible.keys()].sort(), [...computeVisible(blocks).keys()].sort());
+});
+
+test("a stair hides the block its flat half sits on", () => {
+  // A bottom stair's underside is a whole face, like a bottom slab's.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH));
+  assert.equal(drawnPositions(blocks).has("0,0,0"), false);
+});
+
+test("a stair does not hide the block its step half is missing from", () => {
+  // An upside-down stair's underside is notched, so the block below shows
+  // through the gap and still has to be drawn.
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_TOP, FACING_NORTH));
+  assert.equal(drawnPositions(blocks).has("0,0,0"), true);
+});
+
+test("a stair does not hide what is beside it, even where it is solid", () => {
+  // Deliberately conservative. How much of a stair's tall half is filled
+  // depends on that stair's own neighbours, because a run of them turns
+  // corners, so a side rule would make one block's visibility depend on cells
+  // two away. The update after an edit only looks one cell out. Missing a
+  // chance to cull costs a drawn block nobody sees; culling something that
+  // should be drawn leaves a hole in the world.
+  for (const facing of [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST]) {
+    for (const at of [
+      [0, 0, -1],
+      [0, 0, 1],
+      [1, 0, 0],
+      [-1, 0, 0],
+    ] as [number, number, number][]) {
+      const blocks = solidCube(BLOCK_IDS.dirt);
+      blocks.set(
+        toKey(at[0], at[1], at[2]),
+        packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, facing),
+      );
+      assert.equal(
+        drawnPositions(blocks).has("0,0,0"),
+        true,
+        `a stair at ${at.join(",")} facing ${facing} should not cull the origin`,
+      );
+    }
+  }
+});
+
+test("a stair is always drawn, however buried", () => {
+  const blocks = solidCube(BLOCK_IDS.dirt);
+  blocks.set(toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH));
+  assert.equal(drawnPositions(blocks).has("0,0,0"), true);
+});
+
+test("stairs of one block facing different ways are separate layers", () => {
+  // A stair's shape is baked into its geometry rather than rotated per
+  // instance, so each distinct one is its own mesh. Spaced out so none of them
+  // is a neighbour of another and they all stay straight.
+  const blocks = new Map<BlockKey, number>([
+    [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH)],
+    [toKey(4, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_EAST)],
+    [toKey(8, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH)],
+  ]);
+
+  const layers = buildRenderLayers(blocks);
+  assert.equal(layers.length, 2, "two shapes, two meshes");
+  const north = layers.find((layer) => layer.variant === straightQuadrants(FACING_NORTH));
+  assert.equal(north?.positions.length, 6, "both north stairs in one mesh");
+});
+
+test("two stairs meeting at right angles are drawn as corners", () => {
+  // The whole point of deriving the shape from the neighbours: a straight run
+  // and a turn cannot be the same mesh, and neither is the straight shape.
+  const straight = new Map<BlockKey, number>([
+    [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH)],
+  ]);
+  const turn = new Map<BlockKey, number>([
+    [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH)],
+    [toKey(0, 0, 1), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_EAST)],
+  ]);
+
+  const alone = buildRenderLayers(straight)[0]?.variant;
+  const cornered = buildRenderLayers(turn).find(
+    (layer) => layer.positions[0] === 0 && layer.positions[2] === 0,
+  )?.variant;
+
+  assert.equal(alone, straightQuadrants(FACING_NORTH));
+  assert.notEqual(cornered, alone, "the stair beside a turn should change shape");
 });

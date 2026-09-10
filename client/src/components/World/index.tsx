@@ -4,9 +4,20 @@ import * as THREE from "three";
 
 import BlockLayer from "./BlockLayer.tsx";
 import { getBlock } from "../../lib/voxel/blocks.ts";
-import { type BlockKey } from "../../lib/voxel/coords.ts";
+import { toKey, type BlockKey } from "../../lib/voxel/coords.ts";
 import { buildRenderLayers, groupVisible } from "../../lib/voxel/render.ts";
-import { axisForFaceNormal } from "../../lib/voxel/blockValue.ts";
+import {
+  axisForFaceNormal,
+  blockIdOf,
+  blockShapeOf,
+  facingForYaw,
+  isSlab,
+  slabShapeForPlacement,
+  stairsShapeForPlacement,
+  verticalExtent,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_STAIRS_BOTTOM,
+} from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { isEditorPaused } from "../../lib/editorUiStore.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
@@ -23,6 +34,10 @@ interface Target {
   adjacent: [number, number, number];
   /** Which way a block with a grain should lie if placed here. */
   axis: number;
+  /** How far up the face the crosshair is, from -0.5 at its foot to 0.5 at its top. */
+  heightInCell: number;
+  /** The up component of the face's normal, which says whether it is a top, a bottom or a side. */
+  normalY: number;
 }
 
 /**
@@ -56,6 +71,9 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const blocks = providedBlocks ?? storeBlocks;
   const placeBlock = useWorldStore((state) => state.placeBlock);
   const removeBlock = useWorldStore((state) => state.removeBlock);
+  const fillSlab = useWorldStore((state) => state.fillSlab);
+  const selectedShape = useWorldStore((state) => state.selectedShape);
+  const selectedBlockId = useWorldStore((state) => state.selectedBlockId);
 
   const { camera, gl } = useThree();
   const groupRef = useRef<THREE.Group>(null);
@@ -90,12 +108,28 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     // The editor's world keeps its own visible set up to date as blocks are
     // placed, so only the grouping is redone here. The build viewer is handed a
     // world it does not own, so that one is worked out in full, once.
-    const raw = providedBlocks ? buildRenderLayers(providedBlocks) : groupVisible(storeVisible);
+    const raw = providedBlocks
+      ? buildRenderLayers(providedBlocks)
+      : groupVisible(storeVisible, blocks);
+    // Development-only handle for the tests. A stair's shape is worked out
+    // from its neighbours rather than stored, so this is the only place that
+    // knows what was actually drawn.
+    if (import.meta.env.DEV && editable) window.__layers = raw;
     return raw.flatMap((layer) => {
       const block = getBlock(layer.blockId);
-      return block ? [{ block, positions: layer.positions, axes: layer.axes }] : [];
+      return block
+        ? [
+            {
+              block,
+              shape: layer.shape,
+              variant: layer.variant,
+              positions: layer.positions,
+              axes: layer.axes,
+            },
+          ]
+        : [];
     });
-  }, [providedBlocks, storeVisible]);
+  }, [providedBlocks, storeVisible, blocks, editable]);
 
   const raycaster = useMemo(() => {
     const instance = new THREE.Raycaster();
@@ -109,6 +143,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const instanceMatrix = useMemo(() => new THREE.Matrix4(), []);
   const normal = useMemo(() => new THREE.Vector3(), []);
   const blockCentre = useMemo(() => new THREE.Vector3(), []);
+  const lookDirection = useMemo(() => new THREE.Vector3(), []);
 
   // Kept in a ref so the pointer handlers can act without being re-created,
   // and so useFrame can repeat the action while a button is held.
@@ -128,10 +163,43 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     }
 
     if (button === 2) {
+      const chosenShape = selectedShape();
+
+      // Two slabs of the same block make a whole one, rather than the second
+      // going into the cell next door. Only when the exposed half is the one
+      // being built on: from the side, a slab still places its neighbour.
+      const targeted = blocks.get(toKey(...current.hit));
+      if (
+        chosenShape === SHAPE_SLAB_BOTTOM &&
+        targeted !== undefined &&
+        isSlab(targeted) &&
+        blockIdOf(targeted) === selectedBlockId() &&
+        (blockShapeOf(targeted) === SHAPE_SLAB_BOTTOM
+          ? current.normalY > 0.5
+          : current.normalY < -0.5)
+      ) {
+        fillSlab(...current.hit);
+        return;
+      }
+
       const [x, y, z] = current.adjacent;
       // Refuse to place a block inside the player, which would trap them.
       if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
-      placeBlock(x, y, z, current.axis);
+      // The slot decides which shape; the aim decides which half of the cell
+      // it fills, and for stairs which way the step faces.
+      let shape = chosenShape;
+      if (chosenShape === SHAPE_SLAB_BOTTOM) {
+        shape = slabShapeForPlacement(current.normalY, current.heightInCell);
+      } else if (chosenShape === SHAPE_STAIRS_BOTTOM) {
+        shape = stairsShapeForPlacement(current.normalY, current.heightInCell);
+      }
+
+      // Taken from the direction the camera looks rather than camera.rotation,
+      // so it does not depend on the rotation order the controls happen to use.
+      camera.getWorldDirection(lookDirection);
+      const facing = facingForYaw(Math.atan2(-lookDirection.x, -lookDirection.z));
+
+      placeBlock(x, y, z, current.axis, shape, facing);
     }
   };
 
@@ -188,12 +256,20 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         block[2] + Math.round(normal.z),
       ],
       axis: axisForFaceNormal(normal.x, normal.y, normal.z),
+      // Instances sit at the centre of their cell whatever the shape.
+      heightInCell: hit.point.y - block[1],
+      normalY: normal.y,
     };
 
     target.current = found;
     if (highlightRef.current) {
+      // Outline what is actually there, or a slab gets a full cube of wireframe.
+      const value = blocks.get(toKey(block[0], block[1], block[2]));
+      const [low, high] =
+        value === undefined ? [block[1] - 0.5, block[1] + 0.5] : verticalExtent(value, block[1]);
       highlightRef.current.visible = true;
-      highlightRef.current.position.set(block[0], block[1], block[2]);
+      highlightRef.current.position.set(block[0], (low + high) / 2, block[2]);
+      highlightRef.current.scale.set(1, high - low, 1);
     }
     return found;
   };
@@ -263,10 +339,13 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   return (
     <>
       <group ref={groupRef}>
-        {layers.map(({ block, positions, axes }) => (
+        {layers.map(({ block, shape, variant, positions, axes }) => (
           <BlockLayer
-            key={block.id}
+            // One mesh per block, shape and variant, so the key carries all three.
+            key={`${block.id}-${shape}-${variant}`}
             block={block}
+            shape={shape}
+            variant={variant}
             positions={positions}
             axes={axes}
             textures={textures}

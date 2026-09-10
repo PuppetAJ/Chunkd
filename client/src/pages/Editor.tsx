@@ -143,6 +143,17 @@ export default function Editor() {
     // oxlint-disable-next-line exhaustive-deps
   }, [seed, spawnPoint]);
 
+  // Development-only handle on the player's box, so a test can stand them
+  // somewhere. An effect, not canvas setup: a new world makes a new body, and
+  // the canvas is created once, so that would go stale.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    window.__player = body;
+    return () => {
+      delete window.__player;
+    };
+  }, [body]);
+
   return (
     <>
       <Canvas
@@ -223,7 +234,21 @@ export default function Editor() {
         </Suspense>
         {/* Mouse-look would fight the cursor while the inventory or the save
             dialog is open, and there is nothing to look at while paused. */}
-        {!inventoryOpen && !pendingSave && <PointerLockControls />}
+        {!inventoryOpen && !pendingSave && (
+          // `selector` scopes drei's click-to-lock to the canvas. Left to
+          // itself it attaches that handler to the whole document, so any
+          // click anywhere took the mouse: while the game was paused, opening
+          // the scene settings locked the pointer and handed back mouse-look
+          // with the pause screen still on top of it. The pause screen covers
+          // the canvas, so a click that lands on it can no longer reach this.
+          //
+          // Scoped rather than unmounted while paused, because unmounting
+          // reintroduces a race. Starting play requests the lock directly, and
+          // if this component were mounting at the same time it could miss the
+          // pointerlockchange event that tells it the lock exists, leaving
+          // mouse-look dead until the next click.
+          <PointerLockControls selector="#editor canvas" />
+        )}
       </Canvas>
 
       <Crosshair />
