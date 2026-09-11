@@ -3,7 +3,15 @@ import test from "node:test";
 
 // blocks.ts imports textures, which Node cannot load, so the eligibility sets
 // live in blockIds.ts and this tests them there.
-import { BLOCK_IDS, SLAB_BLOCK_IDS, STAIR_BLOCK_IDS } from "./blockIds.ts";
+import { existsSync } from "node:fs";
+import {
+  BLOCK_IDS,
+  FENCE_BLOCK_IDS,
+  SLAB_BLOCK_IDS,
+  STAIR_BLOCK_IDS,
+  TRAPDOOR_BLOCK_IDS,
+  WALL_BLOCK_IDS,
+} from "./blockIds.ts";
 
 const nameOf = (id: number) =>
   Object.entries(BLOCK_IDS).find(([, value]) => value === id)?.[0] ?? String(id);
@@ -55,4 +63,42 @@ test("every eligible id is a real block", () => {
   // a union of the literal ids and the set would only accept those.
   const ids: Set<number> = new Set(Object.values(BLOCK_IDS));
   for (const id of SLAB_BLOCK_IDS) assert.equal(ids.has(id), true, `unknown id ${id}`);
+});
+
+test("the blocks that can be fences are the ones Minecraft gives fences to", () => {
+  assert.deepEqual([...FENCE_BLOCK_IDS].map(nameOf).sort(), [
+    "birchPlanks",
+    "cherryPlanks",
+    "oakPlanks",
+    "sprucePlanks",
+  ]);
+});
+
+test("the blocks that can be trapdoors are the ones Minecraft gives trapdoors to", () => {
+  assert.deepEqual([...TRAPDOOR_BLOCK_IDS].map(nameOf).sort(), [
+    "birchPlanks",
+    "cherryPlanks",
+    "oakPlanks",
+    "sprucePlanks",
+  ]);
+});
+
+test("the blocks that can be walls are the ones Minecraft gives walls to", () => {
+  // From the wiki's list. There is no wall of plain stone, cut or chiseled
+  // sandstone, or polished granite, diorite or andesite, and Minecraft's
+  // deepslate wall is of cobbled deepslate, which is not in our table.
+  const expected = [
+    "cobblestone", "mossyCobblestone", "stoneBricks", "granite", "diorite", "andesite",
+    "tuff", "blackstone", "deepslateTiles", "bricks", "mudBricks", "sandstone",
+  ];
+  assert.deepEqual([...WALL_BLOCK_IDS].map(nameOf).sort(), expected.sort());
+});
+
+test("every block with a trapdoor has its trapdoor texture", () => {
+  // blocks.ts cannot be loaded here, so this checks the files themselves.
+  for (const id of TRAPDOOR_BLOCK_IDS) {
+    const wood = nameOf(id).replace("Planks", "");
+    const file = new URL(`../../assets/textures/${wood}_trapdoor.png`, import.meta.url);
+    assert.ok(existsSync(file), `missing ${wood}_trapdoor.png`);
+  }
 });

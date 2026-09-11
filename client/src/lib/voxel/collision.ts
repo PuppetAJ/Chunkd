@@ -1,4 +1,12 @@
-import { isStairs, isUpsideDown, verticalExtent } from "./blockValue.ts";
+import {
+  isFence,
+  isStairs,
+  isTrapdoor,
+  isTrapdoorOpen,
+  isUpsideDown,
+  isWall,
+  verticalExtent,
+} from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { QUADRANT_COUNT, quadrantSides, stairQuadrants } from "./stairShape.ts";
 
@@ -42,7 +50,9 @@ function forEachOverlap(
 ): boolean {
   const minX = blockIndex(x - PLAYER_HALF_WIDTH);
   const maxX = blockIndex(x + PLAYER_HALF_WIDTH);
-  const minY = blockIndex(y);
+  // One cell below the feet, because a fence or wall there reaches half a block
+  // up into the cell the player is in.
+  const minY = blockIndex(y) - 1;
   const maxY = blockIndex(y + PLAYER_HEIGHT);
   const minZ = blockIndex(z - PLAYER_HALF_WIDTH);
   const maxZ = blockIndex(z + PLAYER_HALF_WIDTH);
@@ -53,7 +63,9 @@ function forEachOverlap(
       for (let bz = minZ; bz <= maxZ; bz += 1) {
         const value = blocks.get(toKey(bx, by, bz));
         if (value === undefined) continue;
-        const [low, high] = extentAt(blocks, value, bx, by, bz, x, z);
+        const extent = extentAt(blocks, value, bx, by, bz, x, z);
+        if (!extent) continue;
+        const [low, high] = extent;
         // Touching is not overlapping, so both comparisons are strict.
         if (y < high && head > low && visit(low, high)) return true;
       }
@@ -109,14 +121,23 @@ function extentAt(
   bz: number,
   x: number,
   z: number,
-): [number, number] {
-  if (!isStairs(value)) return verticalExtent(value, by);
+): [number, number] | null {
+  if (isStairs(value)) {
+    const overTall = overlapsQuadrant(stairQuadrants(blocks, bx, by, bz), bx, bz, x, z);
+    if (overTall) return [by - 0.5, by + 0.5];
+    // Away from the tall half, a stair is the half of the cell its solid part
+    // fills: the bottom one normally, the top one when it is upside down.
+    return isUpsideDown(value) ? [by, by + 0.5] : [by - 0.5, by];
+  }
 
-  const overTall = overlapsQuadrant(stairQuadrants(blocks, bx, by, bz), bx, bz, x, z);
-  if (overTall) return [by - 0.5, by + 0.5];
-  // Away from the tall half, a stair is the half of the cell its solid part
-  // fills: the bottom one normally, the top one when it is upside down.
-  return isUpsideDown(value) ? [by, by + 0.5] : [by - 0.5, by];
+  // An open trapdoor is a passage, which is how Minecraft treats it.
+  if (isTrapdoor(value) && isTrapdoorOpen(value)) return null;
+
+  // A block tall to look at and a block and a half to bump into, so neither can
+  // be jumped: a jump peaks at about 1.35.
+  if (isFence(value) || isWall(value)) return [by - 0.5, by + 1];
+
+  return verticalExtent(value, by);
 }
 
 /** Is the player's box, with its feet at (x, y, z), inside any block? */

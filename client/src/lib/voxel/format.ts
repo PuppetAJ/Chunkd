@@ -3,7 +3,7 @@ import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
 /**
- * Saved build format, version 4.
+ * Saved build format, version 5.
  *
  * Version 1 was the whole world written out as JSON, every block position
  * included, which is why a single save ran to megabytes and the API had to
@@ -27,8 +27,14 @@ import { fromKey, toKey, type BlockKey } from "./coords.ts";
  * read back, which went unnoticed while every world was the same size. An
  * older payload has no `trees` field, and every world that could be saved then
  * had them, so its absence reads as true.
+ *
+ * Version 5 added fences, walls and trapdoors. A trapdoor keeps which half it
+ * is in and whether it is open in two bits above its facing, which no earlier
+ * version ever set, so older builds read exactly as they did. The version went
+ * up so that a payload containing one says it needs a reader that knows what
+ * those bits mean.
  */
-export const BUILD_FORMAT_VERSION = 4;
+export const BUILD_FORMAT_VERSION = 5;
 
 /**
  * The versions this can load. Kept as a list rather than "anything up to the
@@ -36,7 +42,7 @@ export const BUILD_FORMAT_VERSION = 4;
  * still mean what they used to say rather than something that happens by
  * default.
  */
-const READABLE_VERSIONS = [2, 3, 4] as const;
+const READABLE_VERSIONS = [2, 3, 4, 5] as const;
 
 const positionSchema = z.tuple([z.number().int(), z.number().int(), z.number().int()]);
 

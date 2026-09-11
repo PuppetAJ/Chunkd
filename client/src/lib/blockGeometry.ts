@@ -3,11 +3,25 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import {
   AXIS_X,
   AXIS_Z,
+  facingOffset,
+  SHAPE_FENCE,
   SHAPE_SLAB_BOTTOM,
   SHAPE_SLAB_TOP,
   SHAPE_STAIRS_BOTTOM,
   SHAPE_STAIRS_TOP,
+  SHAPE_TRAPDOOR,
+  SHAPE_WALL,
+  TRAPDOOR_THICKNESS,
+  TRAPDOOR_VARIANT_OPEN,
+  TRAPDOOR_VARIANT_TOP,
 } from "./voxel/blockValue.ts";
+import {
+  SIDE_EAST,
+  SIDE_NORTH,
+  SIDE_SOUTH,
+  SIDE_WEST,
+  WALL_POST_BIT,
+} from "./voxel/connectionShape.ts";
 import { QUADRANT_COUNT, quadrantSides } from "./voxel/stairShape.ts";
 
 /**
@@ -165,30 +179,102 @@ export function stairParts(
   return parts;
 }
 
-/**
- * Built when first asked for and kept. There are two halves times sixteen
- * possible sets of quarters, and a build uses a handful of them.
- */
-const stairCache = new Map<number, THREE.BufferGeometry>();
+/** One box of a shape, as two opposite corners inside the cell. */
+interface Box {
+  min: [number, number, number];
+  max: [number, number, number];
+}
 
-function stairsGeometry(quadrants: number, upsideDown: boolean): THREE.BufferGeometry {
-  const key = quadrants * 2 + (upsideDown ? 1 : 0);
-  const cached = stairCache.get(key);
+/** A coordinate given in Minecraft's sixteenths of a block, as a cell offset. */
+function px(sixteenths: number): number {
+  return sixteenths / 16 - 0.5;
+}
+
+/**
+ * A fence: a post, and two rails out to each side it joins. The sizes are
+ * Minecraft's model, in sixteenths.
+ */
+export function fenceParts(mask: number): Box[] {
+  const parts: Box[] = [{ min: [px(6), -0.5, px(6)], max: [px(10), 0.5, px(10)] }];
+  for (const [low, high] of [
+    [px(6), px(9)],
+    [px(12), px(15)],
+  ] as const) {
+    if (mask & SIDE_NORTH) parts.push({ min: [px(7), low, -0.5], max: [px(9), high, px(6)] });
+    if (mask & SIDE_SOUTH) parts.push({ min: [px(7), low, px(10)], max: [px(9), high, 0.5] });
+    if (mask & SIDE_WEST) parts.push({ min: [-0.5, low, px(7)], max: [px(6), high, px(9)] });
+    if (mask & SIDE_EAST) parts.push({ min: [px(10), low, px(7)], max: [0.5, high, px(9)] });
+  }
+  return parts;
+}
+
+/**
+ * A wall: its post if it has one, and a side to each neighbour it joins. Each
+ * side runs from the middle of the cell to its edge, so a straight run without
+ * a post reads as one continuous wall.
+ */
+export function wallParts(variant: number): Box[] {
+  const parts: Box[] = [];
+  if (variant & WALL_POST_BIT) {
+    parts.push({ min: [px(4), -0.5, px(4)], max: [px(12), 0.5, px(12)] });
+  }
+  const top = px(14);
+  if (variant & SIDE_NORTH) parts.push({ min: [px(5), -0.5, -0.5], max: [px(11), top, 0] });
+  if (variant & SIDE_SOUTH) parts.push({ min: [px(5), -0.5, 0], max: [px(11), top, 0.5] });
+  if (variant & SIDE_WEST) parts.push({ min: [-0.5, -0.5, px(5)], max: [0, top, px(11)] });
+  if (variant & SIDE_EAST) parts.push({ min: [0, -0.5, px(5)], max: [0.5, top, px(11)] });
+  return parts;
+}
+
+/** A trapdoor: a thin panel across its half of the cell, or against its hinge when open. */
+export function trapdoorParts(variant: number): Box[] {
+  const thick = TRAPDOOR_THICKNESS;
+  if (!(variant & TRAPDOOR_VARIANT_OPEN)) {
+    return variant & TRAPDOOR_VARIANT_TOP
+      ? [{ min: [-0.5, 0.5 - thick, -0.5], max: [0.5, 0.5, 0.5] }]
+      : [{ min: [-0.5, -0.5, -0.5], max: [0.5, -0.5 + thick, 0.5] }];
+  }
+
+  // The hinge is on the side the trapdoor faces away from.
+  const [fx, fz] = facingOffset(variant & 0b11);
+  if (fz < 0) return [{ min: [-0.5, -0.5, 0.5 - thick], max: [0.5, 0.5, 0.5] }];
+  if (fz > 0) return [{ min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, -0.5 + thick] }];
+  if (fx < 0) return [{ min: [0.5 - thick, -0.5, -0.5], max: [0.5, 0.5, 0.5] }];
+  return [{ min: [-0.5, -0.5, -0.5], max: [-0.5 + thick, 0.5, 0.5] }];
+}
+
+/**
+ * Built when first asked for and kept. Each shape has a few dozen variants at
+ * most, and a build uses a handful of them.
+ */
+const partsCache = new Map<string, THREE.BufferGeometry>();
+
+function cachedParts(key: string, parts: () => Box[]): THREE.BufferGeometry {
+  const cached = partsCache.get(key);
   if (cached) return cached;
-  const built = fuse(stairParts(quadrants, upsideDown).map((part) => boxPart(part.min, part.max)));
-  stairCache.set(key, built);
+  const built = fuse(parts().map((part) => boxPart(part.min, part.max)));
+  partsCache.set(key, built);
   return built;
 }
 
 /**
- * The geometry one render layer should be drawn with. `variant` is the set of
- * quarters a stair's tall half fills, and is ignored by every other shape.
+ * The geometry one render layer should be drawn with. `variant` is whatever
+ * part of the shape is not in the shape number: a stair's filled quarters, the
+ * sides a fence or wall joins, or a trapdoor's facing, half and whether it is
+ * open. The other shapes ignore it.
  */
 export function geometryForShape(shape: number, variant = 0): THREE.BufferGeometry {
   if (shape === SHAPE_SLAB_BOTTOM) return SLAB_BOTTOM_GEOMETRY;
   if (shape === SHAPE_SLAB_TOP) return SLAB_TOP_GEOMETRY;
-  if (shape === SHAPE_STAIRS_BOTTOM) return stairsGeometry(variant, false);
-  if (shape === SHAPE_STAIRS_TOP) return stairsGeometry(variant, true);
+  if (shape === SHAPE_STAIRS_BOTTOM) {
+    return cachedParts(`stairs-${variant}`, () => stairParts(variant, false));
+  }
+  if (shape === SHAPE_STAIRS_TOP) {
+    return cachedParts(`stairs-top-${variant}`, () => stairParts(variant, true));
+  }
+  if (shape === SHAPE_FENCE) return cachedParts(`fence-${variant}`, () => fenceParts(variant));
+  if (shape === SHAPE_WALL) return cachedParts(`wall-${variant}`, () => wallParts(variant));
+  if (shape === SHAPE_TRAPDOOR) return cachedParts(`trapdoor-${variant}`, () => trapdoorParts(variant));
   return BLOCK_GEOMETRY;
 }
 

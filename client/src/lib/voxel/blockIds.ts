@@ -131,6 +131,44 @@ export const STAIR_BLOCK_IDS: ReadonlySet<number> = new Set(
   [...SLAB_BLOCK_IDS].filter((id) => id !== BLOCK_IDS.cutSandstone),
 );
 
+/**
+ * The blocks Minecraft gives a fence, a wall and a trapdoor, checked against
+ * the game's own lists rather than inferred from ours.
+ *
+ * Fences and trapdoors exist for every wood, which of ours is the four planks.
+ * Walls are the uneven set: there is no wall of plain stone, of cut or chiseled
+ * sandstone, or of polished granite, diorite or andesite, and the deepslate
+ * wall is of cobbled deepslate, which we do not carry.
+ */
+export const FENCE_BLOCK_IDS: ReadonlySet<number> = new Set([
+  BLOCK_IDS.oakPlanks,
+  BLOCK_IDS.sprucePlanks,
+  BLOCK_IDS.birchPlanks,
+  BLOCK_IDS.cherryPlanks,
+]);
+
+export const TRAPDOOR_BLOCK_IDS: ReadonlySet<number> = new Set([
+  BLOCK_IDS.oakPlanks,
+  BLOCK_IDS.sprucePlanks,
+  BLOCK_IDS.birchPlanks,
+  BLOCK_IDS.cherryPlanks,
+]);
+
+export const WALL_BLOCK_IDS: ReadonlySet<number> = new Set([
+  BLOCK_IDS.cobblestone,
+  BLOCK_IDS.mossyCobblestone,
+  BLOCK_IDS.stoneBricks,
+  BLOCK_IDS.granite,
+  BLOCK_IDS.diorite,
+  BLOCK_IDS.andesite,
+  BLOCK_IDS.tuff,
+  BLOCK_IDS.blackstone,
+  BLOCK_IDS.deepslateTiles,
+  BLOCK_IDS.bricks,
+  BLOCK_IDS.mudBricks,
+  BLOCK_IDS.sandstone,
+]);
+
 export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.glass,
   BLOCK_IDS.oakLeaves,

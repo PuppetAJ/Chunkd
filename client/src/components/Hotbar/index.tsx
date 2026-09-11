@@ -1,4 +1,11 @@
-import { SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_STAIRS_BOTTOM } from "../../lib/voxel/blockValue.ts";
+import {
+  SHAPE_FENCE,
+  SHAPE_FULL,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_STAIRS_BOTTOM,
+  SHAPE_TRAPDOOR,
+  SHAPE_WALL,
+} from "../../lib/voxel/blockValue.ts";
 import { getBlock } from "../../lib/voxel/blocks.ts";
 import { HOTBAR_SLOTS, useWorldStore } from "../../lib/voxel/worldStore.ts";
 
@@ -28,10 +35,29 @@ function TexturePiece({ src, window: where, image }: { src: string; window: stri
   );
 }
 
+/**
+ * The whole texture, cropped to one rectangle of the tile. For shapes made of
+ * several pieces, a stack of these masks the tile without scaling it, so the
+ * pixels stay square. The inset is CSS order: top, right, bottom, left.
+ */
+function Cropped({ src, inset }: { src: string; inset: string }) {
+  return (
+    <img
+      src={src}
+      alt=""
+      className="absolute inset-0 h-full w-full"
+      style={{ imageRendering: "pixelated", clipPath: `inset(${inset})` }}
+    />
+  );
+}
+
 /** What to add to a block's name for the shape the slot is set to. */
 function shapeSuffix(shape: number): string {
   if (shape === SHAPE_SLAB_BOTTOM) return " Slab";
   if (shape === SHAPE_STAIRS_BOTTOM) return " Stairs";
+  if (shape === SHAPE_FENCE) return " Fence";
+  if (shape === SHAPE_WALL) return " Wall";
+  if (shape === SHAPE_TRAPDOOR) return " Trapdoor";
   return "";
 }
 
@@ -83,7 +109,7 @@ export default function Hotbar() {
                     style={{ imageRendering: "pixelated" }}
                   />
                 )}
-                {block && shape !== SHAPE_FULL && (
+                {block && (shape === SHAPE_SLAB_BOTTOM || shape === SHAPE_STAIRS_BOTTOM) && (
                   <>
                     <TexturePiece
                       src={block.side}
@@ -98,6 +124,28 @@ export default function Hotbar() {
                       />
                     )}
                   </>
+                )}
+                {/* The same idea for the thin shapes: a fence is a post and
+                    two rails, a wall a post over a lower band, and a trapdoor
+                    is its own drawing. */}
+                {block && shape === SHAPE_FENCE && (
+                  <>
+                    <Cropped src={block.side} inset="0 37.5% 0 37.5%" />
+                    <Cropped src={block.side} inset="43.75% 0 37.5% 0" />
+                    <Cropped src={block.side} inset="6.25% 0 75% 0" />
+                  </>
+                )}
+                {/* The band sits far lower than a real wall's, whose sides are
+                    only two sixteenths below the post. At true height the tile
+                    was indistinguishable from the whole block. */}
+                {block && shape === SHAPE_WALL && (
+                  <>
+                    <Cropped src={block.side} inset="0 25% 0 25%" />
+                    <Cropped src={block.side} inset="37.5% 0 0 0" />
+                  </>
+                )}
+                {block?.trapdoor && shape === SHAPE_TRAPDOOR && (
+                  <Cropped src={block.trapdoor} inset="0" />
                 )}
                 <span className="absolute bottom-0 right-1 text-[10px] text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
                   {slot}

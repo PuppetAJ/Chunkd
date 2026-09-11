@@ -16,13 +16,15 @@
  * unchanged.
  *
  * ```
- *   bits 13-14   bits 10-12   bits 8-9   bits 0-7
- *     facing        shape        axis        id
+ *   bit 16   bit 15   bits 13-14   bits 10-12   bits 8-9   bits 0-7
+ *    open     top       facing        shape        axis        id
  * ```
  *
- * Facing is only read for stairs, which are the one shape that is not the same
- * from every side. Axis is only read for blocks with a grain. Both default to
- * zero, so a plain upright cube is still stored as exactly its id.
+ * Facing is only read for stairs and trapdoors, the shapes that are not the
+ * same from every side. Axis is only read for blocks with a grain. The top two
+ * bits are only read for trapdoors. All of them default to zero, so a plain
+ * upright cube is still stored as exactly its id, and nothing saved before a
+ * field existed ever set it.
  */
 
 /** Upright: the block's top face points up. The default. */
@@ -42,6 +44,21 @@ export const SHAPE_SLAB_TOP = 2;
 export const SHAPE_STAIRS_BOTTOM = 3;
 /** The same step upside down, so the full part is at the top. */
 export const SHAPE_STAIRS_TOP = 4;
+/** A post that joins its neighbours. Which ones is worked out, not stored. */
+export const SHAPE_FENCE = 5;
+/** Like a fence but thicker, with a post only where it turns or ends. */
+export const SHAPE_WALL = 6;
+/**
+ * A thin panel across the top or bottom of its cell, or standing against one
+ * side when open.
+ *
+ * This is the last value three bits hold. Another shape means widening the
+ * field, which moves facing and changes the meaning of every stored stair.
+ */
+export const SHAPE_TRAPDOOR = 7;
+
+/** How thick a trapdoor is: three pixels of sixteen, as in Minecraft. */
+export const TRAPDOOR_THICKNESS = 3 / 16;
 
 /** Which way a stair's step faces. The high side is opposite this. */
 export const FACING_NORTH = 0;
@@ -56,6 +73,8 @@ const SHAPE_BITS = 13;
 const AXIS_MASK = 0b11;
 const SHAPE_MASK = 0b111;
 const FACING_MASK = 0b11;
+const TRAPDOOR_TOP_BIT = 1 << 15;
+const TRAPDOOR_OPEN_BIT = 1 << 16;
 
 export function packBlock(
   id: number,
@@ -98,6 +117,55 @@ export function isUpsideDown(value: number): boolean {
   return shape === SHAPE_SLAB_TOP || shape === SHAPE_STAIRS_TOP;
 }
 
+export function isFence(value: number): boolean {
+  return blockShapeOf(value) === SHAPE_FENCE;
+}
+
+export function isWall(value: number): boolean {
+  return blockShapeOf(value) === SHAPE_WALL;
+}
+
+export function isTrapdoor(value: number): boolean {
+  return blockShapeOf(value) === SHAPE_TRAPDOOR;
+}
+
+export function packTrapdoor(id: number, facing: number, top: boolean, open: boolean): number {
+  return (
+    packBlock(id, AXIS_Y, SHAPE_TRAPDOOR, facing) |
+    (top ? TRAPDOOR_TOP_BIT : 0) |
+    (open ? TRAPDOOR_OPEN_BIT : 0)
+  );
+}
+
+/** Whether a trapdoor sits across the upper half of its cell. */
+export function isTrapdoorTop(value: number): boolean {
+  return (value & TRAPDOOR_TOP_BIT) !== 0;
+}
+
+export function isTrapdoorOpen(value: number): boolean {
+  return (value & TRAPDOOR_OPEN_BIT) !== 0;
+}
+
+/** The same trapdoor, opened if it was shut and shut if it was open. */
+export function toggledTrapdoor(value: number): number {
+  return value ^ TRAPDOOR_OPEN_BIT;
+}
+
+/**
+ * A trapdoor's state as one number for the renderer: facing in the low two
+ * bits, then which half, then whether it is open.
+ */
+export const TRAPDOOR_VARIANT_TOP = 4;
+export const TRAPDOOR_VARIANT_OPEN = 8;
+
+export function trapdoorVariant(value: number): number {
+  return (
+    blockFacingOf(value) |
+    (isTrapdoorTop(value) ? TRAPDOOR_VARIANT_TOP : 0) |
+    (isTrapdoorOpen(value) ? TRAPDOOR_VARIANT_OPEN : 0)
+  );
+}
+
 /**
  * How far up and down a block reaches inside its own cell, which for a slab is
  * half of it. A cell centred on integer `y` covers y - 0.5 to y + 0.5.
@@ -106,10 +174,16 @@ export function verticalExtent(value: number, y: number): [number, number] {
   const shape = blockShapeOf(value);
   if (shape === SHAPE_SLAB_BOTTOM) return [y - 0.5, y];
   if (shape === SHAPE_SLAB_TOP) return [y, y + 0.5];
-  // A stair reports the whole cube, which is the most that can be said from the
-  // value alone: which quarters its tall half covers comes from its neighbours.
-  // Collision narrows it per quarter so the low half stays a step; see extentAt
-  // in collision.ts.
+  if (shape === SHAPE_TRAPDOOR && !isTrapdoorOpen(value)) {
+    return isTrapdoorTop(value)
+      ? [y + 0.5 - TRAPDOOR_THICKNESS, y + 0.5]
+      : [y - 0.5, y - 0.5 + TRAPDOOR_THICKNESS];
+  }
+  // Everything else reports its whole cell, which is also what the block outline
+  // is drawn from. Collision then adjusts three of them: a stair per quarter so
+  // its low half stays a step, fences and walls half a block taller so they
+  // cannot be jumped, and an open trapdoor not at all. See extentAt in
+  // collision.ts.
   return [y - 0.5, y + 0.5];
 }
 
@@ -174,4 +248,24 @@ export function axisForFaceNormal(nx: number, ny: number, nz: number): number {
   const az = Math.abs(nz);
   if (ay >= ax && ay >= az) return AXIS_Y;
   return ax >= az ? AXIS_X : AXIS_Z;
+}
+
+/** Whether a trapdoor placed on this face goes in the upper half, by the slab rule. */
+export function trapdoorTopForPlacement(faceNormalY: number, hitHeightInCell: number): boolean {
+  return upperHalfForPlacement(faceNormalY, hitHeightInCell);
+}
+
+/**
+ * Which way a trapdoor placed now should face.
+ *
+ * Against the side of a block it faces out from that side, so its hinge is on
+ * the block and it opens flat against it. On a top or bottom face there is no
+ * side to hang from, so it faces the player the way a stair does.
+ */
+export function trapdoorFacingForPlacement(normalX: number, normalZ: number, yaw: number): number {
+  if (normalX > 0.5) return FACING_EAST;
+  if (normalX < -0.5) return FACING_WEST;
+  if (normalZ > 0.5) return FACING_SOUTH;
+  if (normalZ < -0.5) return FACING_NORTH;
+  return facingForYaw(yaw);
 }

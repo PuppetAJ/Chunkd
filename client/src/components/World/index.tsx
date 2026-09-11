@@ -12,11 +12,15 @@ import {
   blockShapeOf,
   facingForYaw,
   isSlab,
+  isTrapdoor,
   slabShapeForPlacement,
   stairsShapeForPlacement,
+  trapdoorFacingForPlacement,
+  trapdoorTopForPlacement,
   verticalExtent,
   SHAPE_SLAB_BOTTOM,
   SHAPE_STAIRS_BOTTOM,
+  SHAPE_TRAPDOOR,
 } from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { isEditorPaused, swingTool } from "../../lib/editorUiStore.ts";
@@ -82,6 +86,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const placeBlock = useWorldStore((state) => state.placeBlock);
   const removeBlock = useWorldStore((state) => state.removeBlock);
   const fillSlab = useWorldStore((state) => state.fillSlab);
+  const toggleTrapdoor = useWorldStore((state) => state.toggleTrapdoor);
   const selectedShape = useWorldStore((state) => state.selectedShape);
   const selectedBlockId = useWorldStore((state) => state.selectedBlockId);
 
@@ -96,6 +101,9 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
   /** Which mouse button is held, and the earliest time it may act again. */
   const heldButton = useRef<number | null>(null);
+  // Shift at the moment of pressing, which decides whether using a trapdoor
+  // opens it or builds against it.
+  const sneaking = useRef(false);
   const nextActionAt = useRef(0);
 
   // Suspends until every block texture is in. The promise is shared and never
@@ -162,8 +170,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     if (highlightRef.current) highlightRef.current.visible = false;
   };
 
-  const act = useRef<(button: number) => void>(() => {});
-  act.current = (button: number) => {
+  const act = useRef<(button: number, fresh: boolean) => void>(() => {});
+  act.current = (button: number, fresh: boolean) => {
     const current = findTarget();
     if (!current) return;
 
@@ -178,11 +186,18 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
     if (button === 2) {
       const chosenShape = selectedShape();
+      const targeted = blocks.get(toKey(...current.hit));
+
+      // Using a trapdoor opens or shuts it, as in Minecraft, and sneaking builds
+      // against it instead. Only on the press: holding the button would flap it.
+      if (targeted !== undefined && isTrapdoor(targeted) && !sneaking.current) {
+        if (fresh) toggleTrapdoor(...current.hit);
+        return;
+      }
 
       // Two slabs of the same block make a whole one, rather than the second
       // going into the cell next door. Only when the exposed half is the one
       // being built on: from the side, a slab still places its neighbour.
-      const targeted = blocks.get(toKey(...current.hit));
       if (
         chosenShape === SHAPE_SLAB_BOTTOM &&
         targeted !== undefined &&
@@ -211,9 +226,19 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       // Taken from the direction the camera looks rather than camera.rotation,
       // so it does not depend on the rotation order the controls happen to use.
       camera.getWorldDirection(lookDirection);
-      const facing = facingForYaw(Math.atan2(-lookDirection.x, -lookDirection.z));
+      const yaw = Math.atan2(-lookDirection.x, -lookDirection.z);
 
-      placeBlock(x, y, z, current.axis, shape, facing);
+      if (chosenShape === SHAPE_TRAPDOOR) {
+        // A trapdoor hangs from the face it was built against, so the side of
+        // that face, rather than the look direction, decides its facing.
+        const [hx, , hz] = current.hit;
+        const facing = trapdoorFacingForPlacement(x - hx, z - hz, yaw);
+        const top = trapdoorTopForPlacement(current.normalY, current.heightInCell);
+        placeBlock(x, y, z, current.axis, shape, facing, top);
+        return;
+      }
+
+      placeBlock(x, y, z, current.axis, shape, facingForYaw(yaw));
     }
   };
 
@@ -299,7 +324,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
     const now = performance.now();
     if (heldButton.current !== null && now >= nextActionAt.current) {
-      act.current(heldButton.current);
+      act.current(heldButton.current, false);
       nextActionAt.current = now + REPEAT_MS;
     }
 
@@ -315,10 +340,11 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     const onPointerDown = (event: PointerEvent) => {
       if (isEditorPaused()) return;
       heldButton.current = event.button;
+      sneaking.current = event.shiftKey;
       // Act now rather than waiting for the next frame. A quick click can send
       // both press and release inside a single frame, and deferring meant such
       // a click did nothing at all.
-      act.current(event.button);
+      act.current(event.button, true);
       nextActionAt.current = performance.now() + REPEAT_MS;
     };
 
@@ -346,7 +372,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       if (focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement) return;
 
       heldButton.current = button;
-      act.current(button);
+      sneaking.current = event.shiftKey;
+      act.current(button, true);
       nextActionAt.current = performance.now() + REPEAT_MS;
     };
 

@@ -3,7 +3,17 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 
 import { BLOCK_IDS } from "./blockIds.ts";
-import { AXIS_Y, blockIdOf, packBlock, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./blockValue.ts";
+import {
+  AXIS_Y,
+  blockIdOf,
+  FACING_EAST,
+  packBlock,
+  packTrapdoor,
+  SHAPE_FENCE,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_SLAB_TOP,
+  SHAPE_WALL,
+} from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { BUILD_FORMAT_VERSION, deserializeWorld, serializeWorld } from "./format.ts";
 import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
@@ -252,4 +262,30 @@ test("unreadable payloads are refused rather than thrown", () => {
   for (const payload of ["", "not json", "{}", '{"v":2}', "null", "[]"]) {
     assert.equal(deserializeWorld(payload), null, `should have refused ${JSON.stringify(payload)}`);
   }
+});
+
+test("fences, walls and trapdoors survive a round trip, open and shut", () => {
+  const seed = 42;
+  const edited = new Map(generateTerrain(seed));
+  const placed: [BlockKey, number][] = [
+    [toKey(10, 60, 10), packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE)],
+    [toKey(11, 60, 10), packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL)],
+    [toKey(12, 60, 10), packTrapdoor(BLOCK_IDS.sprucePlanks, FACING_EAST, true, true)],
+    [toKey(13, 60, 10), packTrapdoor(BLOCK_IDS.cherryPlanks, FACING_EAST, false, false)],
+  ];
+  for (const [key, value] of placed) edited.set(key, value);
+
+  const payload = serializeWorld(seed, edited);
+  assert.equal(JSON.parse(payload).v, BUILD_FORMAT_VERSION);
+
+  const loaded = deserializeWorld(payload);
+  assert.ok(loaded, "should have loaded");
+  for (const [key, value] of placed) assert.equal(loaded.blocks.get(key), value, `value at ${key}`);
+});
+
+test("a version 4 payload still loads", () => {
+  const seed = 1337;
+  const payload = JSON.parse(serializeWorld(seed, generateTerrain(seed)));
+  payload.v = 4;
+  assert.ok(deserializeWorld(JSON.stringify(payload)), "a version 4 build should still load");
 });

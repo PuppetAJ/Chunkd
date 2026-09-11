@@ -3,12 +3,17 @@ import {
   blockAxisOf,
   blockIdOf,
   blockShapeOf,
+  SHAPE_FENCE,
   SHAPE_FULL,
   SHAPE_SLAB_BOTTOM,
   SHAPE_SLAB_TOP,
   SHAPE_STAIRS_BOTTOM,
   SHAPE_STAIRS_TOP,
+  SHAPE_TRAPDOOR,
+  SHAPE_WALL,
+  trapdoorVariant,
 } from "./blockValue.ts";
+import { connectionMask, WALL_POST_BIT, wallHasPost } from "./connectionShape.ts";
 import { stairQuadrants } from "./stairShape.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
@@ -17,8 +22,9 @@ export interface RenderLayer {
   /** Whole block, slab or stairs. One mesh is one id, shape and facing. */
   shape: number;
   /**
-   * For stairs, which quarters of the cell the tall half fills, which is what
-   * turns a run into a corner. Ignored by every other shape.
+   * The part of the shape that is not in the shape number: for stairs the
+   * quarters the tall half fills, for fences and walls the sides they join,
+   * for a trapdoor its facing, half and whether it is open.
    */
   variant: number;
   /** Flat x, y, z triples. */
@@ -83,6 +89,11 @@ function coversFace(
   if (shape === SHAPE_STAIRS_BOTTOM) return dy === 1;
   if (shape === SHAPE_STAIRS_TOP) return dy === -1;
 
+  // None of these hides a neighbour. Fences and walls fill no face of their
+  // cell, and the one a shut trapdoor fills is full of holes you can see
+  // through. Left to the line below, each would have cut a hole in the world.
+  if (shape === SHAPE_FENCE || shape === SHAPE_WALL || shape === SHAPE_TRAPDOOR) return false;
+
   return true;
 }
 
@@ -145,7 +156,28 @@ export function refreshVisibleAround(
 
 /** Only used to combine an id, a shape and a variant into one map key. */
 const SHAPE_SLOTS = 8;
-const VARIANT_SLOTS = 16;
+const VARIANT_SLOTS = 32;
+
+/** The part of a block's shape that comes from its neighbours or its state. */
+function variantFor(
+  blocks: Map<BlockKey, number>,
+  value: number,
+  x: number,
+  y: number,
+  z: number,
+): number {
+  const shape = blockShapeOf(value);
+  if (shape === SHAPE_STAIRS_BOTTOM || shape === SHAPE_STAIRS_TOP) {
+    return stairQuadrants(blocks, x, y, z);
+  }
+  if (shape === SHAPE_FENCE) return connectionMask(blocks, x, y, z);
+  if (shape === SHAPE_WALL) {
+    const mask = connectionMask(blocks, x, y, z);
+    return mask | (wallHasPost(blocks, x, y, z, mask) ? WALL_POST_BIT : 0);
+  }
+  if (shape === SHAPE_TRAPDOOR) return trapdoorVariant(value);
+  return 0;
+}
 
 /**
  * Group the visible blocks by id, shape and variant, ready for one instanced
@@ -167,10 +199,7 @@ export function groupVisible(
   for (const [key, value] of visible) {
     const [x, y, z] = fromKey(key);
     const shape = blockShapeOf(value);
-    const variant =
-      shape === SHAPE_STAIRS_BOTTOM || shape === SHAPE_STAIRS_TOP
-        ? stairQuadrants(blocks, x, y, z)
-        : 0;
+    const variant = variantFor(blocks, value, x, y, z);
     const type = (blockIdOf(value) * SHAPE_SLOTS + shape) * VARIANT_SLOTS + variant;
     let positions = positionsByType.get(type);
     let axes = axesByType.get(type);
