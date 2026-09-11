@@ -17,6 +17,21 @@ import { blockIdOf } from "./blockValue.ts";
 export const WORLD_SIZE = 64;
 
 /**
+ * The world sizes the editor offers, as a square grid of 64-block chunks.
+ *
+ * Bigger is not free: a 3x3 world is around half a million blocks and takes
+ * roughly a second to generate and cull, so it wants a loading state rather
+ * than being the silent default.
+ */
+export const WORLD_SIZES = [WORLD_SIZE, WORLD_SIZE * 2, WORLD_SIZE * 3] as const;
+
+/** What can be turned off when generating a world. */
+export interface TerrainOptions {
+  /** Plant trees. Off gives bare ground to build on. */
+  trees?: boolean;
+}
+
+/**
  * The shape of the land.
  *
  * The first version sampled one octave of noise at a fairly high frequency,
@@ -134,8 +149,11 @@ function plantTree(
     const radius = dy <= -1 ? 2 : 1;
     for (let dx = -radius; dx <= radius; dx += 1) {
       for (let dz = -radius; dz <= radius; dz += 1) {
-        // Clip the corners of the widest rings so the canopy is not a cube.
-        if (radius === 2 && Math.abs(dx) === 2 && Math.abs(dz) === 2) continue;
+        // Clip the corners of the wide rings so the canopy is not a cube, and
+        // the corners of the top ring as well so it finishes in a cross rather
+        // than a flat square, which is the shape Minecraft's oak has.
+        const isCorner = Math.abs(dx) === radius && Math.abs(dz) === radius;
+        if (isCorner && (radius === 2 || dy === 1)) continue;
         const key = toKey(x + dx, top + dy, z + dz);
         if (!blocks.has(key)) blocks.set(key, kind.leaves);
       }
@@ -155,7 +173,12 @@ function plantTree(
  * so digging down revealed an empty shell. Each column is filled all the way to
  * the floor: soil near the top, stone under it.
  */
-export function generateTerrain(seed: number, size: number = WORLD_SIZE): Map<BlockKey, number> {
+export function generateTerrain(
+  seed: number,
+  size: number = WORLD_SIZE,
+  options: TerrainOptions = {},
+): Map<BlockKey, number> {
+  const { trees = true } = options;
   const heightAt = createHeightField(seed);
   const blocks = new Map<BlockKey, number>();
 
@@ -174,6 +197,8 @@ export function generateTerrain(seed: number, size: number = WORLD_SIZE): Map<Bl
       }
     }
   }
+
+  if (!trees) return blocks;
 
   // Trees are placed after the ground exists so they can read its height and
   // its slope, and so a trunk is never buried by the column it stands on.

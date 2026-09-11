@@ -12,7 +12,7 @@ import {
   SHAPE_STAIRS_BOTTOM,
 } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
-import { generateTerrain, randomSeed, spawnPointFor } from "./terrain.ts";
+import { generateTerrain, randomSeed, spawnPointFor, WORLD_SIZE } from "./terrain.ts";
 import { deserializeWorld, serializeWorld } from "./format.ts";
 import { computeVisible, refreshVisibleAround, type VisibleBlocks } from "./render.ts";
 
@@ -27,8 +27,18 @@ export const HOTBAR_SLOTS = 9;
  * breaking a placed block and breaking a terrain block took separate code
  * paths. They are the same thing and now live in the same map.
  */
+/** What a new world can be asked for, beyond its seed. */
+export interface WorldOptions {
+  size?: number;
+  trees?: boolean;
+}
+
 interface WorldState {
   seed: number;
+  /** Width of the world in blocks. One of WORLD_SIZES. */
+  size: number;
+  /** Whether this world was grown with trees. */
+  trees: boolean;
   blocks: Map<BlockKey, number>;
   /**
    * The subset of `blocks` that is actually drawn, kept up to date as edits
@@ -48,7 +58,7 @@ interface WorldState {
    */
   hotbarShape: number[];
 
-  newWorld: (seed?: number) => void;
+  newWorld: (seed?: number, options?: WorldOptions) => void;
   loadBuild: (payload: string) => boolean;
   serialize: () => string;
 
@@ -93,25 +103,37 @@ const initialBlocks = generateTerrain(initialSeed);
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   seed: initialSeed,
+  size: WORLD_SIZE,
+  trees: true,
   blocks: initialBlocks,
   visible: computeVisible(initialBlocks),
   selectedSlot: 1,
   hotbar: [...DEFAULT_HOTBAR],
   hotbarShape: Array.from({ length: HOTBAR_SLOTS }, () => SHAPE_FULL),
 
-  newWorld: (seed = randomSeed()) => {
-    const blocks = generateTerrain(seed);
-    set({ seed, blocks, visible: computeVisible(blocks) });
+  newWorld: (seed = randomSeed(), options = {}) => {
+    const { size = WORLD_SIZE, trees = true } = options;
+    const blocks = generateTerrain(seed, size, { trees });
+    set({ seed, size, trees, blocks, visible: computeVisible(blocks) });
   },
 
   loadBuild: (payload: string) => {
     const world = deserializeWorld(payload);
     if (!world) return false;
-    set({ seed: world.seed, blocks: world.blocks, visible: computeVisible(world.blocks) });
+    set({
+      seed: world.seed,
+      size: world.size,
+      trees: world.trees,
+      blocks: world.blocks,
+      visible: computeVisible(world.blocks),
+    });
     return true;
   },
 
-  serialize: () => serializeWorld(get().seed, get().blocks),
+  serialize: () => {
+    const { seed, blocks, size, trees } = get();
+    return serializeWorld(seed, blocks, size, trees);
+  },
 
   placeBlock: (
     x,

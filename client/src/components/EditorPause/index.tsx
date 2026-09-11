@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link } from "react-router";
-import { ChevronLeft, MousePointerClick } from "lucide-react";
+import { ChevronLeft, Globe2, MousePointerClick } from "lucide-react";
 import { Button } from "../ui/button.tsx";
 import SceneSettingsMenu from "../SceneSettingsMenu.tsx";
+import NewWorldDialog from "../NewWorldDialog/index.tsx";
 import { useEditorSettings } from "../../lib/sceneSettings.ts";
 
 /**
@@ -38,6 +40,7 @@ interface Props {
 export default function EditorPause({ firstVisit, onPlay }: Props) {
   const settings = useEditorSettings((state) => state.settings);
   const setSettings = useEditorSettings((state) => state.setSettings);
+  const [newWorldOpen, setNewWorldOpen] = useState(false);
 
   return (
     <div
@@ -71,6 +74,16 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
         <Button className="mt-5 w-full" size="lg" onClick={onPlay}>
           <MousePointerClick />
           Click to play
+        </Button>
+
+        <Button
+          variant="outline"
+          size="lg"
+          className="mt-2 w-full"
+          onClick={() => setNewWorldOpen(true)}
+        >
+          <Globe2 />
+          New world
         </Button>
 
         {/* The way out is a button of its own rather than a footnote. Getting
@@ -122,6 +135,13 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
           </a>
           . Not an official Minecraft product.
         </p>
+
+        {/* Inside the card, not beside it. The dialog renders through a portal,
+            so its markup leaves this subtree, but React sends events up the
+            component tree rather than the DOM tree. Outside the card, every
+            click in the dialog would reach the backdrop's onClick, start play,
+            unmount this screen and take the dialog with it. */}
+        <NewWorldDialog open={newWorldOpen} onOpenChange={setNewWorldOpen} />
       </div>
     </div>
   );

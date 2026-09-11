@@ -72,8 +72,11 @@ async function start(): Promise<void> {
   // is allowed to call the API from a browser.
   app.use(cors({ origin: isProduction ? env.CLIENT_ORIGIN : true, credentials: true }));
 
-  // 1 MB, down from the old 50 MB. Builds are no longer whole-world JSON dumps.
-  app.use(express.json({ limit: "1mb" }));
+  // Down from the old 50 MB, when builds were whole-world JSON dumps. It has to
+  // clear MAX_BUILD_BYTES plus a thumbnail plus the JSON around them, or the
+  // larger build ceiling would never be reachable: the body is rejected here,
+  // before any resolver sees it.
+  app.use(express.json({ limit: "4mb" }));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });

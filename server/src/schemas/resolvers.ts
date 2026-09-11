@@ -23,9 +23,13 @@ import {
   type GraphQLContext,
 } from "../utils/auth.ts";
 
-// A saved world is a few kilobytes in the compact format. This ceiling is a
-// safety net against a bug or a malicious client, not a real design limit.
-const MAX_BUILD_BYTES = 512 * 1024;
+// A saved world is a few kilobytes in the compact format, because it stores the
+// seed and the differences rather than the blocks. Two things push it up: a
+// 3x3 world is nine times the ground, and clearing its vegetation records every
+// removed leaf, which on its own is around 164 KB before a single block is
+// placed. This ceiling is a safety net against a bug or a malicious client, not
+// a real design limit, so it sits well above that.
+const MAX_BUILD_BYTES = 2 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 256 * 1024;
 
 // How many posts one request may ask for. The default is a screenful or two;
