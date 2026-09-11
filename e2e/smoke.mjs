@@ -687,6 +687,32 @@ check("a wall turning a corner has a post", cornerWall === 28, `variant ${corner
 const lonelyTrapdoor = await variantAt(46, SHAPE_Y, 40, 7);
 check("a trapdoor is drawn as a shut trapdoor", lonelyTrapdoor === 0, `variant ${lonelyTrapdoor}`);
 
+// Glass panes are a block of their own. Placed in a row from a stone block to a
+// glass block, each end joins what it meets, and a pane on its own is a post.
+await page.evaluate((y) => {
+  const store = window.__world.getState();
+  const place = (blockId, x) => {
+    store.setHotbarBlock(7, blockId);
+    store.setSelectedSlot(7);
+    store.placeBlock(x, y, 48, 0, 0);
+  };
+  place(18, 40);
+  for (const x of [41, 42, 43]) place(50, x);
+  place(3, 44);
+  place(50, 46);
+}, SHAPE_Y);
+await until(
+  (y) => (window.__layers ?? []).some((layer) => layer.blockId === 50 && layer.positions[1] === y),
+  SHAPE_Y,
+  10000,
+);
+const paneByStone = await variantAt(41, SHAPE_Y, 48, 0);
+check("a glass pane joins a solid block and the pane beside it", paneByStone === 10, `variant ${paneByStone}`);
+const paneByGlass = await variantAt(43, SHAPE_Y, 48, 0);
+check("a glass pane joins a glass block", paneByGlass === 10, `variant ${paneByGlass}`);
+const lonePane = await variantAt(46, SHAPE_Y, 48, 0);
+check("a glass pane on its own is just a post", lonePane === 0, `variant ${lonePane}`);
+
 // Using a trapdoor opens it rather than building on it. Stand on a shut one,
 // look down and right-click.
 const TRAPDOOR = { x: 50, y: 70, z: 50 };
@@ -986,7 +1012,17 @@ check("a comment can be added", (await page.locator("text=Nice work").count()) >
 
 // deleteReaction has existed on the API since the start and had no UI. Only
 // your own comments offer the button.
-check("your own comment offers a delete button", (await page.getByRole("button", { name: "Delete comment" }).count()) === 1);
+// The button can arrive a moment after the comment's text, so this waits for it
+// rather than counting straight away, and reports both counts if it fails.
+const deleteButtons = page.getByRole("button", { name: "Delete comment" });
+const deleteButtonsAtOnce = await deleteButtons.count();
+await appears(deleteButtons);
+const deleteButtonCount = await deleteButtons.count();
+check(
+  "your own comment offers a delete button",
+  deleteButtonCount === 1,
+  `${deleteButtonsAtOnce} at once, ${deleteButtonCount} after waiting`,
+);
 await page.getByRole("button", { name: "Delete comment" }).click();
 await goes(page.locator("text=Nice work"));
 await appears(page.locator("text=No comments yet"));

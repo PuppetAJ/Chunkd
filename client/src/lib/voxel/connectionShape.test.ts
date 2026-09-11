@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { BLOCK_IDS } from "./blockIds.ts";
-import { AXIS_Y, packBlock, SHAPE_FENCE, SHAPE_SLAB_BOTTOM, SHAPE_WALL } from "./blockValue.ts";
+import {
+  AXIS_Y,
+  FACING_NORTH,
+  packBlock,
+  SHAPE_FENCE,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_STAIRS_BOTTOM,
+  SHAPE_WALL,
+} from "./blockValue.ts";
 import {
   connectionMask,
   SIDE_EAST,
@@ -50,9 +58,15 @@ test("a fence and a wall do not join each other", () => {
   assert.equal(connectionMask(blocks, 1, 0, 0), 0);
 });
 
-test("neither a fence nor a wall joins glass, leaves or a slab", () => {
+test("fences and walls join glass", () => {
+  // Mojang closed the report of this as working as intended (MC-147798).
+  const glass = packBlock(BLOCK_IDS.glass);
+  assert.equal(connectionMask(world([[0, 0, 0, FENCE], [1, 0, 0, glass]]), 0, 0, 0), SIDE_EAST);
+  assert.equal(connectionMask(world([[0, 0, 0, WALL], [1, 0, 0, glass]]), 0, 0, 0), SIDE_EAST);
+});
+
+test("neither a fence nor a wall joins leaves or a slab", () => {
   for (const neighbour of [
-    packBlock(BLOCK_IDS.glass),
     packBlock(BLOCK_IDS.oakLeaves),
     packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM),
   ]) {
@@ -95,4 +109,43 @@ test("a T junction keeps its post", () => {
 test("a wall stacked on a straight run gives it a post", () => {
   const blocks = world([[0, 0, 0, WALL], [1, 0, 0, WALL], [-1, 0, 0, WALL], [0, 1, 0, WALL]]);
   assert.equal(post(blocks, 0, 0, 0), true);
+});
+
+const PANE = packBlock(BLOCK_IDS.glassPane);
+
+test("a lone glass pane joins nothing", () => {
+  assert.equal(connectionMask(world([[0, 0, 0, PANE]]), 0, 0, 0), 0);
+});
+
+test("a pane joins panes, walls, whole solid blocks and glass", () => {
+  const blocks = world([
+    [0, 0, 0, PANE],
+    [0, 0, -1, PANE],
+    [1, 0, 0, WALL],
+    [0, 0, 1, STONE],
+    [-1, 0, 0, packBlock(BLOCK_IDS.glass)],
+  ]);
+  assert.equal(connectionMask(blocks, 0, 0, 0), SIDE_NORTH | SIDE_EAST | SIDE_SOUTH | SIDE_WEST);
+});
+
+test("a pane does not join a fence, leaves or a slab", () => {
+  for (const neighbour of [
+    FENCE,
+    packBlock(BLOCK_IDS.oakLeaves),
+    packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM),
+  ]) {
+    assert.equal(connectionMask(world([[0, 0, 0, PANE], [1, 0, 0, neighbour]]), 0, 0, 0), 0, `beside ${neighbour}`);
+  }
+});
+
+test("a pane joins the solid back of a stair but not its step", () => {
+  // Facing north, a stair's tall half is on its south side.
+  const stair = packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH);
+  assert.equal(connectionMask(world([[0, 0, 0, stair], [0, 0, 1, PANE]]), 0, 0, 1), SIDE_NORTH);
+  assert.equal(connectionMask(world([[0, 0, 0, stair], [0, 0, -1, PANE]]), 0, 0, -1), 0);
+});
+
+test("a wall joins a pane, and a fence does not", () => {
+  assert.equal(connectionMask(world([[0, 0, 0, WALL], [1, 0, 0, PANE]]), 0, 0, 0), SIDE_EAST);
+  assert.equal(connectionMask(world([[0, 0, 0, FENCE], [1, 0, 0, PANE]]), 0, 0, 0), 0);
 });

@@ -7,6 +7,8 @@ import { existsSync } from "node:fs";
 import {
   BLOCK_IDS,
   FENCE_BLOCK_IDS,
+  PANE_BLOCK_IDS,
+  SEE_THROUGH_BLOCK_IDS,
   SLAB_BLOCK_IDS,
   STAIR_BLOCK_IDS,
   TRAPDOOR_BLOCK_IDS,
@@ -101,4 +103,13 @@ test("every block with a trapdoor has its trapdoor texture", () => {
     const file = new URL(`../../assets/textures/${wood}_trapdoor.png`, import.meta.url);
     assert.ok(existsSync(file), `missing ${wood}_trapdoor.png`);
   }
+});
+
+test("the glass pane is the only pane, and it can be seen through", () => {
+  assert.deepEqual([...PANE_BLOCK_IDS].map(nameOf), ["glassPane"]);
+  assert.ok(SEE_THROUGH_BLOCK_IDS.has(BLOCK_IDS.glassPane));
+});
+
+test("the glass pane's edge texture is there", () => {
+  assert.ok(existsSync(new URL("../../assets/textures/glass_pane_top.png", import.meta.url)));
 });

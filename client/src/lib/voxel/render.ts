@@ -13,7 +13,7 @@ import {
   SHAPE_WALL,
   trapdoorVariant,
 } from "./blockValue.ts";
-import { connectionMask, WALL_POST_BIT, wallHasPost } from "./connectionShape.ts";
+import { connectionMask, isPane, WALL_POST_BIT, wallHasPost } from "./connectionShape.ts";
 import { stairQuadrants } from "./stairShape.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
@@ -166,6 +166,7 @@ function variantFor(
   y: number,
   z: number,
 ): number {
+  if (isPane(value)) return connectionMask(blocks, x, y, z);
   const shape = blockShapeOf(value);
   if (shape === SHAPE_STAIRS_BOTTOM || shape === SHAPE_STAIRS_TOP) {
     return stairQuadrants(blocks, x, y, z);
