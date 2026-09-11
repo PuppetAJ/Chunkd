@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { Canvas } from "@react-three/fiber";
+import { useThree, Canvas } from "@react-three/fiber";
 import { Grid, PointerLockControls, Preload, Sky } from "@react-three/drei";
 
 import World from "../components/World/index.tsx";
@@ -35,6 +35,29 @@ function requestPointerLock(): void {
   } catch {
     // Refused. Nothing to recover; the crosshair simply stops following.
   }
+}
+
+/**
+ * Mouse-look, with its click-to-lock kept to the canvas and its lock pinned there.
+ *
+ * `selector` keeps drei's click-to-lock on the canvas. Left to itself it listens
+ * on the whole document, so any click anywhere took the mouse, including clicks
+ * on the pause screen's settings.
+ *
+ * `domElement` pins the lock to the canvas. Without it drei locks whatever
+ * element the scene takes its input from, which is the canvas only until the
+ * scene has wired its input up, and the canvas's wrapper after that. Mounted
+ * again once the inventory closed, drei's click-to-lock moved the lock onto the
+ * wrapper, and from then on clicks never reached the canvas and did nothing.
+ *
+ * It stays mounted through menus rather than being unmounted for them, which is
+ * what caused that second mount, and which could also miss the event saying the
+ * lock exists and leave mouse-look dead. Menus and the pause screen cover the
+ * canvas, so a click on them cannot reach the click-to-lock.
+ */
+function LookControls() {
+  const canvas = useThree((state) => state.gl.domElement);
+  return <PointerLockControls domElement={canvas} selector="#editor canvas" />;
 }
 
 export default function Editor() {
@@ -80,7 +103,9 @@ export default function Editor() {
 
       if (event.code === "KeyE") {
         if (ui.inventoryOpen) closeInventory();
-        else ui.setInventoryOpen(true);
+        // Only from play. Opened over the pause screen it hid that screen and
+        // then closed back onto it, a menu on top of a paused game.
+        else if (ui.playing) ui.setInventoryOpen(true);
       }
 
       if (event.code === "Escape") {
@@ -237,21 +262,7 @@ export default function Editor() {
         </Suspense>
         {/* Mouse-look would fight the cursor while the inventory or the save
             dialog is open, and there is nothing to look at while paused. */}
-        {!inventoryOpen && !pendingSave && (
-          // `selector` scopes drei's click-to-lock to the canvas. Left to
-          // itself it attaches that handler to the whole document, so any
-          // click anywhere took the mouse: while the game was paused, opening
-          // the scene settings locked the pointer and handed back mouse-look
-          // with the pause screen still on top of it. The pause screen covers
-          // the canvas, so a click that lands on it can no longer reach this.
-          //
-          // Scoped rather than unmounted while paused, because unmounting
-          // reintroduces a race. Starting play requests the lock directly, and
-          // if this component were mounting at the same time it could miss the
-          // pointerlockchange event that tells it the lock exists, leaving
-          // mouse-look dead until the next click.
-          <PointerLockControls selector="#editor canvas" />
-        )}
+        <LookControls />
       </Canvas>
 
       <Crosshair />
