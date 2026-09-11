@@ -1375,6 +1375,40 @@ check("the pause screen goes away when play starts", (await page.locator("[data-
   const actsRefused = await on((n) => window.__world.getState().blocks.size !== n, beforeRefused, 5000);
   check("when the browser stops granting the lock, a click still acts", actsRefused);
 
+  const inventoryShown = () => lockPage.evaluate(() => !!document.querySelector('[class*="bg-zinc-900/95"]'));
+
+  // The inventory is only for play. Opened over the pause screen it hid that
+  // screen and then closed back onto it.
+  await lockPage.evaluate(() => {
+    window.__refuseLock = false;
+  });
+  await lockPage.evaluate(() => window.__dropLock());
+  await playButton().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  await lockPage.keyboard.press("KeyE");
+  await lockPage.waitForTimeout(300);
+  check(
+    "E does not open the inventory while the editor is paused",
+    !(await inventoryShown()) && (await playButton().count()) > 0,
+  );
+
+  // Opening and closing the inventory used to leave drei locking the canvas's
+  // wrapper rather than the canvas, after which clicks stopped reaching the
+  // world. The fake lock remembers which element asked for it.
+  await playButton().click();
+  await on(() => !!document.pointerLockElement, null, 5000);
+  await lockPage.keyboard.press("KeyE");
+  await on(() => !!document.querySelector('[class*="bg-zinc-900/95"]'), null, 5000);
+  await lockPage.keyboard.press("Escape");
+  await on(() => !document.querySelector('[class*="bg-zinc-900/95"]') && !!document.pointerLockElement, null, 5000);
+  await lockPage.mouse.click(640, 400);
+  await lockPage.waitForTimeout(300);
+  const lockHolder = await lockPage.evaluate(() => {
+    const held = document.pointerLockElement;
+    if (held === document.querySelector("#editor canvas")) return "the canvas";
+    return held ? `${held.tagName.toLowerCase()}${held.id ? "#" + held.id : ""}` : "nothing";
+  });
+  check("after the inventory, a click keeps the lock on the canvas", lockHolder === "the canvas", lockHolder);
+
   await lockPage.close();
 }
 
