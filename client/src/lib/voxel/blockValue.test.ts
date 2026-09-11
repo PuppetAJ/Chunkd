@@ -150,9 +150,11 @@ test("a plain cube is still stored as its bare id with a facing of zero", () => 
   assert.equal(packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_FULL, FACING_NORTH), BLOCK_IDS.stone);
 });
 
-test("stairs collide as a whole cube", () => {
-  // The decision behind step assist: exact per-shape collision was the
-  // expensive part, and a stair is a half block rise, so it is walked up.
+test("a stair's own extent is the whole cube it could fill", () => {
+  // On its own a stair says it fills its cell top to bottom, because from the
+  // value alone that is the most that can be said: which quarters its tall half
+  // covers depends on its neighbours. Collision narrows this per quarter, which
+  // is what makes a stair walkable; see extentAt in collision.ts.
   for (const shape of [SHAPE_STAIRS_BOTTOM, SHAPE_STAIRS_TOP]) {
     assert.deepEqual(verticalExtent(packBlock(BLOCK_IDS.stone, AXIS_Y, shape), 10), [9.5, 10.5]);
   }

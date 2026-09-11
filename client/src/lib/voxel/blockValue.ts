@@ -106,9 +106,10 @@ export function verticalExtent(value: number, y: number): [number, number] {
   const shape = blockShapeOf(value);
   if (shape === SHAPE_SLAB_BOTTOM) return [y - 0.5, y];
   if (shape === SHAPE_SLAB_TOP) return [y, y + 0.5];
-  // Stairs collide as a whole cube. Exact per-shape collision was the
-  // expensive part and step assist makes it unnecessary: a stair is a half
-  // block rise, so it is walked up rather than jumped onto.
+  // A stair reports the whole cube, which is the most that can be said from the
+  // value alone: which quarters its tall half covers comes from its neighbours.
+  // Collision narrows it per quarter so the low half stays a step; see extentAt
+  // in collision.ts.
   return [y - 0.5, y + 0.5];
 }
 
