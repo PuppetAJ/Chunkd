@@ -71,6 +71,9 @@ export const BLOCK_IDS = {
 
   // Farm.
   hayBale: 49,
+
+  // Glass.
+  glassPane: 50,
 } as const;
 
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
@@ -171,8 +174,17 @@ export const WALL_BLOCK_IDS: ReadonlySet<number> = new Set([
 
 export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.glass,
+  BLOCK_IDS.glassPane,
   BLOCK_IDS.oakLeaves,
   BLOCK_IDS.spruceLeaves,
   BLOCK_IDS.birchLeaves,
   BLOCK_IDS.cherryLeaves,
 ]);
+
+/**
+ * Blocks drawn as a pane that joins its neighbours rather than as a cube.
+ *
+ * A glass pane is its own item in Minecraft, not a shape of glass, which is
+ * also why it needs no room in the full shape field. It is known by its id.
+ */
+export const PANE_BLOCK_IDS: ReadonlySet<number> = new Set([BLOCK_IDS.glassPane]);

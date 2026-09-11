@@ -15,7 +15,9 @@ import {
   TRAPDOOR_VARIANT_OPEN,
   TRAPDOOR_VARIANT_TOP,
 } from "./voxel/blockValue.ts";
+import { PANE_BLOCK_IDS } from "./voxel/blockIds.ts";
 import {
+  paneRects,
   SIDE_EAST,
   SIDE_NORTH,
   SIDE_SOUTH,
@@ -243,6 +245,14 @@ export function trapdoorParts(variant: number): Box[] {
   return [{ min: [-0.5, -0.5, -0.5], max: [-0.5 + thick, 0.5, 0.5] }];
 }
 
+/** A glass pane: its post and arms, standing a block tall. */
+export function paneParts(mask: number): Box[] {
+  return paneRects(mask).map(([minX, maxX, minZ, maxZ]) => ({
+    min: [minX, -0.5, minZ],
+    max: [maxX, 0.5, maxZ],
+  }));
+}
+
 /**
  * Built when first asked for and kept. Each shape has a few dozen variants at
  * most, and a build uses a handful of them.
@@ -276,6 +286,16 @@ export function geometryForShape(shape: number, variant = 0): THREE.BufferGeomet
   if (shape === SHAPE_WALL) return cachedParts(`wall-${variant}`, () => wallParts(variant));
   if (shape === SHAPE_TRAPDOOR) return cachedParts(`trapdoor-${variant}`, () => trapdoorParts(variant));
   return BLOCK_GEOMETRY;
+}
+
+/**
+ * The geometry for a render layer, allowing for blocks with a shape of their
+ * own. A glass pane is a whole block by its shape number, so only its id says
+ * to draw it as a pane.
+ */
+export function geometryForBlock(blockId: number, shape: number, variant = 0): THREE.BufferGeometry {
+  if (PANE_BLOCK_IDS.has(blockId)) return cachedParts(`pane-${variant}`, () => paneParts(variant));
+  return geometryForShape(shape, variant);
 }
 
 /**
