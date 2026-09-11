@@ -14,6 +14,11 @@ import {
   SHAPE_SLAB_TOP,
   SHAPE_STAIRS_BOTTOM,
   SHAPE_STAIRS_TOP,
+  packTrapdoor,
+  SHAPE_FENCE,
+  SHAPE_TRAPDOOR,
+  SHAPE_WALL,
+  trapdoorVariant,
 } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { buildRenderLayers, computeVisible, refreshVisibleAround } from "./render.ts";
@@ -265,4 +270,55 @@ test("two stairs meeting at right angles are drawn as corners", () => {
 
   assert.equal(alone, straightQuadrants(FACING_NORTH));
   assert.notEqual(cornered, alone, "the stair beside a turn should change shape");
+});
+
+test("a fence, a wall or a trapdoor never hides the block beside it", () => {
+  // None fills a whole face of its cell, and the one a shut trapdoor fills is
+  // full of holes. Counting any of them as covering would cut a hole in the
+  // world where the block behind should be.
+  const shapes: [string, number][] = [
+    ["fence", packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE)],
+    ["wall", packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL)],
+    ["shut trapdoor", packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, false, false)],
+    ["open trapdoor", packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, false, true)],
+  ];
+  const sides: [number, number, number][] = [
+    [1, 0, 0],
+    [-1, 0, 0],
+    [0, 1, 0],
+    [0, -1, 0],
+    [0, 0, 1],
+    [0, 0, -1],
+  ];
+  for (const [name, value] of shapes) {
+    for (const [dx, dy, dz] of sides) {
+      const blocks = solidCube(BLOCK_IDS.stone);
+      blocks.set(toKey(dx, dy, dz), value);
+      assert.ok(
+        computeVisible(blocks).has(toKey(0, 0, 0)),
+        `a ${name} at ${dx},${dy},${dz} hid the block beside it`,
+      );
+    }
+  }
+});
+
+test("a fence is drawn by the sides it joins", () => {
+  const fence = packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE);
+  const blocks = new Map<BlockKey, number>([
+    [toKey(0, 0, 0), fence],
+    [toKey(1, 0, 0), fence],
+    [toKey(2, 0, 0), fence],
+  ]);
+  const layers = buildRenderLayers(blocks).filter((layer) => layer.shape === SHAPE_FENCE);
+  // East 2 and west 8: the middle one joins both.
+  const middle = layers.find((layer) => layer.variant === 10);
+  assert.ok(middle, `variants drawn: ${layers.map((layer) => layer.variant).join(",")}`);
+  assert.deepEqual([...middle.positions], [1, 0, 0]);
+});
+
+test("a trapdoor is drawn by its facing, half and open state", () => {
+  const open = packTrapdoor(BLOCK_IDS.oakPlanks, FACING_EAST, true, true);
+  const [layer] = buildRenderLayers(new Map([[toKey(0, 0, 0), open]]));
+  assert.equal(layer?.shape, SHAPE_TRAPDOOR);
+  assert.equal(layer?.variant, trapdoorVariant(open));
 });

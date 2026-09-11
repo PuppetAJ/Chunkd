@@ -5,11 +5,18 @@ import {
   blockIdOf,
   FACING_NORTH,
   isSlab,
+  isTrapdoor,
   packBlock,
+  packTrapdoor,
+  SHAPE_FENCE,
   SHAPE_FULL,
   SHAPE_SLAB_BOTTOM,
   SHAPE_SLAB_TOP,
   SHAPE_STAIRS_BOTTOM,
+  SHAPE_STAIRS_TOP,
+  SHAPE_TRAPDOOR,
+  SHAPE_WALL,
+  toggledTrapdoor,
 } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { generateTerrain, randomSeed, spawnPointFor, WORLD_SIZE } from "./terrain.ts";
@@ -69,10 +76,13 @@ interface WorldState {
     axis?: number,
     shape?: number,
     facing?: number,
+    /** For a trapdoor, whether it goes across the upper half of the cell. */
+    top?: boolean,
   ) => void;
   removeBlock: (x: number, y: number, z: number) => void;
   /** Join a slab with a second of the same block, making a whole one. */
   fillSlab: (x: number, y: number, z: number) => void;
+  toggleTrapdoor: (x: number, y: number, z: number) => void;
   setSelectedSlot: (slot: number) => void;
   /** Move along the hotbar, wrapping at both ends. Used by the scroll wheel. */
   cycleSelectedSlot: (delta: number) => void;
@@ -85,17 +95,32 @@ interface WorldState {
 }
 
 /**
- * The shape this block can actually take, falling back to something it can.
+ * The shapes a block can take, in the order R steps through them.
  *
- * Slabs and stairs exist only for the blocks Minecraft gives them to, and a
+ * Each exists only for the blocks Minecraft gives it to. Slabs and stairs are
+ * listed by their lower half, since which half one lands in comes from aim.
+ */
+export function shapesFor(block: BlockType | undefined): number[] {
+  const shapes = [SHAPE_FULL];
+  if (!block) return shapes;
+  if (block.slab) shapes.push(SHAPE_SLAB_BOTTOM);
+  if (block.stairs) shapes.push(SHAPE_STAIRS_BOTTOM);
+  if (block.fence) shapes.push(SHAPE_FENCE);
+  if (block.wall) shapes.push(SHAPE_WALL);
+  if (block.trapdoor) shapes.push(SHAPE_TRAPDOOR);
+  return shapes;
+}
+
+/**
+ * The shape this block can actually take, falling back to something it can. A
  * stair asked of a block that only has a slab becomes a slab.
  */
 function shapeFor(block: BlockType | undefined, shape: number): number {
-  if (shape === SHAPE_FULL) return SHAPE_FULL;
-  if (!block?.slab) return SHAPE_FULL;
-  const isSlabShape = shape === SHAPE_SLAB_BOTTOM || shape === SHAPE_SLAB_TOP;
-  if (!block.stairs && !isSlabShape) return SHAPE_SLAB_BOTTOM;
-  return shape;
+  const listedAs =
+    shape === SHAPE_SLAB_TOP ? SHAPE_SLAB_BOTTOM : shape === SHAPE_STAIRS_TOP ? SHAPE_STAIRS_BOTTOM : shape;
+  if (shapesFor(block).includes(listedAs)) return shape;
+  if (listedAs === SHAPE_STAIRS_BOTTOM && block?.slab) return SHAPE_SLAB_BOTTOM;
+  return SHAPE_FULL;
 }
 
 const initialSeed = randomSeed();
@@ -142,6 +167,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     axis = AXIS_Y,
     shape = get().selectedShape(),
     facing = FACING_NORTH,
+    top = false,
   ) => {
     const blockId = get().selectedBlockId();
     const block = getBlock(blockId);
@@ -149,7 +175,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     // cut block is never turned: there is no shape here for one on its end.
     const cut = shapeFor(block, shape);
     const upright = cut !== SHAPE_FULL || !block?.directional;
-    const value = packBlock(blockId, upright ? AXIS_Y : axis, cut, facing);
+    const value =
+      cut === SHAPE_TRAPDOOR
+        ? packTrapdoor(blockId, facing, top, false)
+        : packBlock(blockId, upright ? AXIS_Y : axis, cut, facing);
     const key = toKey(x, y, z);
     set((state) => {
       if (state.blocks.has(key)) return state;
@@ -171,6 +200,19 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       if (existing === undefined || !isSlab(existing)) return state;
       const blocks = new Map(state.blocks);
       blocks.set(key, packBlock(blockIdOf(existing)));
+      const visible = new Map(state.visible);
+      refreshVisibleAround(blocks, visible, x, y, z);
+      return { blocks, visible };
+    });
+  },
+
+  toggleTrapdoor: (x, y, z) => {
+    const key = toKey(x, y, z);
+    set((state) => {
+      const existing = state.blocks.get(key);
+      if (existing === undefined || !isTrapdoor(existing)) return state;
+      const blocks = new Map(state.blocks);
+      blocks.set(key, toggledTrapdoor(existing));
       const visible = new Map(state.visible);
       refreshVisibleAround(blocks, visible, x, y, z);
       return { blocks, visible };
@@ -218,17 +260,13 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   cycleSelectedShape: () => {
-    const block = getBlock(get().selectedBlockId());
-    if (!block?.slab) return;
+    const order = shapesFor(getBlock(get().selectedBlockId()));
+    if (order.length < 2) return;
     set((state) => {
       const hotbarShape = [...state.hotbarShape];
       const index = state.selectedSlot - 1;
-      // Whole block, slab, stairs, back to the start. Which half of the cell
-      // it lands in, and which way stairs face, come from where the player
-      // aims rather than from here.
-      const order = block.stairs
-        ? [SHAPE_FULL, SHAPE_SLAB_BOTTOM, SHAPE_STAIRS_BOTTOM]
-        : [SHAPE_FULL, SHAPE_SLAB_BOTTOM];
+      // Which half of the cell it lands in, which way it faces and what it
+      // joins all come from where the player aims, not from here.
       const at = order.indexOf(hotbarShape[index] ?? SHAPE_FULL);
       hotbarShape[index] = order[(at + 1) % order.length]!;
       return { hotbarShape };

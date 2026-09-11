@@ -3,6 +3,7 @@ import * as THREE from "three";
 import type { BlockType } from "../../lib/voxel/blocks.ts";
 import { applyBlockTextureSettings, type BlockTextures } from "../../lib/blockTextures.ts";
 import { geometryForShape, rotationForAxis } from "../../lib/blockGeometry.ts";
+import { SHAPE_TRAPDOOR } from "../../lib/voxel/blockValue.ts";
 
 const matrix = new THREE.Matrix4();
 const position = new THREE.Vector3();
@@ -43,7 +44,7 @@ export default function BlockLayer({ block, shape, variant, positions, axes, tex
   const capacity = capacityFor(count);
 
   const material = useMemo(() => {
-    const build = (url: string) =>
+    const build = (url: string, cutout = block.draw === "cutout") =>
       new THREE.MeshLambertMaterial({
         map: textures.get(url) ?? null,
         // The cube carries its face shading in its vertex colours, which this
@@ -58,8 +59,11 @@ export default function BlockLayer({ block, shape, variant, positions, axes, tex
         // Glass is a frame around a hole. Discarding the hole outright, rather
         // than blending it, keeps the frame at full strength and leaves no draw
         // order to get wrong.
-        alphaTest: block.draw === "cutout" ? 0.5 : 0,
+        alphaTest: cutout ? 0.5 : 0,
       });
+
+    // A trapdoor has its own drawing, holes and all, rather than the block's.
+    if (shape === SHAPE_TRAPDOOR && block.trapdoor) return build(block.trapdoor, true);
 
     const uniform = block.top === block.side && block.side === block.bottom;
     if (uniform) return build(block.top);
@@ -69,7 +73,7 @@ export default function BlockLayer({ block, shape, variant, positions, axes, tex
     const bottom = build(block.bottom);
     // BoxGeometry's face order: +X, -X, +Y, -Y, +Z, -Z.
     return [side, side, top, bottom, side, side];
-  }, [block, textures]);
+  }, [block, shape, textures]);
 
   // Nearest filtering and the sRGB tag are set when the texture loads, but
   // react-three-fiber rewrites the colour space of anything it assigns to a

@@ -403,6 +403,10 @@ check(
 await page.keyboard.press("KeyR");
 await frames();
 check("R steps on from a slab rather than toggling back", (await shapeOfSlot()) === 3, `shape ${await shapeOfSlot()}`);
+// Stone bricks have a wall in Minecraft, so one more step comes after stairs.
+await page.keyboard.press("KeyR");
+await frames();
+check("R steps on from stairs to a wall", (await shapeOfSlot()) === 6, `shape ${await shapeOfSlot()}`);
 await page.keyboard.press("KeyR");
 await frames();
 check("R comes back to a whole block at the end", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
@@ -530,6 +534,9 @@ await frames();
 check("R goes on to stairs", (await shapeOfFour()) === 3, `shape ${await shapeOfFour()}`);
 await page.keyboard.press("KeyR");
 await frames();
+check("R goes on to a wall", (await shapeOfFour()) === 6, `shape ${await shapeOfFour()}`);
+await page.keyboard.press("KeyR");
+await frames();
 check("R comes back round to a whole block", (await shapeOfFour()) === 0, `shape ${await shapeOfFour()}`);
 
 // Cut sandstone has a slab in Minecraft and no stairs, so its slot has one
@@ -604,6 +611,118 @@ const climbed = await until((want) => window.__player?.y >= want, SLAB_PAD_Y + 4
 await page.keyboard.up("w");
 const afterClimb = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
 check("a staircase is walked up without jumping", climbed, JSON.stringify(afterClimb));
+
+// ------------------------------------------------ fences, walls and trapdoors
+// R steps a slot through every shape its block has in Minecraft: planks gain a
+// fence and a trapdoor, the wall stones a wall, and plain stone neither.
+const shapeCycle = async (blockId) => {
+  await page.evaluate((id) => {
+    const store = window.__world.getState();
+    store.setHotbarBlock(7, id);
+    store.setSelectedSlot(7);
+  }, blockId);
+  const readShape = () => page.evaluate(() => window.__world.getState().hotbarShape[6]);
+  const seen = [await readShape()];
+  for (let i = 0; i < 8; i += 1) {
+    await page.keyboard.press("KeyR");
+    await frames();
+    const shape = await readShape();
+    if (shape === seen[0]) break;
+    seen.push(shape);
+  }
+  return seen.join(",");
+};
+const plankCycle = await shapeCycle(6);
+check("planks cycle through slab, stairs, fence and trapdoor", plankCycle === "0,1,3,5,7", plankCycle);
+const cobbleCycle = await shapeCycle(4);
+check("a wall stone cycles through slab, stairs and wall", cobbleCycle === "0,1,3,6", cobbleCycle);
+const stoneCycle = await shapeCycle(18);
+check("plain stone has no wall", stoneCycle === "0,1,3", stoneCycle);
+
+// A row of three fences, a row of three walls with one more turning a corner at
+// the end, and a trapdoor on its own, all well above the terrain.
+const SHAPE_Y = 70;
+await page.evaluate((y) => {
+  const store = window.__world.getState();
+  const place = (blockId, x, z, shape) => {
+    store.setHotbarBlock(7, blockId);
+    store.setSelectedSlot(7);
+    store.placeBlock(x, y, z, 0, shape, 0, false);
+  };
+  for (const x of [40, 41, 42]) place(6, x, 40, 5);
+  for (const x of [40, 41, 42]) place(4, x, 44, 6);
+  place(4, 42, 45, 6);
+  place(6, 46, 40, 7);
+}, SHAPE_Y);
+
+const variantAt = (x, y, z, shape) =>
+  page.evaluate(
+    ([x, y, z, shape]) => {
+      for (const layer of window.__layers ?? []) {
+        if (layer.shape !== shape) continue;
+        const p = layer.positions;
+        for (let i = 0; i < p.length; i += 3) {
+          if (p[i] === x && p[i + 1] === y && p[i + 2] === z) return layer.variant;
+        }
+      }
+      return null;
+    },
+    [x, y, z, shape],
+  );
+await until(
+  (y) => (window.__layers ?? []).some((layer) => layer.shape === 7 && layer.positions[1] === y),
+  SHAPE_Y,
+  10000,
+);
+
+// Sides are north 1, east 2, south 4, west 8, and a wall's post is 16.
+const midFence = await variantAt(41, SHAPE_Y, 40, 5);
+check("a fence in a row joins both neighbours", midFence === 10, `variant ${midFence}`);
+const endFence = await variantAt(40, SHAPE_Y, 40, 5);
+check("a fence at the end of a row joins one", endFence === 2, `variant ${endFence}`);
+const midWall = await variantAt(41, SHAPE_Y, 44, 6);
+check("a straight run of wall has no post", midWall === 10, `variant ${midWall}`);
+const cornerWall = await variantAt(42, SHAPE_Y, 44, 6);
+check("a wall turning a corner has a post", cornerWall === 28, `variant ${cornerWall}`);
+const lonelyTrapdoor = await variantAt(46, SHAPE_Y, 40, 7);
+check("a trapdoor is drawn as a shut trapdoor", lonelyTrapdoor === 0, `variant ${lonelyTrapdoor}`);
+
+// Using a trapdoor opens it rather than building on it. Stand on a shut one,
+// look down and right-click.
+const TRAPDOOR = { x: 50, y: 70, z: 50 };
+await page.evaluate(({ x, y, z }) => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(7, 18);
+  store.setSelectedSlot(7);
+  store.placeBlock(x, y - 1, z, 0, 0);
+  store.setHotbarBlock(7, 6);
+  store.setSelectedSlot(7);
+  store.placeBlock(x, y, z, 0, 7, 0, false);
+  const body = window.__player;
+  body.x = x;
+  body.y = y - 0.5 + 3 / 16;
+  body.z = z;
+}, TRAPDOOR);
+await page.evaluate(() => window.__r3f.camera.rotation.set(-Math.PI / 2, 0, 0, "YXZ"));
+await frames(2);
+
+const trapdoorOpen = () =>
+  page.evaluate(
+    ({ x, y, z }) => ((window.__world.getState().blocks.get(`${x},${y},${z}`) ?? 0) >> 16) & 1,
+    TRAPDOOR,
+  );
+check("the trapdoor starts shut", (await trapdoorOpen()) === 0, `open bit ${await trapdoorOpen()}`);
+await page.mouse.click(cx, cy, { button: "right" });
+const opened = await until(
+  ({ x, y, z }) => (((window.__world.getState().blocks.get(`${x},${y},${z}`) ?? 0) >> 16) & 1) === 1,
+  TRAPDOOR,
+  5000,
+);
+check("right-clicking a trapdoor opens it", opened, `open bit ${await trapdoorOpen()}`);
+check(
+  "opening a trapdoor builds nothing on it",
+  await page.evaluate(({ x, y, z }) => !window.__world.getState().blocks.has(`${x},${y + 1},${z}`), TRAPDOOR),
+);
 
 // Two slabs of the same block make a whole one. The player is standing on a
 // slab course, so aiming straight down and placing another fills the cell.
