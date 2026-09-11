@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   AXIS_Y,
+  FACING_EAST,
   FACING_NORTH,
   FACING_WEST,
   packBlock,
@@ -340,7 +341,52 @@ test("a shut trapdoor on the ground is walked onto like a step", () => {
   assert.equal(body.y, 0.5 + 3 / 16);
 });
 
-test("an open trapdoor can be walked straight through", () => {
+test("a whole block stops the player flush against it", () => {
+  // Blocked movement now finds the real point of contact rather than snapping
+  // to the edge of the cell. For a whole block the two are the same place.
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 1, z), 1);
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  const contact = 1.5 - 0.3;
+  assert.ok(Math.abs(body.x - contact) < 0.01, `should be against the block at ${contact}, got ${body.x}`);
+});
+
+test("an open trapdoor is a panel the player walks up against", () => {
+  // Facing west it stands against the east edge of its cell, the far side for a
+  // player walking east. They get into the cell and stop at the panel, rather
+  // than at the cell's near edge.
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) {
+    blocks.set(toKey(2, 1, z), packTrapdoor(1, FACING_WEST, false, true));
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  const contact = 2.5 - 3 / 16 - 0.3;
+  assert.ok(Math.abs(body.x - contact) < 0.01, `should be against the panel at ${contact}, got ${body.x}`);
+  assert.equal(body.y, 0.5);
+});
+
+test("an open trapdoor on the near side stops the player at its edge", () => {
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) {
+    blocks.set(toKey(2, 1, z), packTrapdoor(1, FACING_EAST, false, true));
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  const contact = 1.5 - 0.3;
+  assert.ok(Math.abs(body.x - contact) < 0.01, `should be against the panel at ${contact}, got ${body.x}`);
+});
+
+test("open trapdoors can be walked past alongside", () => {
+  // Facing north each stands across the south edge of its cell, so a player
+  // walking east runs between them without touching either.
   const blocks = floor();
   for (let z = -5; z <= 5; z += 1) {
     blocks.set(toKey(2, 1, z), packTrapdoor(1, FACING_NORTH, false, true));
@@ -350,6 +396,6 @@ test("an open trapdoor can be walked straight through", () => {
   const body = standing(0, 0);
   for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
 
-  assert.ok(body.x > 2.5, `should have walked through, stopped at ${body.x}`);
+  assert.ok(body.x > 2.5, `should have walked past, stopped at ${body.x}`);
   assert.equal(body.y, 0.5);
 });
