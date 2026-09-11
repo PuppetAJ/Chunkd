@@ -17,9 +17,10 @@ import { blockIdOf } from "./blockValue.ts";
 export const WORLD_SIZE = 64;
 
 /**
- * The world sizes the editor offers, as a square grid of 64-block chunks.
+ * The widths the editor offers, in blocks. There is no chunking here: a world
+ * is generated whole and held as one map, so this is simply how far it goes.
  *
- * Bigger is not free: a 3x3 world is around half a million blocks and takes
+ * Bigger is not free. The widest is around half a million blocks and takes
  * roughly a second to generate and cull, so it wants a loading state rather
  * than being the silent default.
  */
