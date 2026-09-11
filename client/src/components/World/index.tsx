@@ -59,6 +59,13 @@ interface Target {
 const REPEAT_MS = 160;
 
 /**
+ * How long after a click is released to wait for the browser to answer the
+ * lock request that click made. Chrome answers in a few tens of milliseconds;
+ * this only matters when no answer ever comes.
+ */
+const LOCK_ANSWER_MS = 250;
+
+/**
  * Keys that stand in for the mouse buttons, for anyone on a trackpad where
  * holding right-click to place a run of blocks is awkward. They map onto the
  * same button numbers, so they inherit hold-to-repeat and everything else.
@@ -339,16 +346,39 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
     // Listening on the canvas covers both mouse buttons. React's onClick only
     // fires for the primary button, which is why placing a block never worked.
+    // With the mouse loose, a click on the world may be the one that takes it
+    // back, which should do nothing else: coming back to the tab used to break
+    // or place a block with that first click. Whether it was is only known when
+    // the browser answers the lock request drei makes on the click, so the
+    // action waits for that answer. It is dropped if the lock arrives and
+    // carried out if the lock is refused or no answer comes. Deciding before
+    // the answer, as this first did, left every click doing nothing in a
+    // browser that had granted the lock once and then stopped.
+    let waiting: number | null = null;
+    let waitingTimer = 0;
+    let buttonDown = false;
+
+    const answerLock = (tookLock: boolean) => {
+      window.clearTimeout(waitingTimer);
+      const button = waiting;
+      waiting = null;
+      if (button === null || tookLock || isEditorPaused()) return;
+      act.current(button, true);
+      nextActionAt.current = performance.now() + REPEAT_MS;
+      if (buttonDown) heldButton.current = button;
+    };
+
     const onPointerDown = (event: PointerEvent) => {
       if (isEditorPaused()) return;
-      // With the mouse loose, a click on the world is the click that takes it
-      // back, and does nothing else. Without this, coming back to the tab broke
-      // or placed a block with that first click. Only once the lock has worked:
-      // an automated browser never grants it, and there play goes on without
-      // mouse-look and clicks act as normal.
-      if (!document.pointerLockElement && lockGranted.current) return;
-      heldButton.current = event.button;
       sneaking.current = event.shiftKey;
+      buttonDown = true;
+      // Only once the lock has worked: an automated browser never grants it,
+      // and there play goes on without mouse-look and clicks act at once.
+      if (!document.pointerLockElement && lockGranted.current) {
+        waiting = event.button;
+        return;
+      }
+      heldButton.current = event.button;
       // Act now rather than waiting for the next frame. A quick click can send
       // both press and release inside a single frame, and deferring meant such
       // a click did nothing at all.
@@ -357,15 +387,28 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     };
 
     const stop = () => {
+      buttonDown = false;
       heldButton.current = null;
+      // drei asks for the lock on the click that follows this release, so the
+      // wait for its answer starts here rather than when the button went down.
+      if (waiting !== null) {
+        window.clearTimeout(waitingTimer);
+        waitingTimer = window.setTimeout(() => answerLock(false), LOCK_ANSWER_MS);
+      }
     };
 
     // Losing the pointer mid-drag, or having the lock taken away, has to count
     // as a release. Otherwise the button stays "held" and keeps repeating.
     const onPointerLockChange = () => {
-      if (document.pointerLockElement) lockGranted.current = true;
-      else stop();
+      if (document.pointerLockElement) {
+        lockGranted.current = true;
+        answerLock(true);
+      } else {
+        stop();
+      }
     };
+
+    const onPointerLockError = () => answerLock(false);
 
     const onContextMenu = (event: Event) => event.preventDefault();
 
@@ -397,6 +440,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     window.addEventListener("pointercancel", stop);
     window.addEventListener("blur", stop);
     document.addEventListener("pointerlockchange", onPointerLockChange);
+    document.addEventListener("pointerlockerror", onPointerLockError);
     canvas.addEventListener("contextmenu", onContextMenu);
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
@@ -406,7 +450,9 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       window.removeEventListener("pointercancel", stop);
       window.removeEventListener("blur", stop);
       document.removeEventListener("pointerlockchange", onPointerLockChange);
+      document.removeEventListener("pointerlockerror", onPointerLockError);
       canvas.removeEventListener("contextmenu", onContextMenu);
+      window.clearTimeout(waitingTimer);
     };
   }, [editable, gl]);
 
