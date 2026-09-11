@@ -181,7 +181,9 @@ export default function Player({ body }: Props) {
         const swing =
           elapsed < SWING_MS ? Math.sin((elapsed / SWING_MS) * Math.PI) * SWING_REACH : 0;
 
-        axeHead.rotation.x = bob.current + swing;
+        // Subtracted: turning the tool the positive way about this axis tips
+        // its head back towards the player, which reads as a swing backwards.
+        axeHead.rotation.x = bob.current - swing;
       }
       axe.quaternion.copy(camera.quaternion);
       axe.position.copy(camera.position);

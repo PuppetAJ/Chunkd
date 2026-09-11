@@ -1,10 +1,13 @@
 import {
+  blockFacingOf,
+  facingOffset,
   isFence,
   isStairs,
   isTrapdoor,
   isTrapdoorOpen,
   isUpsideDown,
   isWall,
+  TRAPDOOR_THICKNESS,
   verticalExtent,
 } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
@@ -102,6 +105,30 @@ function overlapsQuadrant(
 }
 
 /**
+ * Does the player's box, standing at (x, z), cover the strip an open trapdoor
+ * in cell (bx, bz) stands in? That strip is its hinge edge, the side it faces
+ * away from, which is where it is drawn.
+ */
+function overlapsHinge(facing: number, bx: number, bz: number, x: number, z: number): boolean {
+  const [fx, fz] = facingOffset(facing);
+  let minX = bx - 0.5;
+  let maxX = bx + 0.5;
+  let minZ = bz - 0.5;
+  let maxZ = bz + 0.5;
+  if (fz < 0) minZ = bz + 0.5 - TRAPDOOR_THICKNESS;
+  else if (fz > 0) maxZ = bz - 0.5 + TRAPDOOR_THICKNESS;
+  else if (fx < 0) minX = bx + 0.5 - TRAPDOOR_THICKNESS;
+  else maxX = bx - 0.5 + TRAPDOOR_THICKNESS;
+
+  return (
+    x - PLAYER_HALF_WIDTH < maxX &&
+    x + PLAYER_HALF_WIDTH > minX &&
+    z - PLAYER_HALF_WIDTH < maxZ &&
+    z + PLAYER_HALF_WIDTH > minZ
+  );
+}
+
+/**
  * How tall a block is where the player is standing.
  *
  * Every shape but stairs is the same height across its whole cell, so the
@@ -130,8 +157,11 @@ function extentAt(
     return isUpsideDown(value) ? [by, by + 0.5] : [by - 0.5, by];
   }
 
-  // An open trapdoor is a passage, which is how Minecraft treats it.
-  if (isTrapdoor(value) && isTrapdoorOpen(value)) return null;
+  // Open, a trapdoor is a thin panel standing its full cell tall, and only a
+  // player over the strip it stands in meets it.
+  if (isTrapdoor(value) && isTrapdoorOpen(value)) {
+    return overlapsHinge(blockFacingOf(value), bx, bz, x, z) ? [by - 0.5, by + 0.5] : null;
+  }
 
   // A block tall to look at and a block and a half to bump into, so neither can
   // be jumped: a jump peaks at about 1.35.
@@ -198,6 +228,27 @@ const MAX_STEP = 0.4;
  * and well below a whole one, so a slab is a step and a wall stays a wall.
  */
 const STEP_HEIGHT = 0.55;
+
+/**
+ * Move as far along one step as the player can go before touching something.
+ *
+ * This used to snap the player to the edge of the cell they walked into, which
+ * is exact for a whole block but stops them a cell short of anything thinner:
+ * an open trapdoor against the far side of its cell became a wall at the near
+ * side. Halving the step until it fits finds where contact really is, for any
+ * shape, and for a whole block it lands where the snap did.
+ */
+function slide(blocks: Map<BlockKey, number>, body: Body, stepX: number, stepZ: number): void {
+  let clear = 0;
+  let blocked = 1;
+  for (let i = 0; i < 12; i += 1) {
+    const middle = (clear + blocked) / 2;
+    if (collides(blocks, body.x + stepX * middle, body.y, body.z + stepZ * middle)) blocked = middle;
+    else clear = middle;
+  }
+  body.x += stepX * clear;
+  body.z += stepZ * clear;
+}
 
 /**
  * Walk up a small rise rather than stopping against it, and say whether that
@@ -283,10 +334,7 @@ export function moveBody(
     if (stepX !== 0) {
       const nextX = body.x + stepX;
       if (collides(blocks, nextX, body.y, body.z)) {
-        if (!tryStepUp(blocks, body, nextX, body.z)) {
-          const side = Math.sign(stepX);
-          body.x = blockIndex(nextX + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
-        }
+        if (!tryStepUp(blocks, body, nextX, body.z)) slide(blocks, body, stepX, 0);
       } else {
         body.x = nextX;
       }
@@ -295,10 +343,7 @@ export function moveBody(
     if (stepZ !== 0) {
       const nextZ = body.z + stepZ;
       if (collides(blocks, body.x, body.y, nextZ)) {
-        if (!tryStepUp(blocks, body, body.x, nextZ)) {
-          const side = Math.sign(stepZ);
-          body.z = blockIndex(nextZ + side * PLAYER_HALF_WIDTH) - side * (0.5 + PLAYER_HALF_WIDTH + SKIN);
-        }
+        if (!tryStepUp(blocks, body, body.x, nextZ)) slide(blocks, body, 0, stepZ);
       } else {
         body.z = nextZ;
       }

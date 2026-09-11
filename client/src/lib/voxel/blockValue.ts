@@ -182,8 +182,8 @@ export function verticalExtent(value: number, y: number): [number, number] {
   // Everything else reports its whole cell, which is also what the block outline
   // is drawn from. Collision then adjusts three of them: a stair per quarter so
   // its low half stays a step, fences and walls half a block taller so they
-  // cannot be jumped, and an open trapdoor not at all. See extentAt in
-  // collision.ts.
+  // cannot be jumped, and an open trapdoor down to the strip it stands in. See
+  // extentAt in collision.ts.
   return [y - 0.5, y + 0.5];
 }
 

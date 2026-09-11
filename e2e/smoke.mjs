@@ -1241,6 +1241,92 @@ const locksOnPlay = await page.evaluate(() => window.__lockRequests.slice());
 check("starting play asks for the mouse", locksOnPlay.includes("editor"), locksOnPlay.join(", ") || "(none)");
 check("the pause screen goes away when play starts", (await page.locator("[data-pause-card]").count()) === 0);
 
+// ---------------------------------------------------- coming back to the tab
+// Coming back to the tab used to break or place a block with the first click.
+// The browser drops the lock when the player leaves, and can refuse a new one
+// asked for straight away, which left play running with the mouse loose. The
+// first click on the world then took the mouse and acted as well. A headless
+// browser has no pointer lock at all, so this page fakes one that behaves like
+// Chrome's.
+{
+  // A page with its own context, so the fake lock reaches nothing else in the
+  // run. Playwright refuses a second page in the context launch() made, which
+  // is why this one signs in again.
+  const lockPage = await page.context().browser().newPage({ viewport: { width: 1280, height: 800 } });
+  await lockPage.addInitScript(() => {
+    let held = null;
+    window.__refuseLock = false;
+    Object.defineProperty(Document.prototype, "pointerLockElement", { configurable: true, get: () => held });
+    const fire = (name) => setTimeout(() => document.dispatchEvent(new Event(name)), 0);
+    Element.prototype.requestPointerLock = function () {
+      if (window.__refuseLock) return fire("pointerlockerror");
+      held = this;
+      fire("pointerlockchange");
+    };
+    Document.prototype.exitPointerLock = function () {
+      held = null;
+      fire("pointerlockchange");
+    };
+    window.__dropLock = () => {
+      held = null;
+      fire("pointerlockchange");
+    };
+  });
+  const on = (probe, arg = null, timeout = 15000) =>
+    lockPage.waitForFunction(probe, arg, { timeout, polling: 100 }).then(
+      () => true,
+      () => false,
+    );
+  const playButton = () => lockPage.getByRole("button", { name: "Click to play" });
+
+  await lockPage.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
+  await lockPage.getByRole("button", { name: /demo/i }).first().click();
+  await lockPage.waitForURL(`${BASE}/`, { timeout: 20000 }).catch(() => {});
+  await lockPage.goto(`${BASE}/editor`, { waitUntil: "domcontentloaded" });
+  await on(() => {
+    const world = window.__world?.getState();
+    const state = window.__r3f;
+    if (!world || !state) return false;
+    let drawn = 0;
+    state.scene.traverse((object) => {
+      if (object.isInstancedMesh) drawn += object.count;
+    });
+    return world.blocks.size > 500 && drawn === world.visible.size;
+  });
+  await playButton().click();
+  await on(() => !!document.pointerLockElement, null, 5000);
+  await lockPage.evaluate(() => window.__r3f.camera.rotation.set(-Math.PI / 2, 0, 0, "YXZ"));
+
+  // Leave, come back, and ask for play again too soon for the lock.
+  await lockPage.evaluate(() => window.__dropLock());
+  await playButton().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  await lockPage.evaluate(() => {
+    window.__refuseLock = true;
+  });
+  await playButton().click();
+  await playButton().waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  await lockPage.evaluate(() => {
+    window.__refuseLock = false;
+  });
+
+  const size = () => lockPage.evaluate(() => window.__world.getState().blocks.size);
+  const beforeReturn = await size();
+  await lockPage.mouse.click(640, 400);
+  const relocked = await on(() => !!document.pointerLockElement, null, 5000);
+  const afterReturn = await size();
+  check(
+    "the first click back on the world only takes the mouse",
+    relocked && afterReturn === beforeReturn,
+    `locked ${relocked}, blocks ${beforeReturn} -> ${afterReturn}`,
+  );
+
+  await lockPage.mouse.click(640, 400);
+  const actsAgain = await on((n) => window.__world.getState().blocks.size !== n, afterReturn, 5000);
+  check("once the mouse is back, a click breaks a block again", actsAgain);
+
+  await lockPage.close();
+}
+
 // ------------------------------------------------------------ signing out
 // Signing out has to re-run the queries that are on screen, not just empty the
 // cache. It used to call clearStore, which empties the cache and leaves every

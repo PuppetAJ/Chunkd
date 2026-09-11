@@ -104,6 +104,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   // Shift at the moment of pressing, which decides whether using a trapdoor
   // opens it or builds against it.
   const sneaking = useRef(false);
+  // Whether the browser has handed over the mouse at any point. See onPointerDown.
+  const lockGranted = useRef(false);
   const nextActionAt = useRef(0);
 
   // Suspends until every block texture is in. The promise is shared and never
@@ -339,6 +341,12 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     // fires for the primary button, which is why placing a block never worked.
     const onPointerDown = (event: PointerEvent) => {
       if (isEditorPaused()) return;
+      // With the mouse loose, a click on the world is the click that takes it
+      // back, and does nothing else. Without this, coming back to the tab broke
+      // or placed a block with that first click. Only once the lock has worked:
+      // an automated browser never grants it, and there play goes on without
+      // mouse-look and clicks act as normal.
+      if (!document.pointerLockElement && lockGranted.current) return;
       heldButton.current = event.button;
       sneaking.current = event.shiftKey;
       // Act now rather than waiting for the next frame. A quick click can send
@@ -355,7 +363,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     // Losing the pointer mid-drag, or having the lock taken away, has to count
     // as a release. Otherwise the button stays "held" and keeps repeating.
     const onPointerLockChange = () => {
-      if (!document.pointerLockElement) stop();
+      if (document.pointerLockElement) lockGranted.current = true;
+      else stop();
     };
 
     const onContextMenu = (event: Event) => event.preventDefault();
