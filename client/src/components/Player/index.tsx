@@ -5,7 +5,7 @@ import * as THREE from "three";
 import Axe from "../Axe/index.jsx";
 import { useHeldKeys, useKeyPress } from "../../lib/useKeyboard.ts";
 import { HOTBAR_SLOTS, useWorldStore } from "../../lib/voxel/worldStore.ts";
-import { isEditorPaused, useEditorUiStore } from "../../lib/editorUiStore.ts";
+import { isEditorPaused, sinceSwing, useEditorUiStore } from "../../lib/editorUiStore.ts";
 import { EYE_HEIGHT, type Body } from "../../lib/voxel/collision.ts";
 import {
   createMotionState,
@@ -19,6 +19,13 @@ const VOID_HEIGHT = -20;
 /** How the tool sits in view. Raised and enlarged so the handle leaves frame. */
 const AXE_SCALE = 1.1;
 const AXE_OFFSET = { right: 0.34, up: -0.57, forward: -0.55 };
+
+/** How long one swing takes. Under the 160ms repeat delay, so a held button
+ *  gives separate strikes rather than one continuous blur. */
+const SWING_MS = 150;
+
+/** How far the head travels through the swing, in radians. */
+const SWING_REACH = 0.9;
 
 const KEYS = {
   forward: ["KeyW", "ArrowUp"],
@@ -45,6 +52,7 @@ export default function Player({ body }: Props) {
   const held = useHeldKeys();
   const axeRef = useRef<THREE.Group>(null);
 
+  const bob = useRef(0);
   const motion = useMemo(() => createMotionState(), []);
   const heading = useMemo(() => new THREE.Vector3(), []);
   const input = useMemo<MoveInput>(
@@ -156,11 +164,24 @@ export default function Player({ body }: Props) {
       const axeHead = axe.children[0];
       if (axeHead) {
         const walking = input.forward !== 0 || input.strafe !== 0 ? 1 : 0;
-        axeHead.rotation.x = THREE.MathUtils.lerp(
-          axeHead.rotation.x,
+        // The walking bob is eased towards rather than set, so it has to be
+        // tracked separately now that the swing is added on top of it. Writing
+        // the total back into rotation.x and easing from that would make each
+        // swing drag the bob along with it.
+        bob.current = THREE.MathUtils.lerp(
+          bob.current,
           Math.sin(walking * state.clock.elapsedTime * 10) / 6,
           0.1,
         );
+
+        // One arc out and back, from a sine over the swing's length. Short
+        // enough to finish inside the repeat delay, so holding the button reads
+        // as a series of strikes rather than one blurred movement.
+        const elapsed = sinceSwing();
+        const swing =
+          elapsed < SWING_MS ? Math.sin((elapsed / SWING_MS) * Math.PI) * SWING_REACH : 0;
+
+        axeHead.rotation.x = bob.current + swing;
       }
       axe.quaternion.copy(camera.quaternion);
       axe.position.copy(camera.position);
@@ -169,6 +190,15 @@ export default function Player({ body }: Props) {
       axe.translateZ(AXE_OFFSET.forward);
     }
   });
+
+  // Development-only handle on the held tool, so a test can watch it swing.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    window.__axe = axeRef.current ?? undefined;
+    return () => {
+      delete window.__axe;
+    };
+  }, []);
 
   return (
     <group ref={axeRef} scale={AXE_SCALE}>

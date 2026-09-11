@@ -16,8 +16,8 @@ import { useEditorSettings } from "../../lib/sceneSettings.ts";
  */
 
 const CONTROLS: [string, string][] = [
-  ["Left click", "Break a block (hold to keep going)"],
-  ["Right click", "Place a block (hold to keep going)"],
+  ["Left click / C", "Break a block (hold to keep going)"],
+  ["Right click / F", "Place a block (hold to keep going)"],
   ["WASD / arrows", "Move"],
   ["Space", "Jump"],
   ["Space, twice", "Toggle flight"],
