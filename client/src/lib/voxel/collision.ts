@@ -12,6 +12,7 @@ import {
 } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { QUADRANT_COUNT, quadrantSides, stairQuadrants } from "./stairShape.ts";
+import { connectionMask, isPane, paneRects } from "./connectionShape.ts";
 
 /**
  * Collision between the player and the block grid.
@@ -129,6 +130,27 @@ function overlapsHinge(facing: number, bx: number, bz: number, x: number, z: num
 }
 
 /**
+ * Does the player's box, standing at (x, z), overlap any of these rectangles of
+ * cell (bx, bz)? Each is min x, max x, min z, max z, relative to the cell centre.
+ */
+function overlapsRects(
+  rects: [number, number, number, number][],
+  bx: number,
+  bz: number,
+  x: number,
+  z: number,
+): boolean {
+  const minX = x - PLAYER_HALF_WIDTH - bx;
+  const maxX = x + PLAYER_HALF_WIDTH - bx;
+  const minZ = z - PLAYER_HALF_WIDTH - bz;
+  const maxZ = z + PLAYER_HALF_WIDTH - bz;
+  return rects.some(
+    ([rectMinX, rectMaxX, rectMinZ, rectMaxZ]) =>
+      minX < rectMaxX && maxX > rectMinX && minZ < rectMaxZ && maxZ > rectMinZ,
+  );
+}
+
+/**
  * How tall a block is where the player is standing.
  *
  * Every shape but stairs is the same height across its whole cell, so the
@@ -166,6 +188,13 @@ function extentAt(
   // A block tall to look at and a block and a half to bump into, so neither can
   // be jumped: a jump peaks at about 1.35.
   if (isFence(value) || isWall(value)) return [by - 0.5, by + 1];
+
+  // A glass pane collides as the shape it is drawn with, which is what the wiki
+  // gives, so the player can walk right up to the glass.
+  if (isPane(value)) {
+    const rects = paneRects(connectionMask(blocks, bx, by, bz));
+    return overlapsRects(rects, bx, bz, x, z) ? [by - 0.5, by + 0.5] : null;
+  }
 
   return verticalExtent(value, by);
 }

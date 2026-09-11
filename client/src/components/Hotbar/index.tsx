@@ -7,6 +7,7 @@ import {
   SHAPE_WALL,
 } from "../../lib/voxel/blockValue.ts";
 import { getBlock } from "../../lib/voxel/blocks.ts";
+import { PANE_BLOCK_IDS } from "../../lib/voxel/blockIds.ts";
 import { HOTBAR_SLOTS, useWorldStore } from "../../lib/voxel/worldStore.ts";
 
 /**
@@ -101,7 +102,7 @@ export default function Hotbar() {
                 {/* The tile shows the shape itself rather than a badge to be
                     learned: a slab is the bottom half, stairs are that plus a
                     quarter above it. */}
-                {block && shape === SHAPE_FULL && (
+                {block && shape === SHAPE_FULL && !PANE_BLOCK_IDS.has(block.id) && (
                   <img
                     src={block.side}
                     alt=""
@@ -146,6 +147,15 @@ export default function Hotbar() {
                 )}
                 {block?.trapdoor && shape === SHAPE_TRAPDOOR && (
                   <Cropped src={block.trapdoor} inset="0" />
+                )}
+                {/* A pane uses the glass drawing, as its item does in Minecraft,
+                    with its edge standing up through the middle so the tile is
+                    not mistaken for a glass block. */}
+                {block && PANE_BLOCK_IDS.has(block.id) && (
+                  <>
+                    <Cropped src={block.side} inset="0" />
+                    <Cropped src={block.top} inset="0" />
+                  </>
                 )}
                 <span className="absolute bottom-0 right-1 text-[10px] text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.9)]">
                   {slot}

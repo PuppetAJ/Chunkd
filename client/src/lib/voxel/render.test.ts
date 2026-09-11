@@ -322,3 +322,28 @@ test("a trapdoor is drawn by its facing, half and open state", () => {
   assert.equal(layer?.shape, SHAPE_TRAPDOOR);
   assert.equal(layer?.variant, trapdoorVariant(open));
 });
+
+test("a glass pane never hides the block beside it, and is drawn by what it joins", () => {
+  const pane = packBlock(BLOCK_IDS.glassPane);
+  const sides: [number, number, number][] = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, -1],
+  ];
+  for (const [dx, dy, dz] of sides) {
+    const blocks = solidCube(BLOCK_IDS.stone);
+    blocks.set(toKey(dx, dy, dz), pane);
+    assert.ok(computeVisible(blocks).has(toKey(0, 0, 0)), `a pane at ${dx},${dy},${dz} hid the block beside it`);
+  }
+
+  const row = new Map<BlockKey, number>([
+    [toKey(0, 0, 0), pane],
+    [toKey(1, 0, 0), pane],
+    [toKey(2, 0, 0), pane],
+  ]);
+  const middle = buildRenderLayers(row).find(
+    (layer) => layer.blockId === BLOCK_IDS.glassPane && layer.variant === 10,
+  );
+  assert.ok(middle, "the middle pane should join east and west");
+  assert.deepEqual([...middle.positions], [1, 0, 0]);
+});

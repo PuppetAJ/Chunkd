@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { BlockType } from "../../lib/voxel/blocks.ts";
 import { applyBlockTextureSettings, type BlockTextures } from "../../lib/blockTextures.ts";
-import { geometryForShape, rotationForAxis } from "../../lib/blockGeometry.ts";
+import { geometryForBlock, rotationForAxis } from "../../lib/blockGeometry.ts";
 import { SHAPE_TRAPDOOR } from "../../lib/voxel/blockValue.ts";
 
 const matrix = new THREE.Matrix4();
@@ -39,7 +39,7 @@ interface Props {
  */
 export default function BlockLayer({ block, shape, variant, positions, axes, textures }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const geometry = geometryForShape(shape, variant);
+  const geometry = geometryForBlock(block.id, shape, variant);
   const count = positions.length / 3;
   const capacity = capacityFor(count);
 

@@ -37,6 +37,7 @@ import dripstoneUrl from "../../assets/textures/dripstone_block.png";
 import endStoneUrl from "../../assets/textures/end_stone.png";
 import farmlandUrl from "../../assets/textures/farmland.png";
 import glassUrl from "../../assets/textures/glass.png";
+import glassPaneTopUrl from "../../assets/textures/glass_pane_top.png";
 import graniteUrl from "../../assets/textures/granite.png";
 import grassBlockSideUrl from "../../assets/textures/grass_block_side.png";
 import grassBlockSnowUrl from "../../assets/textures/grass_block_snow.png";
@@ -220,6 +221,7 @@ export const BLOCKS: readonly BlockType[] = [
 
   // Other
   define({ id: BLOCK_IDS.glass, name: "glass", label: "Glass", group: "Other", texture: glassUrl, draw: "cutout" }),
+  define({ id: BLOCK_IDS.glassPane, name: "glass_pane", label: "Glass Pane", group: "Other", top: glassPaneTopUrl, side: glassUrl, bottom: glassPaneTopUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.hayBale, name: "hay_bale", label: "Hay Bale", group: "Other", top: hayBlockTopUrl, side: hayBlockSideUrl, directional: true }),
 ];
 

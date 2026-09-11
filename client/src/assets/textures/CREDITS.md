@@ -27,7 +27,7 @@ what this project relies on.
 
 ## What was changed
 
-59 of the 64 files are byte-for-byte copies of Faithful's, and can be checked by
+60 of the 65 files are byte-for-byte copies of Faithful's, and can be checked by
 hashing them against the pack's own `assets/minecraft/textures/block` folder.
 
 Five are derived, because Minecraft stores them greyscale and colours them by

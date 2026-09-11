@@ -399,3 +399,25 @@ test("open trapdoors can be walked past alongside", () => {
   assert.ok(body.x > 2.5, `should have walked past, stopped at ${body.x}`);
   assert.equal(body.y, 0.5);
 });
+
+test("a row of glass panes stops the player at the glass, not the cell edge", () => {
+  // Joined east to west, the panes are a thin wall down the middle of the row.
+  const blocks = floor();
+  for (let x = -5; x <= 5; x += 1) blocks.set(toKey(x, 1, 2), packBlock(50));
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0, 0, 0.2);
+
+  const contact = 2 - 1 / 16 - 0.3;
+  assert.ok(Math.abs(body.z - contact) < 0.01, `should be against the glass at ${contact}, got ${body.z}`);
+});
+
+test("a player can walk past a lone pane's post", () => {
+  const blocks = floor();
+  blocks.set(toKey(2, 1, 0), packBlock(50));
+
+  const body = standing(0, 0.45);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x > 2.5, `should have walked past the post, stopped at ${body.x}`);
+});

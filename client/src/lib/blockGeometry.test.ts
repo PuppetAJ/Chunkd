@@ -12,7 +12,7 @@ import {
 } from "./voxel/blockValue.ts";
 import { SIDE_EAST, SIDE_NORTH, SIDE_SOUTH, SIDE_WEST, WALL_POST_BIT } from "./voxel/connectionShape.ts";
 import { straightQuadrants } from "./voxel/stairShape.ts";
-import { fenceParts, stairParts, trapdoorParts, wallParts } from "./blockGeometry.ts";
+import { fenceParts, paneParts, stairParts, trapdoorParts, wallParts } from "./blockGeometry.ts";
 
 const volume = (part: { min: [number, number, number]; max: [number, number, number] }) =>
   (part.max[0] - part.min[0]) * (part.max[1] - part.min[1]) * (part.max[2] - part.min[2]);
@@ -138,4 +138,15 @@ test("an open trapdoor stands against the side it faces away from", () => {
     assert.equal(panel!.max[axis] - panel!.min[axis], TRAPDOOR_THICKNESS, `facing ${facing} thickness`);
     assert.equal(panel!.max[1] - panel!.min[1], 1, `facing ${facing} should stand a block tall`);
   }
+});
+
+test("a lone glass pane is a post two sixteenths across and a block tall", () => {
+  assert.deepEqual(paneParts(0), [{ min: [-0.0625, -0.5, -0.0625], max: [0.0625, 0.5, 0.0625] }]);
+});
+
+test("a glass pane reaches the edge of its cell on each side it joins", () => {
+  const parts = paneParts(SIDE_EAST | SIDE_WEST);
+  assert.equal(parts.length, 3);
+  assert.ok(parts.some((part) => part.max[0] === 0.5), "should reach the east edge");
+  assert.ok(parts.some((part) => part.min[0] === -0.5), "should reach the west edge");
 });

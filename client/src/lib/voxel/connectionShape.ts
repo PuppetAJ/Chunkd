@@ -1,15 +1,19 @@
-import { SEE_THROUGH_BLOCK_IDS } from "./blockIds.ts";
-import { blockIdOf, blockShapeOf, isFence, isWall, SHAPE_FULL } from "./blockValue.ts";
+import { BLOCK_IDS, PANE_BLOCK_IDS, SEE_THROUGH_BLOCK_IDS } from "./blockIds.ts";
+import { blockIdOf, blockShapeOf, isFence, isStairs, isWall, SHAPE_FULL } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
+import { QUADRANT_COUNT, quadrantSides, stairQuadrants } from "./stairShape.ts";
 
 /**
- * Which sides a fence or a wall joins to, worked out from its neighbours.
+ * Which sides a fence, a wall or a glass pane joins to, worked out from its
+ * neighbours.
  *
  * Derived rather than stored, like a stair's corners, so placing or breaking a
  * block beside one tidies it up with nothing to migrate.
  *
- * The rules are Minecraft's. Each joins its own kind and any whole solid block.
- * A fence and a wall do not join each other, and neither joins glass or leaves.
+ * The rules are Minecraft's. Each joins its own kind and any whole solid block,
+ * glass included. Walls and panes also join each other, and a pane joins the
+ * solid back of a stair, which the wiki gives for panes. Nothing joins leaves,
+ * and a fence joins neither a wall nor a pane.
  */
 
 export const SIDE_NORTH = 1;
@@ -28,10 +32,60 @@ const SIDES: [number, number][] = [
 /** A wall's render variant carries its post in the bit above its sides. */
 export const WALL_POST_BIT = 16;
 
-function joins(neighbour: number | undefined, sameKind: (value: number) => boolean): boolean {
+/** A glass pane is its own block rather than a shape, so it is known by its id. */
+export function isPane(value: number): boolean {
+  return PANE_BLOCK_IDS.has(blockIdOf(value));
+}
+
+/**
+ * A whole block that fences, walls and panes join. Glass counts though it can be
+ * seen through: Mojang closed the report of fences and walls joining it as
+ * working as intended (MC-147798). Leaves do not, which is also the game's rule.
+ */
+function isSolidToJoin(value: number): boolean {
+  if (blockShapeOf(value) !== SHAPE_FULL) return false;
+  const id = blockIdOf(value);
+  return id === BLOCK_IDS.glass || !SEE_THROUGH_BLOCK_IDS.has(id);
+}
+
+/** Whether the face of a stair on the side (sx, sz) is solid all the way across. */
+function stairFaceIsWhole(
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+  sx: number,
+  sz: number,
+): boolean {
+  const quadrants = stairQuadrants(blocks, x, y, z);
+  for (let index = 0; index < QUADRANT_COUNT; index += 1) {
+    const [qx, qz] = quadrantSides(index);
+    const onThatSide = sx !== 0 ? qx === sx : qz === sz;
+    if (onThatSide && !(quadrants & (1 << index))) return false;
+  }
+  return true;
+}
+
+/** The three kinds of block that join their neighbours. */
+type Joiner = "fence" | "wall" | "pane";
+
+function joins(
+  kind: Joiner,
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+  dx: number,
+  dz: number,
+): boolean {
+  const neighbour = blocks.get(toKey(x + dx, y, z + dz));
   if (neighbour === undefined) return false;
-  if (sameKind(neighbour)) return true;
-  return blockShapeOf(neighbour) === SHAPE_FULL && !SEE_THROUGH_BLOCK_IDS.has(blockIdOf(neighbour));
+  if (kind === "fence") return isFence(neighbour) || isSolidToJoin(neighbour);
+  if (kind === "wall") return isWall(neighbour) || isPane(neighbour) || isSolidToJoin(neighbour);
+
+  if (isPane(neighbour) || isWall(neighbour) || isSolidToJoin(neighbour)) return true;
+  // The stair's face that looks back at the pane is on its far side from it.
+  return isStairs(neighbour) && stairFaceIsWhole(blocks, x + dx, y, z + dz, -dx, -dz);
 }
 
 export function connectionMask(
@@ -42,13 +96,19 @@ export function connectionMask(
 ): number {
   const value = blocks.get(toKey(x, y, z));
   if (value === undefined) return 0;
-  const sameKind = isFence(value) ? isFence : isWall(value) ? isWall : null;
-  if (!sameKind) return 0;
+  const kind: Joiner | null = isPane(value)
+    ? "pane"
+    : isFence(value)
+      ? "fence"
+      : isWall(value)
+        ? "wall"
+        : null;
+  if (!kind) return 0;
 
   let mask = 0;
   for (let index = 0; index < SIDES.length; index += 1) {
     const [dx, dz] = SIDES[index]!;
-    if (joins(blocks.get(toKey(x + dx, y, z + dz)), sameKind)) mask |= 1 << index;
+    if (joins(kind, blocks, x, y, z, dx, dz)) mask |= 1 << index;
   }
   return mask;
 }
@@ -72,4 +132,22 @@ export function wallHasPost(
   const straight = mask === (SIDE_NORTH | SIDE_SOUTH) || mask === (SIDE_EAST | SIDE_WEST);
   const crossing = mask === (SIDE_NORTH | SIDE_EAST | SIDE_SOUTH | SIDE_WEST);
   return !(straight || crossing);
+}
+
+/**
+ * The footprint of a glass pane within its cell, as rectangles across x and z
+ * from -0.5 to 0.5, each as min x, max x, min z, max z: a centre post and an
+ * arm out to each side it joins. The sizes are Minecraft's model, two
+ * sixteenths thick. The geometry and the collision both read this, so what is
+ * drawn and what the player walks into cannot drift apart.
+ */
+export function paneRects(mask: number): [number, number, number, number][] {
+  const near = 7 / 16 - 0.5;
+  const far = 9 / 16 - 0.5;
+  const rects: [number, number, number, number][] = [[near, far, near, far]];
+  if (mask & SIDE_NORTH) rects.push([near, far, -0.5, near]);
+  if (mask & SIDE_SOUTH) rects.push([near, far, far, 0.5]);
+  if (mask & SIDE_WEST) rects.push([-0.5, near, near, far]);
+  if (mask & SIDE_EAST) rects.push([far, 0.5, near, far]);
+  return rects;
 }
