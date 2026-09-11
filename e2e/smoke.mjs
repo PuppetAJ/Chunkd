@@ -40,7 +40,10 @@ check("signed-out header offers Log in", (await page.getByRole("link", { name: "
 // this reads the opacities the hover is actually driving.
 const flameOpacity = () =>
   page.$$eval("header a img", (images) =>
-    images.map((image) => Number(getComputedStyle(image).opacity.slice(0, 4))),
+    // Round the number rather than truncating the string. A finished fade can
+    // report its opacity in exponential form, and taking the first four
+    // characters of "1.3e-7" read a value of essentially zero as 1.3.
+    images.map((image) => Math.round(Number(getComputedStyle(image).opacity) * 100) / 100),
   );
 const atRest = await flameOpacity();
 check("both campfires are loaded, one of them hidden", atRest.length === 2, JSON.stringify(atRest));

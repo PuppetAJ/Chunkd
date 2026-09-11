@@ -19,7 +19,7 @@ import {
   SHAPE_STAIRS_BOTTOM,
 } from "../../lib/voxel/blockValue.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
-import { isEditorPaused } from "../../lib/editorUiStore.ts";
+import { isEditorPaused, swingTool } from "../../lib/editorUiStore.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
 import { blockOverlapsPlayer, type Body } from "../../lib/voxel/collision.ts";
 
@@ -53,6 +53,16 @@ interface Target {
  * single quick click fired an extra action the moment the next frame ran.
  */
 const REPEAT_MS = 160;
+
+/**
+ * Keys that stand in for the mouse buttons, for anyone on a trackpad where
+ * holding right-click to place a run of blocks is awkward. They map onto the
+ * same button numbers, so they inherit hold-to-repeat and everything else.
+ */
+const KEY_BUTTONS: Record<string, number> = {
+  KeyC: 0,
+  KeyF: 2,
+};
 
 interface Props {
   /**
@@ -156,6 +166,10 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   act.current = (button: number) => {
     const current = findTarget();
     if (!current) return;
+
+    // Swing on a hit rather than on the press, so waving the tool at the sky
+    // does not animate.
+    swingTool();
 
     if (button === 0) {
       removeBlock(...current.hit);
@@ -320,7 +334,29 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
     const onContextMenu = (event: Event) => event.preventDefault();
 
+    const onKeyDown = (event: KeyboardEvent) => {
+      const button = KEY_BUTTONS[event.code];
+      if (button === undefined) return;
+      // The frame loop does the repeating, so the key's own auto-repeat would
+      // only fight it.
+      if (event.repeat) return;
+      if (isEditorPaused()) return;
+      // A dialog that does not pause the world could still take the keyboard.
+      const focused = document.activeElement;
+      if (focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement) return;
+
+      heldButton.current = button;
+      act.current(button);
+      nextActionAt.current = performance.now() + REPEAT_MS;
+    };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (KEY_BUTTONS[event.code] === heldButton.current) stop();
+    };
+
     canvas.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
     window.addEventListener("pointerup", stop);
     window.addEventListener("pointercancel", stop);
     window.addEventListener("blur", stop);
@@ -328,6 +364,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     canvas.addEventListener("contextmenu", onContextMenu);
     return () => {
       canvas.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("pointerup", stop);
       window.removeEventListener("pointercancel", stop);
       window.removeEventListener("blur", stop);

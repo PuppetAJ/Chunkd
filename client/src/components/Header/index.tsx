@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { useApolloClient } from "@apollo/client/react";
 import {
   Boxes,
@@ -73,6 +73,7 @@ export default function Header() {
   const username = useAuthStore((state) => state.user?.username ?? "");
   const logOut = useAuthStore((state) => state.logOut);
   const navigate = useNavigate();
+  const location = useLocation();
   const apollo = useApolloClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const hasFinePointer = useHasFinePointer();
@@ -82,16 +83,13 @@ export default function Header() {
 
   const handleLogout = async () => {
     closeMenu();
-    logOut();
+    // Passing the page this was done from is what lets RequireAuth tell a
+    // deliberate sign-out from an expired session. Both end up at the landing
+    // page, so it no longer matters which of the two gets there first. It used
+    // to: when the redirect won, it recorded the page you left and sent you
+    // back to it at your next sign-in.
+    logOut(location.pathname);
 
-    // The order matters and is not obvious. Signing out while a protected page
-    // is on screen lets RequireAuth redirect to /login, remembering the page
-    // you came from, and it does that in an effect. Awaiting here yields long
-    // enough for that redirect to land, so the navigate below overrides it and
-    // sends you to the feed with nothing remembered. Navigating before the
-    // sign-out instead does not work: the redirect still wins, and you get
-    // returned to the page you left the next time you sign in.
-    //
     // resetStore rather than clearStore. Both empty the cache, so neither
     // leaves the previous user's data where the next person in this tab could
     // read it, but clearStore stops there and leaves every query that is still

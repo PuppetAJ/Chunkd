@@ -70,6 +70,25 @@ export function isEditorPaused(): boolean {
   return !state.playing || state.pendingSave !== null || state.inventoryOpen;
 }
 
+/**
+ * When the held tool last swung, as a timestamp from performance.now().
+ *
+ * Outside the store on purpose. The swing is read every frame and would
+ * re-render the whole editor on each hit if it were React state, and the thing
+ * that starts it and the thing that draws it are different components.
+ */
+let swungAt = 0;
+
+/** Start a swing. Called wherever a block is actually broken or placed. */
+export function swingTool(): void {
+  swungAt = performance.now();
+}
+
+/** How long ago the tool swung, in milliseconds. */
+export function sinceSwing(): number {
+  return performance.now() - swungAt;
+}
+
 export const useEditorUiStore = create<EditorUiState>((set) => ({
   saveStatus: "idle",
   saveMessage: "",

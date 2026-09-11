@@ -34,6 +34,11 @@ declare global {
      * rotating leaves it where it is.
      */
     __viewer?: { target: { toArray: () => number[] }; object: { position: { toArray: () => number[] } } };
+    /**
+     * Set only in development. The group holding the tool on screen, so a test
+     * can watch it swing: its first child carries the rotation.
+     */
+    __axe?: { children: { rotation: { x: number } }[] };
   }
 }
 
