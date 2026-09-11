@@ -44,6 +44,7 @@ export default function Editor() {
   const lightTarget = useMemo(() => new THREE.Object3D(), []);
 
   const seed = useWorldStore((state) => state.seed);
+  const size = useWorldStore((state) => state.size);
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   const [everPlayed, setEverPlayed] = useState(false);
@@ -138,10 +139,12 @@ export default function Editor() {
   const body = useMemo<Body>(() => {
     const [x, y, z] = spawnPoint();
     return { x, y, z, onGround: false };
-    // `seed` is not read here, but `spawnPoint` is a store method whose identity
-    // never changes, so without the seed a new world would reuse the old spawn.
+    // Neither `seed` nor `size` is read here, but `spawnPoint` is a store method
+    // whose identity never changes, so without them a new world would reuse the
+    // old spawn. Size matters as much as the seed: the same seed at a different
+    // size is a different landscape.
     // oxlint-disable-next-line exhaustive-deps
-  }, [seed, spawnPoint]);
+  }, [seed, size, spawnPoint]);
 
   // Development-only handle on the player's box, so a test can stand them
   // somewhere. An effect, not canvas setup: a new world makes a new body, and

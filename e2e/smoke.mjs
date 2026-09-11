@@ -1021,6 +1021,10 @@ check(
   "the demo lands on the signed-in header",
   (await page.getByRole("link", { name: "Editor" }).first().count()) > 0,
 );
+// The feed is a lazily loaded route, so on a cold dev server its chunk is still
+// being built at this point. Wait for the heading rather than asking whether it
+// happens to be there yet.
+await appears(page.getByRole("heading", { name: "Recent builds" }));
 check(
   "signing in swaps the landing page for the feed",
   (await page.getByRole("heading", { name: "Recent builds" }).count()) > 0,

@@ -8,6 +8,19 @@ import { toKey, type BlockKey } from "./coords.ts";
 import { BUILD_FORMAT_VERSION, deserializeWorld, serializeWorld } from "./format.ts";
 import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
 
+const LEAF_BLOCK_IDS = new Set<number>([
+  BLOCK_IDS.oakLeaves,
+  BLOCK_IDS.birchLeaves,
+  BLOCK_IDS.cherryLeaves,
+]);
+
+const TREE_BLOCK_IDS = new Set<number>([
+  ...LEAF_BLOCK_IDS,
+  BLOCK_IDS.oakLog,
+  BLOCK_IDS.birchLog,
+  BLOCK_IDS.cherryLog,
+]);
+
 /**
  * A saved build stores its seed and the blocks the player changed, not the
  * world. Loading one regenerates the terrain and reapplies those changes, so
@@ -19,12 +32,21 @@ import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
  * it is a warning that saved builds have changed meaning. Either undo the
  * change to the terrain, or raise BUILD_FORMAT_VERSION and keep the old
  * generator around for old builds, then record the new hashes here.
+ *
+ * They changed once, at version 4, when tree canopies lost the four corners of
+ * their top ring. No old generator was kept, and that was a decision rather
+ * than an oversight: the change only ever removes blocks, so an older build
+ * rebuilds exactly as it was apart from those leaves, which is the shape it is
+ * meant to have now. Keeping a second generator would have frozen square tree
+ * tops into old builds forever and left two generators to maintain. The test
+ * below named "a build saved before the canopy changed loses only leaves"
+ * holds that reasoning in place.
  */
 const TERRAIN_HASHES: Record<number, string> = {
-  1: "2712a9ef2a782fd0",
-  42: "9c278127499a7ef0",
-  1337: "2dd9dfbc24209211",
-  99999: "913928838bd0131b",
+  1: "4cc5becfc119f0b5",
+  42: "d8040069f2cb3a59",
+  1337: "1fdefe332858a6ba",
+  99999: "d6a2dbc4ed8953b7",
 };
 
 /** A short, stable fingerprint of a world. Keys are sorted so it does not
@@ -48,6 +70,78 @@ test("terrain generation is unchanged for known seeds", () => {
       fingerprint(blocks),
       expected,
       `seed ${seed} no longer generates the same world, so builds saved on it will load wrong`,
+    );
+  }
+});
+
+test("a world grown without trees has no vegetation and no trunks", () => {
+  const bare = generateTerrain(42, WORLD_SIZE, { trees: false });
+  const treed = generateTerrain(42);
+
+  const vegetation = [...bare.values()].filter((value) => TREE_BLOCK_IDS.has(blockIdOf(value)));
+  assert.equal(vegetation.length, 0, "no tree blocks should have been planted");
+  assert.ok(bare.size < treed.size, "a bare world should hold fewer blocks than a treed one");
+});
+
+test("turning trees off leaves the ground exactly as it was", () => {
+  // Trees draw from their own random stream, so skipping them must not shift
+  // the landscape underneath. Every block of the bare world should appear
+  // unchanged in the treed one.
+  const bare = generateTerrain(1337, WORLD_SIZE, { trees: false });
+  const treed = generateTerrain(1337);
+
+  for (const [key, value] of bare) {
+    assert.equal(treed.get(key), value, `block at ${key} differs between a bare and a treed world`);
+  }
+});
+
+test("a bare world round-trips as bare", () => {
+  const blocks = generateTerrain(42, WORLD_SIZE, { trees: false });
+  const loaded = deserializeWorld(serializeWorld(42, blocks, WORLD_SIZE, false));
+
+  assert.ok(loaded, "should have loaded");
+  assert.equal(loaded.trees, false);
+  assert.equal(fingerprint(loaded.blocks), fingerprint(blocks));
+});
+
+test("a larger world round-trips at its own size", () => {
+  // The size is an input to the generator, so a build saved at one size and
+  // reloaded at the default would rebuild against a different landscape. This
+  // is the case that used to load wrong, silently.
+  const size = WORLD_SIZE * 2;
+  const blocks = generateTerrain(7, size);
+  const loaded = deserializeWorld(serializeWorld(7, blocks, size));
+
+  assert.ok(loaded, "should have loaded");
+  assert.equal(loaded.size, size);
+  assert.equal(fingerprint(loaded.blocks), fingerprint(blocks));
+});
+
+test("a build saved before the canopy changed loses only leaves", () => {
+  // Version 4 clipped the corners off the top of every canopy. Older builds are
+  // still read with the current generator rather than a preserved old one, so
+  // what they lose has to be exactly those leaves and nothing else.
+  const seed = 1337;
+  const blocks = generateTerrain(seed);
+  const stone = toKey(10, 40, 10);
+  const edited = new Map(blocks);
+  edited.set(stone, BLOCK_IDS.stone);
+
+  const v3 = JSON.parse(serializeWorld(seed, edited));
+  v3.v = 3;
+  delete v3.trees;
+
+  const loaded = deserializeWorld(JSON.stringify(v3));
+  assert.ok(loaded, "a version 3 payload should still load");
+  assert.equal(loaded.trees, true, "a payload with no trees field means the world had them");
+  assert.equal(loaded.blocks.get(stone), BLOCK_IDS.stone, "placed blocks should survive");
+
+  // Anything the older world had that this one does not must be a leaf.
+  for (const [key, value] of edited) {
+    if (loaded.blocks.has(key)) continue;
+    assert.ok(
+      LEAF_BLOCK_IDS.has(blockIdOf(value)),
+      `loading dropped a block that is not a leaf at ${key}`,
     );
   }
 });
