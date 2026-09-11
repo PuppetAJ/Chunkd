@@ -29,6 +29,22 @@ import {
   SHAPE_STAIRS_BOTTOM,
   SHAPE_STAIRS_TOP,
   verticalExtent,
+  isFence,
+  isTrapdoor,
+  isTrapdoorOpen,
+  isTrapdoorTop,
+  isWall,
+  packTrapdoor,
+  SHAPE_FENCE,
+  SHAPE_TRAPDOOR,
+  SHAPE_WALL,
+  toggledTrapdoor,
+  TRAPDOOR_THICKNESS,
+  TRAPDOOR_VARIANT_OPEN,
+  TRAPDOOR_VARIANT_TOP,
+  trapdoorFacingForPlacement,
+  trapdoorTopForPlacement,
+  trapdoorVariant,
 } from "./blockValue.ts";
 
 test("an upright block stores exactly its id", () => {
@@ -202,4 +218,104 @@ test("isStairs and isUpsideDown sort the shapes", () => {
   assert.equal(isUpsideDown(at(SHAPE_SLAB_TOP)), true);
   assert.equal(isUpsideDown(at(SHAPE_STAIRS_BOTTOM)), false);
   assert.equal(isUpsideDown(at(SHAPE_FULL)), false);
+});
+
+test("a trapdoor's facing, half and open state survive a round trip", () => {
+  for (const facing of [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST]) {
+    for (const top of [false, true]) {
+      for (const open of [false, true]) {
+        const value = packTrapdoor(BLOCK_IDS.oakPlanks, facing, top, open);
+        const label = `facing ${facing} top ${top} open ${open}`;
+        assert.equal(blockIdOf(value), BLOCK_IDS.oakPlanks, label);
+        assert.equal(blockShapeOf(value), SHAPE_TRAPDOOR, label);
+        assert.equal(blockFacingOf(value), facing, label);
+        assert.equal(isTrapdoorTop(value), top, label);
+        assert.equal(isTrapdoorOpen(value), open, label);
+      }
+    }
+  }
+});
+
+test("the trapdoor bits are clear on every other shape", () => {
+  // No value saved before trapdoors existed ever set these bits, which is what
+  // lets every older build read exactly as it did.
+  for (const shape of [
+    SHAPE_FULL,
+    SHAPE_SLAB_BOTTOM,
+    SHAPE_SLAB_TOP,
+    SHAPE_STAIRS_BOTTOM,
+    SHAPE_STAIRS_TOP,
+    SHAPE_FENCE,
+    SHAPE_WALL,
+  ]) {
+    const value = packBlock(BLOCK_IDS.stoneBricks, AXIS_Y, shape, FACING_WEST);
+    assert.equal(isTrapdoorTop(value), false, `shape ${shape}`);
+    assert.equal(isTrapdoorOpen(value), false, `shape ${shape}`);
+  }
+});
+
+test("toggling a trapdoor changes only whether it is open", () => {
+  const shut = packTrapdoor(BLOCK_IDS.birchPlanks, FACING_SOUTH, true, false);
+  const open = toggledTrapdoor(shut);
+  assert.equal(isTrapdoorOpen(open), true);
+  assert.equal(blockFacingOf(open), FACING_SOUTH);
+  assert.equal(isTrapdoorTop(open), true);
+  assert.equal(toggledTrapdoor(open), shut);
+});
+
+test("each new shape is recognised as itself and nothing else", () => {
+  const fence = packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE);
+  const wall = packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL);
+  const trapdoor = packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, false, false);
+  assert.deepEqual([isFence(fence), isWall(fence), isTrapdoor(fence)], [true, false, false]);
+  assert.deepEqual([isFence(wall), isWall(wall), isTrapdoor(wall)], [false, true, false]);
+  assert.deepEqual([isFence(trapdoor), isWall(trapdoor), isTrapdoor(trapdoor)], [false, false, true]);
+});
+
+test("a shut trapdoor is three sixteenths thick, in its own half", () => {
+  const bottom = packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, false, false);
+  const top = packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, true, false);
+  assert.deepEqual(verticalExtent(bottom, 10), [9.5, 9.5 + TRAPDOOR_THICKNESS]);
+  assert.deepEqual(verticalExtent(top, 10), [10.5 - TRAPDOOR_THICKNESS, 10.5]);
+});
+
+test("fences, walls and open trapdoors outline their whole cell", () => {
+  // The outline is what is drawn. Collision is what makes fences and walls
+  // taller and open trapdoors passable.
+  for (const value of [
+    packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE),
+    packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL),
+    packTrapdoor(BLOCK_IDS.oakPlanks, FACING_EAST, false, true),
+  ]) {
+    assert.deepEqual(verticalExtent(value, 10), [9.5, 10.5]);
+  }
+});
+
+test("a trapdoor's render variant carries its facing, half and open state", () => {
+  const variant = trapdoorVariant(packTrapdoor(BLOCK_IDS.oakPlanks, FACING_WEST, true, true));
+  assert.equal(variant & 0b11, FACING_WEST);
+  assert.ok(variant & TRAPDOOR_VARIANT_TOP);
+  assert.ok(variant & TRAPDOOR_VARIANT_OPEN);
+  assert.equal(trapdoorVariant(packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, false, false)), 0);
+});
+
+test("a trapdoor built against a side faces out from it", () => {
+  // Its hinge is on the block it was built against, so it opens flat against it.
+  assert.equal(trapdoorFacingForPlacement(1, 0, 0), FACING_EAST);
+  assert.equal(trapdoorFacingForPlacement(-1, 0, 0), FACING_WEST);
+  assert.equal(trapdoorFacingForPlacement(0, 1, 0), FACING_SOUTH);
+  assert.equal(trapdoorFacingForPlacement(0, -1, 0), FACING_NORTH);
+});
+
+test("a trapdoor built on a top or bottom face faces the player", () => {
+  for (const yaw of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+    assert.equal(trapdoorFacingForPlacement(0, 0, yaw), facingForYaw(yaw), `yaw ${yaw}`);
+  }
+});
+
+test("trapdoors take the same upper or lower half rule as slabs", () => {
+  assert.equal(trapdoorTopForPlacement(1, 0), false, "on top of a block");
+  assert.equal(trapdoorTopForPlacement(-1, 0), true, "under a block");
+  assert.equal(trapdoorTopForPlacement(0, 0.25), true, "high on a side");
+  assert.equal(trapdoorTopForPlacement(0, -0.25), false, "low on a side");
 });

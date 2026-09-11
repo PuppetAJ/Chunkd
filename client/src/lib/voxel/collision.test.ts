@@ -2,11 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   AXIS_Y,
+  FACING_NORTH,
   FACING_WEST,
   packBlock,
+  packTrapdoor,
+  SHAPE_FENCE,
   SHAPE_SLAB_BOTTOM,
   SHAPE_SLAB_TOP,
   SHAPE_STAIRS_BOTTOM,
+  SHAPE_WALL,
 } from "./blockValue.ts";
 import { moveBody, type Body } from "./collision.ts";
 import { toKey, type BlockKey } from "./coords.ts";
@@ -278,4 +282,74 @@ test("a staircase can be walked all the way up", () => {
   for (let i = 0; i < 80; i += 1) moveBody(blocks, body, 0.2, 0, 0);
 
   assert.ok(body.y >= 4.5, `should have climbed all four stairs, reached ${body.y}`);
+});
+
+test("a fence cannot be walked onto", () => {
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 1, z), packBlock(1, AXIS_Y, SHAPE_FENCE));
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x < 2, `should have stopped at the fence, got ${body.x}`);
+  assert.equal(body.y, 0.5);
+});
+
+test("fences and walls cannot be jumped over, but a whole block can", () => {
+  // A jump peaks about 1.35 above the ground. Fences and walls collide a block
+  // and a half high, so a player at the top of a jump still meets them, while a
+  // whole block, one high, passes under their feet.
+  const peak = 0.5 + 1.35;
+  const cases: [string, number, boolean][] = [
+    ["fence", packBlock(1, AXIS_Y, SHAPE_FENCE), true],
+    ["wall", packBlock(4, AXIS_Y, SHAPE_WALL), true],
+    ["whole block", packBlock(1), false],
+  ];
+  for (const [name, value, blocked] of cases) {
+    const blocks = floor();
+    for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 1, z), value);
+    const body: Body = { x: 0, y: peak, z: 0, onGround: false };
+    for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+    assert.equal(body.x < 2, blocked, `${name}: stopped at ${body.x}`);
+  }
+});
+
+test("a player can stand on top of a fence", () => {
+  // Its collision top is a block above its base, and that is where a player
+  // dropping onto it comes to rest.
+  const blocks = floor();
+  blocks.set(toKey(0, 1, 0), packBlock(1, AXIS_Y, SHAPE_FENCE));
+
+  const body: Body = { x: 0, y: 3, z: 0, onGround: false };
+  for (let i = 0; i < 40; i += 1) moveBody(blocks, body, 0, -0.1, 0);
+
+  assert.equal(body.y, 2, "should be resting on the fence");
+  assert.equal(body.onGround, true);
+});
+
+test("a shut trapdoor on the ground is walked onto like a step", () => {
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) {
+    blocks.set(toKey(2, 1, z), packTrapdoor(1, FACING_NORTH, false, false));
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 11; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x > 2, `should have walked onto the trapdoor, stopped at ${body.x}`);
+  assert.equal(body.y, 0.5 + 3 / 16);
+});
+
+test("an open trapdoor can be walked straight through", () => {
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) {
+    blocks.set(toKey(2, 1, z), packTrapdoor(1, FACING_NORTH, false, true));
+    blocks.set(toKey(2, 2, z), packTrapdoor(1, FACING_NORTH, true, true));
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x > 2.5, `should have walked through, stopped at ${body.x}`);
+  assert.equal(body.y, 0.5);
 });

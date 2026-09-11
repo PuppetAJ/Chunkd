@@ -1,4 +1,10 @@
-import { BLOCK_IDS, SLAB_BLOCK_IDS, STAIR_BLOCK_IDS } from "./blockIds.ts";
+import {
+  BLOCK_IDS,
+  FENCE_BLOCK_IDS,
+  SLAB_BLOCK_IDS,
+  STAIR_BLOCK_IDS,
+  WALL_BLOCK_IDS,
+} from "./blockIds.ts";
 
 import amethystUrl from "../../assets/textures/amethyst_block.png";
 import andesiteUrl from "../../assets/textures/andesite.png";
@@ -8,6 +14,7 @@ import birchLeavesUrl from "../../assets/textures/birch_leaves.png";
 import birchLogTopUrl from "../../assets/textures/birch_log_top.png";
 import birchLogUrl from "../../assets/textures/birch_log.png";
 import birchPlanksUrl from "../../assets/textures/birch_planks.png";
+import birchTrapdoorUrl from "../../assets/textures/birch_trapdoor.png";
 import blackstoneTopUrl from "../../assets/textures/blackstone_top.png";
 import blackstoneUrl from "../../assets/textures/blackstone.png";
 import blueIceUrl from "../../assets/textures/blue_ice.png";
@@ -17,6 +24,7 @@ import cherryLeavesUrl from "../../assets/textures/cherry_leaves.png";
 import cherryLogTopUrl from "../../assets/textures/cherry_log_top.png";
 import cherryLogUrl from "../../assets/textures/cherry_log.png";
 import cherryPlanksUrl from "../../assets/textures/cherry_planks.png";
+import cherryTrapdoorUrl from "../../assets/textures/cherry_trapdoor.png";
 import chiseledSandstoneUrl from "../../assets/textures/chiseled_sandstone.png";
 import cobblestoneUrl from "../../assets/textures/cobblestone.png";
 import cutSandstoneUrl from "../../assets/textures/cut_sandstone.png";
@@ -43,6 +51,7 @@ import oakLeavesUrl from "../../assets/textures/oak_leaves.png";
 import oakLogTopUrl from "../../assets/textures/oak_log_top.png";
 import oakLogUrl from "../../assets/textures/oak_log.png";
 import oakPlanksUrl from "../../assets/textures/oak_planks.png";
+import oakTrapdoorUrl from "../../assets/textures/oak_trapdoor.png";
 import obsidianUrl from "../../assets/textures/obsidian.png";
 import packedMudUrl from "../../assets/textures/packed_mud.png";
 import polishedAndesiteUrl from "../../assets/textures/polished_andesite.png";
@@ -57,6 +66,7 @@ import spruceLeavesUrl from "../../assets/textures/spruce_leaves.png";
 import spruceLogTopUrl from "../../assets/textures/spruce_log_top.png";
 import spruceLogUrl from "../../assets/textures/spruce_log.png";
 import sprucePlanksUrl from "../../assets/textures/spruce_planks.png";
+import spruceTrapdoorUrl from "../../assets/textures/spruce_trapdoor.png";
 import stoneBricksUrl from "../../assets/textures/stone_bricks.png";
 import stoneUrl from "../../assets/textures/stone.png";
 import tuffUrl from "../../assets/textures/tuff.png";
@@ -98,6 +108,15 @@ export interface BlockType {
   /** Whether this block can be laid as a slab, and as stairs. See blockIds.ts. */
   readonly slab: boolean;
   readonly stairs: boolean;
+  /** Whether this block can be a fence, and a wall. See blockIds.ts. */
+  readonly fence: boolean;
+  readonly wall: boolean;
+  /**
+   * This block's trapdoor texture, or null if it has no trapdoor. A trapdoor is
+   * not the block's own texture cut thin: Minecraft draws it separately, with
+   * its hinges and its holes.
+   */
+  readonly trapdoor: string | null;
   readonly group: BlockGroup;
 }
 
@@ -113,6 +132,7 @@ interface BlockInput {
   bottom?: string;
   draw?: BlockDraw;
   directional?: boolean;
+  trapdoor?: string;
 }
 
 function define(input: BlockInput): BlockType {
@@ -128,6 +148,9 @@ function define(input: BlockInput): BlockType {
     directional: input.directional ?? false,
     slab: SLAB_BLOCK_IDS.has(input.id),
     stairs: STAIR_BLOCK_IDS.has(input.id),
+    fence: FENCE_BLOCK_IDS.has(input.id),
+    wall: WALL_BLOCK_IDS.has(input.id),
+    trapdoor: input.trapdoor ?? null,
     group: input.group,
   };
 }
@@ -183,16 +206,16 @@ export const BLOCKS: readonly BlockType[] = [
 
   // Wood
   define({ id: BLOCK_IDS.oakLog, name: "oak_log", label: "Oak Log", group: "Wood", top: oakLogTopUrl, side: oakLogUrl, directional: true }),
-  define({ id: BLOCK_IDS.oakPlanks, name: "oak_planks", label: "Oak Planks", group: "Wood", texture: oakPlanksUrl }),
+  define({ id: BLOCK_IDS.oakPlanks, name: "oak_planks", label: "Oak Planks", group: "Wood", texture: oakPlanksUrl, trapdoor: oakTrapdoorUrl }),
   define({ id: BLOCK_IDS.oakLeaves, name: "oak_leaves", label: "Oak Leaves", group: "Wood", texture: oakLeavesUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.spruceLog, name: "spruce_log", label: "Spruce Log", group: "Wood", top: spruceLogTopUrl, side: spruceLogUrl, directional: true }),
-  define({ id: BLOCK_IDS.sprucePlanks, name: "spruce_planks", label: "Spruce Planks", group: "Wood", texture: sprucePlanksUrl }),
+  define({ id: BLOCK_IDS.sprucePlanks, name: "spruce_planks", label: "Spruce Planks", group: "Wood", texture: sprucePlanksUrl, trapdoor: spruceTrapdoorUrl }),
   define({ id: BLOCK_IDS.spruceLeaves, name: "spruce_leaves", label: "Spruce Leaves", group: "Wood", texture: spruceLeavesUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.birchLog, name: "birch_log", label: "Birch Log", group: "Wood", top: birchLogTopUrl, side: birchLogUrl, directional: true }),
-  define({ id: BLOCK_IDS.birchPlanks, name: "birch_planks", label: "Birch Planks", group: "Wood", texture: birchPlanksUrl }),
+  define({ id: BLOCK_IDS.birchPlanks, name: "birch_planks", label: "Birch Planks", group: "Wood", texture: birchPlanksUrl, trapdoor: birchTrapdoorUrl }),
   define({ id: BLOCK_IDS.birchLeaves, name: "birch_leaves", label: "Birch Leaves", group: "Wood", texture: birchLeavesUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.cherryLog, name: "cherry_log", label: "Cherry Log", group: "Wood", top: cherryLogTopUrl, side: cherryLogUrl, directional: true }),
-  define({ id: BLOCK_IDS.cherryPlanks, name: "cherry_planks", label: "Cherry Planks", group: "Wood", texture: cherryPlanksUrl }),
+  define({ id: BLOCK_IDS.cherryPlanks, name: "cherry_planks", label: "Cherry Planks", group: "Wood", texture: cherryPlanksUrl, trapdoor: cherryTrapdoorUrl }),
   define({ id: BLOCK_IDS.cherryLeaves, name: "cherry_leaves", label: "Cherry Leaves", group: "Wood", texture: cherryLeavesUrl, draw: "cutout" }),
 
   // Other
@@ -208,7 +231,14 @@ export function getBlock(id: number): BlockType | undefined {
 
 /** Every distinct texture the block table refers to, deduplicated. */
 export const TEXTURE_URLS: readonly string[] = [
-  ...new Set(BLOCKS.flatMap((block) => [block.top, block.side, block.bottom])),
+  ...new Set(
+    BLOCKS.flatMap((block) => [
+      block.top,
+      block.side,
+      block.bottom,
+      ...(block.trapdoor ? [block.trapdoor] : []),
+    ]),
+  ),
 ];
 
 export const DEFAULT_BLOCK_ID = BLOCK_IDS.grass;
