@@ -1,5 +1,6 @@
-import { verticalExtent } from "./blockValue.ts";
+import { isStairs, isUpsideDown, verticalExtent } from "./blockValue.ts";
 import { toKey, type BlockKey } from "./coords.ts";
+import { QUADRANT_COUNT, quadrantSides, stairQuadrants } from "./stairShape.ts";
 
 /**
  * Collision between the player and the block grid.
@@ -13,6 +14,9 @@ import { toKey, type BlockKey } from "./coords.ts";
  * Height is the one thing the cell does not decide: a slab fills half of it,
  * so the surface underfoot comes from the block. Across X and Z a slab still
  * fills its cell, so walls, sliding and the reach checks are unchanged.
+ *
+ * Stairs are the exception to that last part, and the only shape whose height
+ * changes across its own cell. They are handled in `extentAt` below.
  */
 
 export const PLAYER_HALF_WIDTH = 0.3;
@@ -49,13 +53,70 @@ function forEachOverlap(
       for (let bz = minZ; bz <= maxZ; bz += 1) {
         const value = blocks.get(toKey(bx, by, bz));
         if (value === undefined) continue;
-        const [low, high] = verticalExtent(value, by);
+        const [low, high] = extentAt(blocks, value, bx, by, bz, x, z);
         // Touching is not overlapping, so both comparisons are strict.
         if (y < high && head > low && visit(low, high)) return true;
       }
     }
   }
   return false;
+}
+
+/**
+ * Does the player's box, standing at (x, z), cover any of the quarters of cell
+ * (bx, bz) named by `quadrants`?
+ */
+function overlapsQuadrant(
+  quadrants: number,
+  bx: number,
+  bz: number,
+  x: number,
+  z: number,
+): boolean {
+  const minX = x - PLAYER_HALF_WIDTH;
+  const maxX = x + PLAYER_HALF_WIDTH;
+  const minZ = z - PLAYER_HALF_WIDTH;
+  const maxZ = z + PLAYER_HALF_WIDTH;
+
+  for (let index = 0; index < QUADRANT_COUNT; index += 1) {
+    if ((quadrants & (1 << index)) === 0) continue;
+    const [sx, sz] = quadrantSides(index);
+    const lowX = sx > 0 ? bx : bx - 0.5;
+    const lowZ = sz > 0 ? bz : bz - 0.5;
+    // Touching is not overlapping, as everywhere else here.
+    if (minX < lowX + 0.5 && maxX > lowX && minZ < lowZ + 0.5 && maxZ > lowZ) return true;
+  }
+  return false;
+}
+
+/**
+ * How tall a block is where the player is standing.
+ *
+ * Every shape but stairs is the same height across its whole cell, so the
+ * block's own extent is the whole answer. A stair is not: its tall half covers
+ * only some quarters of the cell, and whether the player is over one of those
+ * decides whether they stand at half height or full height.
+ *
+ * This used to report a stair as a whole cube, which made walking onto one a
+ * full block rise, above the step height, so a staircase could not be climbed
+ * without jumping up every step.
+ */
+function extentAt(
+  blocks: Map<BlockKey, number>,
+  value: number,
+  bx: number,
+  by: number,
+  bz: number,
+  x: number,
+  z: number,
+): [number, number] {
+  if (!isStairs(value)) return verticalExtent(value, by);
+
+  const overTall = overlapsQuadrant(stairQuadrants(blocks, bx, by, bz), bx, bz, x, z);
+  if (overTall) return [by - 0.5, by + 0.5];
+  // Away from the tall half, a stair is the half of the cell its solid part
+  // fills: the bottom one normally, the top one when it is upside down.
+  return isUpsideDown(value) ? [by, by + 0.5] : [by - 0.5, by];
 }
 
 /** Is the player's box, with its feet at (x, y, z), inside any block? */

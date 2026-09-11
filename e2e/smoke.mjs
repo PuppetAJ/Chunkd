@@ -571,6 +571,40 @@ check("each facing is kept", stairs.row.map((one) => one.facing).join() === "0,1
 check("the block id survives a facing", stairs.row.every((one) => one.id === 9), JSON.stringify(stairs.row));
 check("upside down stairs are their own shape", stairs.upsideDown.shape === 4, JSON.stringify(stairs.upsideDown));
 
+// A stair is half a block at its low step, so a staircase is walked up rather
+// than jumped up. It used to collide as a whole cube, which made every step a
+// jump.
+const STAIR_LANE_Z = 34;
+await page.evaluate(([y, z]) => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(4, 9); // stone bricks
+  store.setSelectedSlot(4);
+
+  // Flat ground to set off from, then four stairs each a cell further along
+  // and a block higher, all facing west so their low step meets the player.
+  for (let dx = 0; dx <= 10; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) store.placeBlock(30 + dx, y, z + dz, 0, 0);
+  }
+  for (let step = 0; step < 4; step += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) {
+      store.placeBlock(33 + step, y + 1 + step, z + dz, 0, 3, 3);
+    }
+  }
+
+  const body = window.__player;
+  body.x = 30;
+  body.y = y + 0.5;
+  body.z = z;
+}, [SLAB_PAD_Y, STAIR_LANE_Z]);
+
+await page.evaluate(() => window.__r3f.camera.rotation.set(0, -Math.PI / 2, 0, "YXZ"));
+await page.keyboard.down("w");
+// The top of the fourth stair. Reaching it means all four were walked up.
+const climbed = await until((want) => window.__player?.y >= want, SLAB_PAD_Y + 4.5, 20000);
+await page.keyboard.up("w");
+const afterClimb = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
+check("a staircase is walked up without jumping", climbed, JSON.stringify(afterClimb));
+
 // Two slabs of the same block make a whole one. The player is standing on a
 // slab course, so aiming straight down and placing another fills the cell.
 await page.evaluate((y) => {

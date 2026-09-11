@@ -1,6 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AXIS_Y, packBlock, SHAPE_SLAB_BOTTOM, SHAPE_SLAB_TOP } from "./blockValue.ts";
+import {
+  AXIS_Y,
+  FACING_WEST,
+  packBlock,
+  SHAPE_SLAB_BOTTOM,
+  SHAPE_SLAB_TOP,
+  SHAPE_STAIRS_BOTTOM,
+} from "./blockValue.ts";
 import { moveBody, type Body } from "./collision.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 
@@ -232,4 +239,43 @@ test("a player in mid-air is not lifted onto a ledge by step assist", () => {
   assert.equal(body.y, 3, `should not have been lifted, at ${body.y}`);
   assert.equal(body.onGround, false);
   assert.ok(body.x < 1.5, `should have stopped against the ledge, at ${body.x}`);
+});
+
+test("a stair is a step, not a wall", () => {
+  // Stairs used to collide as whole cubes, which made walking onto one a full
+  // block rise and therefore a jump. The low half is what the player meets
+  // first, and that is half a block.
+  const blocks = floor();
+  for (let z = -5; z <= 5; z += 1) {
+    // Facing west means the low step faces the player walking east.
+    blocks.set(toKey(2, 1, z), packBlock(1, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_WEST));
+  }
+
+  // Far enough to climb the stair, not so far as to walk off the far side of
+  // it: the row is one cell deep and there is nothing beyond it.
+  const body = standing(0, 0);
+  for (let i = 0; i < 12; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.x > 2, `should have walked onto the stair, stopped at ${body.x}`);
+  assert.equal(body.y, 1.5, "should be standing on top of the stair");
+  assert.equal(body.onGround, true);
+});
+
+test("a staircase can be walked all the way up", () => {
+  // Four stairs, each one cell further along and one higher, which is what a
+  // staircase actually is. Every step has to be walkable or the climb stops.
+  const blocks = floor();
+  for (let step = 0; step < 4; step += 1) {
+    for (let z = -5; z <= 5; z += 1) {
+      blocks.set(
+        toKey(2 + step, 1 + step, z),
+        packBlock(1, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_WEST),
+      );
+    }
+  }
+
+  const body = standing(0, 0);
+  for (let i = 0; i < 80; i += 1) moveBody(blocks, body, 0.2, 0, 0);
+
+  assert.ok(body.y >= 4.5, `should have climbed all four stairs, reached ${body.y}`);
 });
