@@ -1324,6 +1324,21 @@ check("the pause screen goes away when play starts", (await page.locator("[data-
   const actsAgain = await on((n) => window.__world.getState().blocks.size !== n, afterReturn, 5000);
   check("once the mouse is back, a click breaks a block again", actsAgain);
 
+  // A browser can also grant the lock once and then stop granting it, which
+  // Zen was seen to do. Clicks then have to act, rather than each being held
+  // back as a click that takes the mouse.
+  await lockPage.evaluate(() => window.__dropLock());
+  await playButton().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  await lockPage.evaluate(() => {
+    window.__refuseLock = true;
+  });
+  await playButton().click();
+  await playButton().waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+  const beforeRefused = await size();
+  await lockPage.mouse.click(640, 400);
+  const actsRefused = await on((n) => window.__world.getState().blocks.size !== n, beforeRefused, 5000);
+  check("when the browser stops granting the lock, a click still acts", actsRefused);
+
   await lockPage.close();
 }
 
