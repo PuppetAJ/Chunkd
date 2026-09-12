@@ -9,26 +9,27 @@ export default function Footer() {
           &copy; {new Date().getFullYear()} Adrian Jimenez
         </p>
 
-        {/* The block textures are Faithful's, and their licence asks for clear
-            credit and a visible link wherever their work is used. */}
+        {/* CC BY-SA asks for credit and a link to the licence wherever the
+            work is used, and names the original author rather than only the
+            maintainers who carried the pack on. */}
         <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
           Block textures from{" "}
           <a
             className="text-foreground underline underline-offset-2 hover:text-primary"
-            href="https://faithfulpack.net/faithful32x"
+            href="https://github.com/Athemis/PixelPerfectionCE"
             target="_blank"
             rel="noreferrer"
           >
-            Faithful 32x
-          </a>
-          , used under the{" "}
+            Pixel Perfection
+          </a>{" "}
+          by XSSheep and its community maintainers, used under{" "}
           <a
             className="text-foreground underline underline-offset-2 hover:text-primary"
-            href="https://faithfulpack.net/license"
+            href="https://creativecommons.org/licenses/by-sa/4.0/"
             target="_blank"
             rel="noreferrer"
           >
-            Faithful licence
+            CC BY-SA 4.0
           </a>
           . Not an official Minecraft product; not approved by or associated with Mojang.
         </p>
