@@ -12,7 +12,17 @@ import {
 } from "./voxel/blockValue.ts";
 import { SIDE_EAST, SIDE_NORTH, SIDE_SOUTH, SIDE_WEST, WALL_POST_BIT } from "./voxel/connectionShape.ts";
 import { straightQuadrants } from "./voxel/stairShape.ts";
-import { fenceParts, paneParts, stairParts, trapdoorParts, wallParts } from "./blockGeometry.ts";
+import {
+  fenceParts,
+  geometryForBlock,
+  geometryForShape,
+  paneParts,
+  stairParts,
+  trapdoorParts,
+  wallParts,
+} from "./blockGeometry.ts";
+import { BLOCK_IDS } from "./voxel/blockIds.ts";
+import { SHAPE_FULL, SHAPE_STAIRS_BOTTOM } from "./voxel/blockValue.ts";
 
 const volume = (part: { min: [number, number, number]; max: [number, number, number] }) =>
   (part.max[0] - part.min[0]) * (part.max[1] - part.min[1]) * (part.max[2] - part.min[2]);
@@ -163,4 +173,35 @@ test("a glass pane reaches the edge of its cell on each side it joins", () => {
   assert.equal(parts.length, 3);
   assert.ok(parts.some((part) => part.max[0] === 0.5), "should reach the east edge");
   assert.ok(parts.some((part) => part.min[0] === -0.5), "should reach the west edge");
+});
+
+/**
+ * BlockLayer gives a block with different textures per face an array of six
+ * materials, and picks between them by the group each face is in: index 2 is
+ * the top texture, 3 the bottom, the rest the sides. A shape built from
+ * several boxes used to be grouped by box instead, so its third box was drawn
+ * entirely with the top texture and its fourth with the bottom.
+ */
+function facesMatchTheirMaterial(geometry: {
+  groups: { start: number; count: number; materialIndex?: number }[];
+  index: { getX: (i: number) => number } | null;
+  attributes: Record<string, { getY: (i: number) => number }>;
+}): void {
+  const normal = geometry.attributes["normal"]!;
+  const index = geometry.index!;
+  for (const group of geometry.groups) {
+    for (let i = group.start; i < group.start + group.count; i += 1) {
+      const ny = normal.getY(index.getX(i));
+      const expected = group.materialIndex === 2 ? 1 : group.materialIndex === 3 ? -1 : 0;
+      assert.equal(ny, expected, `material ${group.materialIndex} on a face pointing ${ny}`);
+    }
+  }
+}
+
+test("a glass pane's faces are each drawn with the texture for the way they point", () => {
+  facesMatchTheirMaterial(geometryForBlock(BLOCK_IDS.glassPane, SHAPE_FULL, SIDE_EAST | SIDE_WEST));
+});
+
+test("a stair's faces are each drawn with the texture for the way they point", () => {
+  facesMatchTheirMaterial(geometryForShape(SHAPE_STAIRS_BOTTOM, straightQuadrants(FACING_NORTH)));
 });
