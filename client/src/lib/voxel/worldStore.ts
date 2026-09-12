@@ -18,6 +18,7 @@ import {
   SHAPE_WALL,
   toggledTrapdoor,
 } from "./blockValue.ts";
+import { nextBrush, type Cell } from "./brush.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { generateTerrain, randomSeed, spawnPointFor, WORLD_SIZE } from "./terrain.ts";
 import { deserializeWorld, serializeWorld } from "./format.ts";
@@ -64,6 +65,8 @@ interface WorldState {
    * choosing a block and choosing how to place it stay separate.
    */
   hotbarShape: number[];
+  /** How many cells across one break or place covers. One of BRUSH_SIZES. */
+  brush: number;
 
   newWorld: (seed?: number, options?: WorldOptions) => void;
   loadBuild: (payload: string) => boolean;
@@ -80,6 +83,19 @@ interface WorldState {
     top?: boolean,
   ) => void;
   removeBlock: (x: number, y: number, z: number) => void;
+  /**
+   * The same two, over a list of cells. A brush covers up to eighty-one cells
+   * at once, and doing them one at a time copied the world's block map once
+   * per cell.
+   */
+  placeBlocks: (
+    cells: Cell[],
+    axis?: number,
+    shape?: number,
+    facing?: number,
+    top?: boolean,
+  ) => void;
+  removeBlocks: (cells: Cell[]) => void;
   /** Join a slab with a second of the same block, making a whole one. */
   fillSlab: (x: number, y: number, z: number) => void;
   toggleTrapdoor: (x: number, y: number, z: number) => void;
@@ -89,6 +105,10 @@ interface WorldState {
   setHotbarBlock: (slot: number, blockId: number) => void;
   /** Step the selected slot on to the next shape it can place. */
   cycleSelectedShape: () => void;
+  /** Step the brush up a size, or down for a negative direction. */
+  cycleBrush: (direction: number) => void;
+  /** Put the block being looked at into the hotbar, or select it if it is there. */
+  pickBlock: (blockId: number, shape: number) => void;
   selectedBlockId: () => number;
   selectedShape: () => number;
   spawnPoint: () => [number, number, number];
@@ -135,6 +155,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   selectedSlot: 1,
   hotbar: [...DEFAULT_HOTBAR],
   hotbarShape: Array.from({ length: HOTBAR_SLOTS }, () => SHAPE_FULL),
+  brush: 1,
 
   newWorld: (seed = randomSeed(), options = {}) => {
     const { size = WORLD_SIZE, trees = true } = options;
@@ -160,10 +181,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     return serializeWorld(seed, blocks, size, trees);
   },
 
-  placeBlock: (
-    x,
-    y,
-    z,
+  placeBlock: (x, y, z, axis, shape, facing, top) => {
+    get().placeBlocks([[x, y, z]], axis, shape, facing, top);
+  },
+
+  placeBlocks: (
+    cells,
     axis = AXIS_Y,
     shape = get().selectedShape(),
     facing = FACING_NORTH,
@@ -179,16 +202,18 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       cut === SHAPE_TRAPDOOR
         ? packTrapdoor(blockId, facing, top, false)
         : packBlock(blockId, upright ? AXIS_Y : axis, cut, facing);
-    const key = toKey(x, y, z);
     set((state) => {
-      if (state.blocks.has(key)) return state;
+      const empty = cells.filter(([x, y, z]) => !state.blocks.has(toKey(x, y, z)));
+      if (empty.length === 0) return state;
       // Copying a map of a few thousand entries costs well under a millisecond
       // and only happens on an edit, never per frame. It keeps the update
       // obviously correct without a revision counter.
       const blocks = new Map(state.blocks);
-      blocks.set(key, value);
       const visible = new Map(state.visible);
-      refreshVisibleAround(blocks, visible, x, y, z);
+      for (const [x, y, z] of empty) {
+        blocks.set(toKey(x, y, z), value);
+        refreshVisibleAround(blocks, visible, x, y, z);
+      }
       return { blocks, visible };
     });
   },
@@ -220,13 +245,19 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   removeBlock: (x, y, z) => {
-    const key = toKey(x, y, z);
+    get().removeBlocks([[x, y, z]]);
+  },
+
+  removeBlocks: (cells) => {
     set((state) => {
-      if (!state.blocks.has(key)) return state;
+      const filled = cells.filter(([x, y, z]) => state.blocks.has(toKey(x, y, z)));
+      if (filled.length === 0) return state;
       const blocks = new Map(state.blocks);
-      blocks.delete(key);
       const visible = new Map(state.visible);
-      refreshVisibleAround(blocks, visible, x, y, z);
+      for (const [x, y, z] of filled) {
+        blocks.delete(toKey(x, y, z));
+        refreshVisibleAround(blocks, visible, x, y, z);
+      }
       return { blocks, visible };
     });
   },
@@ -270,6 +301,36 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       const at = order.indexOf(hotbarShape[index] ?? SHAPE_FULL);
       hotbarShape[index] = order[(at + 1) % order.length]!;
       return { hotbarShape };
+    });
+  },
+
+  cycleBrush: (direction) => {
+    set((state) => ({ brush: nextBrush(state.brush, direction) }));
+  },
+
+  pickBlock: (blockId, shape) => {
+    const block = getBlock(blockId);
+    if (!block) return;
+    // The hotbar lists a slab or a stair by its lower half whichever half was
+    // placed, so an upside-down stair picks up as the stair already in the bar
+    // rather than as something the bar has no room for.
+    const listed =
+      shape === SHAPE_SLAB_TOP
+        ? SHAPE_SLAB_BOTTOM
+        : shape === SHAPE_STAIRS_TOP
+          ? SHAPE_STAIRS_BOTTOM
+          : shape;
+    const wanted = shapeFor(block, listed);
+    set((state) => {
+      const already = state.hotbar.findIndex(
+        (id, index) => id === blockId && (state.hotbarShape[index] ?? SHAPE_FULL) === wanted,
+      );
+      if (already !== -1) return { selectedSlot: already + 1 };
+      const hotbar = [...state.hotbar];
+      const hotbarShape = [...state.hotbarShape];
+      hotbar[state.selectedSlot - 1] = blockId;
+      hotbarShape[state.selectedSlot - 1] = wanted;
+      return { hotbar, hotbarShape };
     });
   },
 
