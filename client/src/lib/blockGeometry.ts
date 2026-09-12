@@ -78,8 +78,17 @@ const FACE_BRIGHTNESS = {
  * instance, so an instance always sits at the centre of its cell: the raycast
  * recovers which cell was hit by rounding that position, and the block
  * highlight is drawn there too.
+ *
+ * `turnEdges` turns the top and bottom texture a quarter. A glass pane's edge
+ * texture is a stripe down the middle of an otherwise empty image, which only
+ * lines up with a pane running north to south. Without the turn, an arm
+ * running east to west samples the empty part and its top edge disappears.
  */
-function boxPart(min: [number, number, number], max: [number, number, number]): THREE.BoxGeometry {
+function boxPart(
+  min: [number, number, number],
+  max: [number, number, number],
+  turnEdges = false,
+): THREE.BoxGeometry {
   const geometry = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
   geometry.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
 
@@ -102,8 +111,10 @@ function boxPart(min: [number, number, number], max: [number, number, number]): 
     let v: number;
     let brightness: number;
     if (Math.abs(ny) > 0.5) {
-      u = x + 0.5;
-      v = (ny > 0 ? z : -z) + 0.5;
+      const acrossX = x + 0.5;
+      const acrossZ = (ny > 0 ? z : -z) + 0.5;
+      u = turnEdges ? acrossZ : acrossX;
+      v = turnEdges ? acrossX : acrossZ;
       brightness = ny > 0 ? FACE_BRIGHTNESS.top : FACE_BRIGHTNESS.bottom;
     } else if (Math.abs(nx) > 0.5) {
       u = (nx > 0 ? -z : z) + 0.5;
@@ -185,6 +196,8 @@ export function stairParts(
 interface Box {
   min: [number, number, number];
   max: [number, number, number];
+  /** Turns the top and bottom texture a quarter. See boxPart. */
+  turnEdges?: boolean;
 }
 
 /** A coordinate given in Minecraft's sixteenths of a block, as a cell offset. */
@@ -245,11 +258,15 @@ export function trapdoorParts(variant: number): Box[] {
   return [{ min: [-0.5, -0.5, -0.5], max: [-0.5 + thick, 0.5, 0.5] }];
 }
 
-/** A glass pane: its post and arms, standing a block tall. */
+/**
+ * A glass pane: its post and arms, standing a block tall. An arm reaching east
+ * or west is the wider way round, so it takes its edge texture turned.
+ */
 export function paneParts(mask: number): Box[] {
   return paneRects(mask).map(([minX, maxX, minZ, maxZ]) => ({
     min: [minX, -0.5, minZ],
     max: [maxX, 0.5, maxZ],
+    turnEdges: maxX - minX > maxZ - minZ,
   }));
 }
 
@@ -262,7 +279,7 @@ const partsCache = new Map<string, THREE.BufferGeometry>();
 function cachedParts(key: string, parts: () => Box[]): THREE.BufferGeometry {
   const cached = partsCache.get(key);
   if (cached) return cached;
-  const built = fuse(parts().map((part) => boxPart(part.min, part.max)));
+  const built = fuse(parts().map((part) => boxPart(part.min, part.max, part.turnEdges)));
   partsCache.set(key, built);
   return built;
 }
