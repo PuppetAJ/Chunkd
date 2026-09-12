@@ -2,15 +2,10 @@ import { DataTexture, NearestFilter, SRGBColorSpace, TextureLoader, type Texture
 import { TEXTURE_URLS } from "./voxel/blocks.ts";
 
 /**
- * Loading the block textures, once, in a way that cannot take the editor down.
- *
- * Textures used to be loaded with drei's `useTexture`, which throws when an
- * image fails. Nothing inside the Canvas catches that, so the throw reached the
- * page-level error boundary, which unmounted the Canvas and destroyed the WebGL
- * context along with whatever was being built. One image failing to arrive is
- * not worth losing someone's work over, so this retries, and if it still cannot
- * get the image it hands back a blank texture and lets the block render as a
- * flat colour.
+ * Loading the block textures once, in a way that cannot take the editor down.
+ * A throw inside the Canvas reaches the page error boundary, which unmounts it
+ * and destroys the WebGL context along with whatever was being built, so a
+ * missing image retries and then falls back to a blank texture.
  */
 
 /** A failed image is usually a hiccup, so ask again before giving up. */
@@ -18,13 +13,10 @@ const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 250;
 
 /**
- * Every texture file in the assets folder, as a path to its built URL.
- *
- * The block table imports the files it needs by name, which is what catches a
- * typo at build time. This map exists alongside those imports for one reason:
- * it is the only way to recover a texture's original file name from the
- * fingerprinted URL a production build gives it, and the texture pack override
- * below needs that name.
+ * Every texture file, as a path to its built URL. This exists alongside the
+ * block table's own imports because it is the only way back from a production
+ * build's fingerprinted URL to the original file name, which the pack override
+ * needs.
  */
 const SOURCE_FILES = import.meta.glob("../assets/textures/*.png", {
   eager: true,
@@ -40,13 +32,9 @@ const NAME_BY_URL = new Map(
 );
 
 /**
- * Where to look for replacement textures, if anywhere.
- *
- * Packs like Sphax PureBDCraft and Ashen are free to download but their licences
- * forbid redistributing the files, so they cannot live in this repository. Set
- * VITE_TEXTURE_PACK to a folder you have put them in and each block will prefer
- * the pack's image, falling back to the bundled one whenever the pack does not
- * have that particular texture. Unset, this costs nothing at all.
+ * Where to look for replacement textures, if anywhere. Set VITE_TEXTURE_PACK to
+ * a folder and each block prefers the pack's image, falling back to the bundled
+ * one. Packs whose licences forbid redistribution can be used this way.
  */
 const PACK_BASE: string = import.meta.env["VITE_TEXTURE_PACK"] ?? "";
 
@@ -57,16 +45,12 @@ function overrideUrlFor(url: string): string | null {
 }
 
 /**
- * These are ordinary colour images authored to be looked at, so sRGB is the
- * correct tag: three then reads them into linear space to shade with and
- * converts back on output, and the colours come out as drawn. The previous
- * texture set was greyscale masks that were tinted at runtime, which is why this
- * used to force the opposite, and leaving that in place washed everything out.
+ * sRGB because these are ordinary colour images: three reads them into linear
+ * space to shade with and converts back, so they come out as drawn.
  *
- * NearestFilter is what keeps 16 by 16 art looking like pixel art rather than a
- * blur when you stand next to it, on both magnification and minification. Using
- * mipmaps here would average a block's edge pixels into its neighbours, which is
- * especially visible on glass, whose texture is a frame around nothing.
+ * NearestFilter on both magnification and minification keeps pixel art looking
+ * like pixel art. Mipmaps would average a block's edge pixels into its
+ * neighbours, which is worst on glass, a frame around nothing.
  */
 export function applyBlockTextureSettings(textures: Texture[]): void {
   for (const texture of textures) {
@@ -123,11 +107,9 @@ export type BlockTextures = Map<string, Texture>;
 let pending: Promise<BlockTextures> | null = null;
 
 /**
- * The same promise every time, so the images are fetched once for the life of
- * the tab and both the editor and the saved-build viewer share them.
- *
- * It never rejects, which is the point: `use()` on a rejected promise throws
- * into the nearest error boundary, and that is exactly the crash this avoids.
+ * The same promise every time, so the editor and the build viewer share one
+ * fetch. It never rejects: `use()` on a rejected promise throws into the
+ * nearest error boundary, which is the crash this file exists to avoid.
  */
 export function loadBlockTextures(): Promise<BlockTextures> {
   pending ??= Promise.all(TEXTURE_URLS.map((url) => loadTexture(url))).then((loaded) => {

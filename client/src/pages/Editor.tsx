@@ -22,12 +22,9 @@ import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
 import type { Body } from "../lib/voxel/collision.ts";
 
 /**
- * Ask for the mouse.
- *
- * The pause screen and the inventory both cover the canvas, so drei's own
- * click-to-lock never sees the click that dismissed them. A browser may refuse
- * outright, and an automated one always does. Play then continues
- * without mouse-look rather than trapping the player behind an overlay.
+ * Ask for the mouse. The pause screen and the inventory cover the canvas, so
+ * drei's click-to-lock never sees the click that dismissed them. A refusal,
+ * which is what an automated browser always does, leaves play running without it.
  */
 function requestPointerLock(): void {
   try {
@@ -38,22 +35,17 @@ function requestPointerLock(): void {
 }
 
 /**
- * Mouse-look, with its click-to-lock kept to the canvas and its lock pinned there.
+ * Mouse-look. Both props matter, and both are about drei's defaults.
  *
- * `selector` keeps drei's click-to-lock on the canvas. Left to itself it listens
- * on the whole document, so any click anywhere took the mouse, including clicks
- * on the pause screen's settings.
+ * `selector` keeps its click-to-lock on the canvas; left alone it listens on the
+ * whole document, so a click on the pause screen's settings took the mouse.
  *
- * `domElement` pins the lock to the canvas. Without it drei locks whatever
- * element the scene takes its input from, which is the canvas only until the
- * scene has wired its input up, and the canvas's wrapper after that. Mounted
- * again once the inventory closed, drei's click-to-lock moved the lock onto the
- * wrapper, and from then on clicks never reached the canvas and did nothing.
+ * `domElement` pins the lock to the canvas. Otherwise drei locks whatever
+ * element the scene takes input from, which becomes the canvas's wrapper once
+ * the scene has wired up, and clicks then never reach the canvas.
  *
- * It stays mounted through menus rather than being unmounted for them, which is
- * what caused that second mount, and which could also miss the event saying the
- * lock exists and leave mouse-look dead. Menus and the pause screen cover the
- * canvas, so a click on them cannot reach the click-to-lock.
+ * It stays mounted through menus for the same reason: a second mount is what
+ * moved the lock onto the wrapper. Menus cover the canvas anyway.
  */
 function LookControls() {
   const canvas = useThree((state) => state.gl.domElement);
@@ -164,10 +156,8 @@ export default function Editor() {
   const body = useMemo<Body>(() => {
     const [x, y, z] = spawnPoint();
     return { x, y, z, onGround: false };
-    // Neither `seed` nor `size` is read here, but `spawnPoint` is a store method
-    // whose identity never changes, so without them a new world would reuse the
-    // old spawn. Size matters as much as the seed: the same seed at a different
-    // size is a different landscape.
+    // Neither `seed` nor `size` is read here, but `spawnPoint`'s identity never
+    // changes, so without them a new world reuses the old spawn point.
     // oxlint-disable-next-line exhaustive-deps
   }, [seed, size, spawnPoint]);
 
@@ -193,14 +183,9 @@ export default function Editor() {
         // looking ragged on a retina display; capped at 2 so a very dense screen
         // does not quadruple the work for no visible gain.
         dpr={[1, 2]}
-        // Tone mapping is the renderer's answer to brightness it cannot show.
-        // The filmic curve is not colour accurate: it takes a third off the red
-        // and the blue of a lit grass block while leaving the green. That was
-        // blamed for the grass looking wrong, which turned out to be the tint
-        // colour instead, and the curve's own contrast is what gives the scene
-        // its punch. The exposure lift is there because the curve darkens as
-        // it saturates, and without it the dirt reads heavier than the pack
-        // draws it.
+        // The filmic curve is not colour accurate, taking about a third off the
+        // red and blue of a lit grass block, but its contrast is what gives the
+        // scene its punch. The exposure lift pays back the darkening.
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,

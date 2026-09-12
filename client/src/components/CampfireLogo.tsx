@@ -10,17 +10,9 @@ import fire96 from "../assets/Campfire_96.webp";
 import fire96Still from "../assets/Campfire_96_still.webp";
 
 /**
- * The animated campfire mark, which turns from soul fire to ordinary fire on
- * hover.
- *
- * The original site did this with `#logo:hover { content: url(...) }`, which
- * only fetched the second image once someone hovered, so the first hover showed
- * a gap. Both are stacked here and cross-faded instead, so they are already
- * loaded by the time anyone points at them.
- *
- * The swap is driven by `group-hover`, so it follows a hover anywhere on the
- * ancestor marked `group`, which is the whole wordmark link in the header rather than
- * the 28 pixels of the icon.
+ * The campfire mark, which turns from soul fire to ordinary fire on hover. Both
+ * images are stacked and cross-faded so neither is fetched on first hover, and
+ * `group-hover` follows the whole wordmark link rather than the icon alone.
  */
 
 // Two sizes rather than one, because the header draws the mark at 28px on every

@@ -10,13 +10,7 @@ export interface PendingSave {
   thumbnail: string | undefined;
 }
 
-/**
- * Small amount of editor chrome state that lives outside the 3D canvas.
- *
- * The save confirmation used to be driven by reaching into the DOM with
- * document.querySelector and toggling CSS animation classes from inside the
- * render loop.
- */
+/** Editor chrome state that lives outside the 3D canvas. */
 interface EditorUiState {
   saveStatus: SaveStatus;
   saveMessage: string;
@@ -27,24 +21,14 @@ interface EditorUiState {
   setFlying: (flying: boolean) => void;
 
   /**
-   * Whether the player is in the world rather than looking at the pause screen.
-   *
-   * This is deliberately not read from document.pointerLockElement. A browser
-   * can refuse pointer lock (an automated one always does), and tying the
-   * whole editor to a request that may never be granted would leave the pause
-   * screen up forever. Clicking to play sets this; losing pointer lock clears
-   * it.
+   * Whether the player is in the world rather than on the pause screen. Not
+   * read from document.pointerLockElement: a browser can refuse the lock, and
+   * the pause screen would then never go away.
    */
   playing: boolean;
   setPlaying: (playing: boolean) => void;
 
-  /**
-   * Whether the block inventory is open.
-   *
-   * It lives here rather than in the editor's own state because pausing has to
-   * know about it: the inventory is a menu, and the player should not keep
-   * walking behind it.
-   */
+  /** Whether the inventory is open. Here because pausing has to know about it. */
   inventoryOpen: boolean;
   setInventoryOpen: (open: boolean) => void;
 
@@ -58,12 +42,9 @@ interface EditorUiState {
 }
 
 /**
- * Whether the world should be standing still.
- *
- * Read outside React, from the frame loop and the input handlers, so it is a
- * plain function rather than a hook. Three things stop the world: the pause
- * screen, the naming dialog and the inventory. Without the second, typing "w"
- * into a build name walked the player off the ledge they were photographing.
+ * Whether the world should stand still. A plain function, not a hook: the frame
+ * loop and the input handlers read it. The naming dialog counts as well, or
+ * typing "w" into a build name walks the player off the ledge.
  */
 export function isEditorPaused(): boolean {
   const state = useEditorUiStore.getState();
@@ -71,11 +52,8 @@ export function isEditorPaused(): boolean {
 }
 
 /**
- * When the held tool last swung, as a timestamp from performance.now().
- *
- * Outside the store on purpose. The swing is read every frame and would
- * re-render the whole editor on each hit if it were React state, and the thing
- * that starts it and the thing that draws it are different components.
+ * When the held tool last swung. Outside the store: it is read every frame, and
+ * as state it would re-render the editor on every hit.
  */
 let swungAt = 0;
 

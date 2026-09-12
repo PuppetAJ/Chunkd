@@ -27,13 +27,8 @@ import { computeVisible, refreshVisibleAround, type VisibleBlocks } from "./rend
 export const HOTBAR_SLOTS = 9;
 
 /**
- * The whole world in one store.
- *
- * The previous version kept three: generated terrain in one, player-placed
- * cubes in another, and the selected block in a third. Terrain and placed
- * blocks were then rendered by completely different components, which is why
- * breaking a placed block and breaking a terrain block took separate code
- * paths. They are the same thing and now live in the same map.
+ * The whole world in one store. Terrain and placed blocks are the same thing and
+ * share one map, so breaking either takes one code path.
  */
 /** What a new world can be asked for, beyond its seed. */
 export interface WorldOptions {

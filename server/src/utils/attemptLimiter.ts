@@ -1,17 +1,12 @@
 import { GraphQLError } from "graphql";
 
 /**
- * A per-address limit on how often something can be tried.
+ * A per-address limit on how often something can be tried. The rate limiter in
+ * server.ts counts every GraphQL request the same, which is generous for
+ * password guessing, so the sign-in mutations apply this tighter one too.
  *
- * The general rate limiter in server.ts counts every GraphQL request the same,
- * so a hundred and twenty requests a minute is the budget for password
- * guessing as much as for reading the feed. That is generous for guessing.
- * This adds a second, much tighter limit that only the sign-in mutations
- * apply, keyed by the caller's address.
- *
- * It is in memory. The API runs as one process, and a restart clearing the
- * counters is not a problem worth a database round trip per attempt. If the
- * API ever runs as several instances this would need a shared store.
+ * In memory: the API runs as one process. Several instances would need a
+ * shared store.
  */
 export function attemptLimiter(what: string, maxAttempts: number, windowMs: number) {
   // Timestamps of recent attempts, per address.

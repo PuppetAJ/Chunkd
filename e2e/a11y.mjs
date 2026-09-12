@@ -1,15 +1,11 @@
 /**
- * Accessibility audit.
- *
- * Runs axe-core against every page of the site and fails if it finds anything
- * at WCAG 2.1 A or AA. It needs the app running; point it somewhere else with
- * E2E_BASE_URL.
+ * Runs axe-core against every page and fails on anything at WCAG 2.1 A or AA.
+ * Needs the app running; E2E_BASE_URL points it elsewhere.
  *
  *   pnpm test:a11y
  *
- * The editor is audited on its pause screen. Its in-world state is a canvas
- * with a pointer lock, which has no accessibility tree to check and which a
- * headless browser cannot enter anyway.
+ * The editor is audited on its pause screen: in world it is a locked canvas
+ * with no accessibility tree, which a headless browser cannot enter anyway.
  */
 import { chromium } from "playwright";
 import { createRequire } from "node:module";

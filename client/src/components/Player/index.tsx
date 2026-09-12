@@ -41,11 +41,8 @@ interface Props {
 }
 
 /**
- * Reads the keyboard and the camera, and drives the player.
- *
- * The movement itself lives in lib/voxel/playerMotion.ts so it can be tested
- * without a browser. This component only translates input into that function's
- * arguments and puts the camera and the held tool where the result says.
+ * Reads the keyboard and the camera and drives the player. The movement itself
+ * is in lib/voxel/playerMotion.ts, where it can be tested without a browser.
  */
 export default function Player({ body }: Props) {
   const { camera } = useThree();

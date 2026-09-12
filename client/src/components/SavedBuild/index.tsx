@@ -36,12 +36,8 @@ interface Bounds {
 }
 
 /**
- * Measure the world so the camera can be framed around it.
- *
- * The viewer used to aim at a fixed point and allow unlimited zoom, which let
- * the camera travel inside the terrain. Once inside, every face is pointing
- * away and gets discarded, so solid ground looked like a hollow shell. Knowing
- * where the blocks actually are is what lets the zoom stop outside them.
+ * Measure the world so the camera can be framed around it, and so zoom can stop
+ * outside the blocks: inside them every face points away and is discarded.
  */
 function measure(blocks: Map<BlockKey, number>): Bounds {
   let minX = Infinity;
@@ -82,11 +78,8 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
 }
 
 /**
- * Read-only view of one saved world.
- *
- * It renders through the same World component as the editor, so there is no
- * second copy of the block-drawing code to keep in step. It fetches the block
- * data itself, which is why listing builds elsewhere costs nothing.
+ * Read-only view of one saved world, through the same World component as the
+ * editor. It fetches its own block data, so listing builds costs nothing.
  */
 export default function SavedBuild({ buildId, autoRotate = false, showName = true }: Props) {
   // The chrome sits on the canvas, so its colours have to follow whatever the
@@ -295,17 +288,11 @@ function BuildScene({
 }
 
 /**
- * Orbit, zoom and pan, with the camera kept outside the build.
+ * Orbit, zoom and pan, with the camera kept outside the build. `minDistance` is
+ * the sphere containing every block.
  *
- * `minDistance` is the sphere that contains every block, so zooming stops just
- * before the near plane would cross into solid ground.
- *
- * Panning needs no code of its own. three's OrbitControls already pans when
- * shift is held and the left button is bound to rotating: it inverts whatever
- * the button is bound to while a modifier is down. An earlier version of this
- * component rebound the left button to panning on shift, which three then
- * inverted straight back to rotating, so shift and drag did nothing but turn
- * the model.
+ * Panning needs no code: OrbitControls inverts whatever the button is bound to
+ * while a modifier is down, so rebinding it for shift cancels itself out.
  */
 function BuildControls({ bounds, autoRotate }: { bounds: Bounds; autoRotate: boolean }) {
   // ComponentRef asks React what this component's ref holds, which avoids

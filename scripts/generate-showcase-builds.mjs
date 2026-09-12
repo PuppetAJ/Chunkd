@@ -1,21 +1,15 @@
 /**
- * Builds the worlds that `pnpm seed` puts in the database.
+ * Builds the worlds that `pnpm seed` puts in the database. Each is generated
+ * from a seed, built in, and saved through the same path a player uses, with its
+ * thumbnail captured from the build viewer so it matches the site.
  *
- * A seeded database used to contain posts and no builds at all, so a fresh
- * install showed a feed with nothing to look at. These are real worlds: each
- * one is generated from a seed, has a structure placed in it, and is saved
- * through the same path a player uses. The thumbnails are captured from the
- * build viewer rather than from inside the game, so they match the studio the
- * site shows a build in.
- *
- * It has to run in a browser because terrain generation, the save format and
- * the thumbnail capture all live in the client. Start the app first:
+ * It runs in a browser because the generator, the save format and the capture
+ * all live in the client. Start the app first:
  *
  *   pnpm dev
  *   node scripts/generate-showcase-builds.mjs
  *
- * The result is written to server/src/seeders/showcaseBuilds.json, which is
- * committed. Re-run this only when the builds or the terrain change.
+ * Writes server/src/seeders/showcaseBuilds.json, which is committed.
  */
 import { writeFileSync } from "node:fs";
 import { chromium } from "playwright";

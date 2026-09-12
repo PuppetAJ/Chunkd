@@ -1,13 +1,7 @@
 /**
- * How many cells one break or place covers.
- *
- * Clearing ground or raising a wall a block at a time is the slowest part of
- * building anything large, so an action can cover a square instead. The square
- * lies in the face being looked at: at the ground it spreads across the floor,
- * at a wall it spreads up the wall, which is what makes it useful for both
- * levelling and building.
- *
- * Only odd sizes, so there is always a middle cell for the crosshair to be on.
+ * How many cells one break or place covers. The square lies in the face being
+ * looked at, so it spreads across the floor when levelling ground and up the
+ * wall when raising one. Odd sizes only, so the crosshair has a middle cell.
  */
 export const BRUSH_SIZES = [1, 3, 5, 7, 9];
 

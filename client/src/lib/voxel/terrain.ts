@@ -5,24 +5,13 @@ import { collides } from "./collision.ts";
 import { BLOCK_IDS } from "./blockIds.ts";
 import { blockIdOf } from "./blockValue.ts";
 
-/**
- * Width and depth of the world, in blocks.
- *
- * Measured at 64: about 22,000 blocks, of which roughly 9,000 are visible and
- * drawn. Recomputing what is visible after each edit costs about 8 ms, which
- * fits inside a frame. It rises to 33 ms at 128, which would stutter, so going
- * larger needs the visibility pass to update only around the block that
- * changed rather than rebuilding the whole world.
- */
+/** Width and depth of the world, in blocks. */
 export const WORLD_SIZE = 64;
 
 /**
- * The widths the editor offers, in blocks. There is no chunking here: a world
- * is generated whole and held as one map, so this is simply how far it goes.
- *
- * Bigger is not free. The widest is around half a million blocks and takes
- * roughly a second to generate and cull, so it wants a loading state rather
- * than being the silent default.
+ * The widths the editor offers. A world is generated whole and held as one map,
+ * with no chunking, so the widest is around half a million blocks and takes
+ * about a second to build. That is why the dialog shows a loading state.
  */
 export const WORLD_SIZES = [WORLD_SIZE, WORLD_SIZE * 2, WORLD_SIZE * 3] as const;
 
@@ -33,15 +22,10 @@ export interface TerrainOptions {
 }
 
 /**
- * The shape of the land.
- *
- * The first version sampled one octave of noise at a fairly high frequency,
- * which is why the ground was uniformly lumpy: every hill was the same size and
- * there was nowhere flat. This stacks four octaves, each twice the frequency
- * and half the height of the one before, so broad landforms carry small details
- * on top of them. A separate very low frequency sample then decides how hilly
- * each region is, which is what produces flat ground in some places and rougher
- * ground in others rather than the same texture everywhere.
+ * The shape of the land: four octaves, each twice the frequency and half the
+ * height of the one before, so broad landforms carry small detail. A separate
+ * very low frequency sample decides how hilly each region is, which is what
+ * leaves some ground flat and some rough.
  */
 const OCTAVES = 4;
 const BASE_FREQUENCY = 0.016;
@@ -66,12 +50,7 @@ export interface HeightField {
   (x: number, z: number): number;
 }
 
-/**
- * Surface height as a function of position, for one seed.
- *
- * Built once and shared, because both terrain generation and working out where
- * to drop the player need it and they must agree.
- */
+/** Surface height for one seed. Shared, because the spawn point must agree with it. */
 export function createHeightField(seed: number): HeightField {
   const land = createNoise2D(alea(seed, "land"));
   const roughness = createNoise2D(alea(seed, "roughness"));
@@ -116,11 +95,9 @@ interface TreeKind {
 }
 
 /**
- * The trees the generator plants.
- *
- * Spruce is deliberately absent. Its blocks are still in the inventory to build
- * with, but the narrow conical conifer the generator grew from them looked wrong
- * next to the rounded ones, so it is no longer planted.
+ * The trees the generator plants. Spruce is absent on purpose: the conifer grown
+ * from it looked wrong beside the rounded ones. Its blocks are still in the
+ * inventory to build with.
  */
 const TREE_KINDS: TreeKind[] = [
   { log: BLOCK_IDS.oakLog, leaves: BLOCK_IDS.oakLeaves },
@@ -163,16 +140,12 @@ function plantTree(
 }
 
 /**
- * Build the starting world for a seed.
+ * Build the starting world for a seed. The same seed always gives the same
+ * world, which is what lets a save be a seed plus the blocks the player
+ * changed, so trees are placed from the seed too and never from Math.random.
  *
- * The same seed always produces the same world, which is what lets a saved build
- * be stored as a seed plus the handful of blocks the player changed, rather than
- * as every block in the world. Trees are part of that, so they are placed from
- * the seed too and never from Math.random.
- *
- * The old generator only filled the surface, a one-block floor and hollow walls,
- * so digging down revealed an empty shell. Each column is filled all the way to
- * the floor: soil near the top, stone under it.
+ * Every column is filled to the floor, soil over stone, so digging down does
+ * not reveal a shell.
  */
 export function generateTerrain(
   seed: number,
@@ -265,18 +238,9 @@ function* columnsFromMiddle(size: number): Generator<[number, number]> {
 }
 
 /**
- * A safe place to drop the player in: standing on the ground near the middle of
- * the world, in a column where they actually fit.
- *
- * This used to be worked out from the height field alone, which knows about the
- * landscape but not about anything standing on it. Once the generator started
- * planting trees that became a real problem: on about one seed in five the
- * player appeared inside a canopy, and being inside a block meant collision was
- * skipped, so they fell straight through the world. Dropping back through the
- * void respawned them in the same place, so it never recovered.
- *
- * Working from the finished world instead means the check is simply whether the
- * player's own box is clear.
+ * A safe place to drop the player: on the ground near the middle, in a column
+ * where they fit. Worked out from the finished world rather than from the
+ * height field, which does not know about the trees standing on it.
  */
 export function spawnPointFor(
   blocks: Map<BlockKey, number>,
