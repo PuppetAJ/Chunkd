@@ -32,42 +32,39 @@ The licence asks for two things, both of which this project does.
 
 1. Credit, with a link to the licence. It is in the site footer on every page,
    and in the in-game controls panel, since the editor covers the footer.
-2. ShareAlike on anything adapted. The five tinted files below are adaptations
-   and are offered under the same CC BY-SA 4.0 licence. The other 60 are
+2. ShareAlike on anything adapted. The three tinted files below are adaptations
+   and are offered under the same CC BY-SA 4.0 licence. The other 62 are
    unchanged copies, and the rest of this repository stays MIT: bundling images
    in an application is a collection rather than an adaptation of the images,
    which the licence treats separately.
 
 ## What was changed
 
-60 of the 65 files are byte-for-byte copies and can be checked by hashing them
+62 of the 65 files are byte-for-byte copies and can be checked by hashing them
 against the packs above.
 
-Five are derived, because Minecraft stores them greyscale and colours them by
+Three are derived, because Minecraft stores them greyscale and colours them by
 biome at runtime, which a single-biome world cannot do:
 
 | File | How it was made |
 |---|---|
-| `grass_block_top.png` | tinted `#91BD59` |
-| `grass_block_side.png` | the dirt side, with `grass_block_side_overlay` tinted `#91BD59` composited over it |
-| `oak_leaves.png` | tinted `#77AB2F` |
-| `birch_leaves.png` | tinted `#80A755` |
-| `spruce_leaves.png` | tinted `#619961` |
+| `grass_block_top.png` | multiplied by the pack's plains grass colour, `#6DC475` |
+| `grass_block_side.png` | the pack's own side, with `grass_block_side_overlay` multiplied by `#6DC475` composited over it |
+| `oak_leaves.png` | multiplied by the pack's plains foliage colour, `#5BB155` |
 
-`cherry_leaves.png` is not tinted, because Minecraft does not tint it either.
+Multiplying is what the game does. What matters is the colour it is given.
 
-Tinting here is three steps rather than the straight multiply the game does:
+Those two colours come from the pack's own `colormap/grass.png` and
+`colormap/foliage.png`, read at the coordinate Minecraft looks up for plains,
+which is temperature 0.8 and downfall 0.4. Pixel Perfection replaces those
+colour maps, so the game renders it in greens of the pack's choosing rather
+than Minecraft's defaults. The pack's plains grass is `#6DC475` against
+Minecraft's `#91BD59`, a good deal less red, and using Minecraft's number
+instead left the grass olive and wrong beside the pack's own artwork.
 
-1. Take the texture's luminance, which drops any colour cast it carries.
-2. Scale that to an average of 0.58, the level Minecraft's own greyscale sits
-   at.
-3. Multiply by the biome colour.
-
-Multiplying works on the game's own greyscale, which is neutral. Pixel
-Perfection's grass and leaves are a warm grey instead, so a straight multiply
-came out muddy and several shades too dark. Normalising first lands them at the
-brightness the game produces, which is where they were under the pack this
-replaced.
+Birch, spruce and cherry leaves are copied through untouched. This pack paints
+them in their final colours, birch as golden autumn leaves rather than green,
+so tinting them would undo the artwork rather than complete it.
 
 ## Using a different texture pack
 
@@ -80,6 +77,7 @@ bundled one, so a partial pack works.
 Three things to know. Packs whose licences forbid redistribution, such as Sphax
 PureBDCraft and Ashen 16x, can be used this way but must not be committed; the
 `texturepack` directory is ignored by git for that reason. A raw pack will
-supply the greyscale grass and leaves described above, which will look grey
-until they are tinted the same way. And the override only reaches the 3D
-materials, so the hotbar and inventory tiles keep showing the bundled art.
+supply greyscale grass and leaves, which look grey until they are tinted as
+above, with that pack's own colour map if it ships one. And the override only
+reaches the 3D materials, so the hotbar and inventory tiles keep showing the
+bundled art.
