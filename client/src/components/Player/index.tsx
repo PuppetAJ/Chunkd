@@ -63,9 +63,10 @@ export default function Player({ body }: Props) {
   const setSelectedSlot = useWorldStore((state) => state.setSelectedSlot);
   const cycleSelectedSlot = useWorldStore((state) => state.cycleSelectedSlot);
   const cycleSelectedShape = useWorldStore((state) => state.cycleSelectedShape);
+  const cycleBrush = useWorldStore((state) => state.cycleBrush);
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
-  useKeyPress((code) => {
+  useKeyPress((code, shift) => {
     if (isEditorPaused()) return;
     // Digit1 to Digit9 choose a hotbar slot.
     if (code.startsWith("Digit")) {
@@ -76,6 +77,8 @@ export default function Player({ body }: Props) {
     // belongs to the slot rather than being one global setting, so a block and
     // its slab can sit side by side on the hotbar.
     if (code === "KeyR") cycleSelectedShape();
+    // The key left of 1 steps the brush up a size, and back down with shift.
+    if (code === "Backquote") cycleBrush(shift ? -1 : 1);
   });
 
   // How much scrolling counts as one step along the hotbar. A mouse wheel sends

@@ -33,18 +33,28 @@ export default function Hotbar() {
   const setSelectedSlot = useWorldStore((state) => state.setSelectedSlot);
   const hotbar = useWorldStore((state) => state.hotbar);
   const hotbarShape = useWorldStore((state) => state.hotbarShape);
+  const brush = useWorldStore((state) => state.brush);
 
   const selectedBlock = getBlock(hotbar[selectedSlot - 1] ?? 0);
   const selectedShape = hotbarShape[selectedSlot - 1] ?? SHAPE_FULL;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex flex-col items-center gap-2">
-      {selectedBlock && (
-        <p className="rounded bg-black/60 px-3 py-1 text-sm text-white">
-          {selectedBlock.label}
-          {shapeSuffix(selectedShape)}
-        </p>
-      )}
+      <div className="flex items-center gap-2">
+        {selectedBlock && (
+          <p className="rounded bg-black/60 px-3 py-1 text-sm text-white">
+            {selectedBlock.label}
+            {shapeSuffix(selectedShape)}
+          </p>
+        )}
+        {/* Only while it is doing something. At one cell the brush is the
+            ordinary way of building and needs no label. */}
+        {brush > 1 && (
+          <p className="rounded bg-black/60 px-3 py-1 text-sm text-white tabular-nums">
+            {brush} &times; {brush}
+          </p>
+        )}
+      </div>
 
       <ul className="pointer-events-auto flex gap-1 rounded-lg border-2 border-black/70 bg-zinc-900/80 p-2 shadow-lg">
         {Array.from({ length: HOTBAR_SLOTS }, (_, index) => {

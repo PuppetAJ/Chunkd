@@ -835,6 +835,104 @@ check(
   `${JSON.stringify(afterStep)}, expected y ${SLAB_PAD_Y + 1.5}`,
 );
 
+// ------------------------------------------------------------------- the brush
+// ` steps the square one break or place covers up through the sizes, and
+// shift+` steps it back. Both stop at the end of the list rather than wrapping.
+const brushSize = () => page.evaluate(() => window.__world.getState().brush);
+const bigger = [];
+for (let i = 0; i < 5; i += 1) {
+  await page.keyboard.press("Backquote");
+  bigger.push(await brushSize());
+}
+check("` steps the brush up and stops at the largest", bigger.join(",") === "3,5,7,9,9", bigger.join(","));
+
+const smaller = [];
+for (let i = 0; i < 5; i += 1) {
+  await page.keyboard.press("Shift+Backquote");
+  smaller.push(await brushSize());
+}
+check("shift+` steps it back down and stops at one", smaller.join(",") === "7,5,3,1,1", smaller.join(","));
+
+// A wall of its own well clear of everything else, with a pad to stand on
+// three blocks back from it. Aiming at a wall rather than at the floor keeps
+// the player out of the square: a cell the player is standing in is refused,
+// which would leave the middle of the square empty.
+const BRUSH_AT = { x: 60, y: 70, z: 60 };
+await page.evaluate(({ x, y, z }) => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(7, 29);
+  store.setSelectedSlot(7);
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dz = -1; dz <= 1; dz += 1) store.placeBlock(x + dx, y, z + dz, 0, 0);
+  }
+  for (let dx = -2; dx <= 2; dx += 1) {
+    for (let dy = 0; dy <= 5; dy += 1) store.placeBlock(x + dx, y + dy, z - 3, 0, 0);
+  }
+  const body = window.__player;
+  body.x = x;
+  body.y = y + 0.5;
+  body.z = z;
+  body.vy = 0;
+}, BRUSH_AT);
+// No rotation at all looks due north, straight at the wall.
+await page.evaluate(() => window.__r3f.camera.rotation.set(0, 0, 0, "YXZ"));
+await frames(2);
+await page.keyboard.press("Backquote");
+
+const blocksNow = () => page.evaluate(() => window.__world.getState().blocks.size);
+const beforePlace = await blocksNow();
+await page.keyboard.press("KeyF");
+await frames(2);
+const placed = (await blocksNow()) - beforePlace;
+check("a brush three across places nine blocks at once", placed === 9, `${placed} blocks`);
+
+// The camera sits an eye height above the pad, so the square is centred on the
+// block of the wall level with it.
+const square = await page.evaluate(({ x, y, z }) => {
+  const { blocks } = window.__world.getState();
+  let found = 0;
+  for (let dx = -1; dx <= 1; dx += 1) {
+    for (let dy = -1; dy <= 1; dy += 1) if (blocks.has(`${x + dx},${y + 2 + dy},${z - 2}`)) found += 1;
+  }
+  return found;
+}, BRUSH_AT);
+check("they land as a square up the face being looked at", square === 9, `${square} of nine`);
+
+const beforeBreak = await blocksNow();
+await page.keyboard.press("KeyC");
+await frames(2);
+const broken = beforeBreak - (await blocksNow());
+check("a brush three across breaks nine blocks at once", broken === 9, `${broken} blocks`);
+
+await page.keyboard.press("Shift+Backquote");
+check("the brush is back to one for what follows", (await brushSize()) === 1, `${await brushSize()} across`);
+
+// Q picks up what the crosshair is on. The wall is blackstone, which slot 7 is
+// holding, so the first press should go to that slot rather than copy the
+// block into the slot in hand.
+await page.evaluate(() => window.__world.getState().setSelectedSlot(5));
+await page.keyboard.press("KeyQ");
+await frames();
+const pickedExisting = await page.evaluate(() => window.__world.getState().selectedSlot);
+check("picking a block already in the hotbar selects that slot", pickedExisting === 7, `slot ${pickedExisting}`);
+
+await page.evaluate(() => {
+  const store = window.__world.getState();
+  store.setHotbarBlock(7, 1);
+  store.setSelectedSlot(5);
+});
+await page.keyboard.press("KeyQ");
+await frames();
+const pickedFresh = await page.evaluate(() => ({
+  slot: window.__world.getState().selectedSlot,
+  id: window.__world.getState().selectedBlockId(),
+}));
+check(
+  "picking a block that is in no slot puts it in the one in hand",
+  pickedFresh.slot === 5 && pickedFresh.id === 29,
+  JSON.stringify(pickedFresh),
+);
+
 // P saves the world. The key state is sampled inside the render loop, so a
 // press has to last longer than a frame to be seen.
 // P captures the world and opens the naming dialog. Every build used to be
