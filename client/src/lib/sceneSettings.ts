@@ -23,8 +23,6 @@ export interface SceneSettings {
   environment: SceneEnvironment;
   grid: boolean;
   light: SceneLight;
-  /** Ambient occlusion and a lift in colour, drawn over the finished image. */
-  effects: boolean;
 }
 
 interface SceneSettingsStore {
@@ -52,7 +50,6 @@ function load(storageKey: string, fallback: SceneSettings): SceneSettings {
       light: saved.light === "dim" || saved.light === "even" || saved.light === "bright"
         ? saved.light
         : fallback.light,
-      effects: typeof saved.effects === "boolean" ? saved.effects : fallback.effects,
     };
   } catch {
     return fallback;
@@ -78,7 +75,6 @@ export const useViewerSettings = makeStore("viewer-settings", {
   environment: "studio",
   grid: true,
   light: "even",
-  effects: true,
 });
 
 /** The editor defaults to daylight, because that is the world you build in. */
@@ -86,7 +82,6 @@ export const useEditorSettings = makeStore("editor-settings", {
   environment: "daylight",
   grid: false,
   light: "even",
-  effects: true,
 });
 
 /**
