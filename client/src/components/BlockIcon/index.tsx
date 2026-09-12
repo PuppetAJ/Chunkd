@@ -67,7 +67,9 @@ export default function BlockIcon({ block, shape = SHAPE_FULL }: Props) {
       <img
         src={block.side}
         alt=""
-        className="absolute inset-[12.5%]"
+        // The size is spelled out because an absolutely placed image otherwise
+        // keeps its own, sixteen pixels in a corner of the tile.
+        className="absolute inset-[12.5%] h-3/4 w-3/4"
         style={{ imageRendering: "pixelated" }}
       />
     );
