@@ -193,7 +193,16 @@ export default function Editor() {
         // looking ragged on a retina display; capped at 2 so a very dense screen
         // does not quadruple the work for no visible gain.
         dpr={[1, 2]}
-        gl={{ antialias: true }}
+        // Tone mapping is the renderer's answer to brightness it cannot show,
+        // and react-three-fiber defaults to the filmic curve, which is built
+        // for photographic footage. On flat block colours it read as wrong
+        // rather than cinematic: it took a third off the red and the blue of
+        // the grass while leaving the green, so the texture never appeared on
+        // screen as the pack drew it, and it pushed lit and shadowed faces
+        // further apart than they are. AgX passes these colours through and
+        // only rolls off the sky, which is the one thing here bright enough to
+        // need it.
+        gl={{ antialias: true, toneMapping: THREE.AgXToneMapping }}
         onCreated={(state) => {
           // Development-only handles for the end-to-end tests: one to aim the
           // camera and read what was drawn, one to inspect the world itself.
