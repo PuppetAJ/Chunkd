@@ -138,17 +138,25 @@ function boxPart(
 }
 
 /**
- * Join parts into one geometry, keeping BoxGeometry's material groups.
+ * Join parts into one geometry, keeping each part's own face groups, so
+ * BlockLayer's six-entry material array still lines up: index 2 is the top
+ * texture, 3 the bottom, the rest the sides.
  *
- * Each part contributes six groups, so their material indices are brought back
- * into the range 0 to 5 and BlockLayer's six-entry material array keeps
- * working: index 2 is still the top texture, 3 the bottom, the rest the sides.
+ * mergeGeometries groups by part rather than by face, one group per part, so
+ * the groups have to be rebuilt from the parts here. Reading them as face
+ * groups instead drew the third part of a shape entirely with the top texture
+ * and the fourth with the bottom, which is what put a pane's edge texture
+ * across the whole of its east arm.
  */
 function fuse(parts: THREE.BoxGeometry[]): THREE.BufferGeometry {
-  const merged = mergeGeometries(parts, true);
+  const merged = mergeGeometries(parts);
   if (!merged) throw new Error("Could not build a block geometry");
-  for (let i = 0; i < merged.groups.length; i += 1) {
-    merged.groups[i]!.materialIndex = i % 6;
+  let offset = 0;
+  for (const part of parts) {
+    for (const group of part.groups) {
+      merged.addGroup(offset + group.start, group.count, group.materialIndex ?? 0);
+    }
+    offset += part.index?.count ?? part.attributes["position"]!.count;
   }
   return merged;
 }
