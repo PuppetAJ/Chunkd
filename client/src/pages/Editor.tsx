@@ -6,7 +6,6 @@ import { Grid, PointerLockControls, Preload, Sky } from "@react-three/drei";
 import World from "../components/World/index.tsx";
 import Player from "../components/Player/index.tsx";
 import SaveControls from "../components/SaveControls/index.tsx";
-import SceneEffects from "../components/SceneEffects/index.tsx";
 import Hotbar from "../components/Hotbar/index.tsx";
 import Inventory from "../components/Inventory/index.tsx";
 import SaveToast from "../components/SaveToast/index.tsx";
@@ -75,7 +74,7 @@ export default function Editor() {
 
   // A build's thumbnail is a capture of this render, so how the editor is lit
   // decides how the build looks everywhere else on the site.
-  const { environment, grid: showGrid, light, effects } = useEditorSettings((state) => state.settings);
+  const { environment, grid: showGrid, light } = useEditorSettings((state) => state.settings);
   const studio = environment === "studio";
   const lightScale = LIGHT_SCALE[light];
   const lighting = LIGHTING[environment];
@@ -194,16 +193,19 @@ export default function Editor() {
         // looking ragged on a retina display; capped at 2 so a very dense screen
         // does not quadruple the work for no visible gain.
         dpr={[1, 2]}
-        // Tone mapping is the renderer's answer to brightness it cannot show,
-        // and react-three-fiber defaults to the filmic curve, which is built
-        // for photographic footage. On flat block colours it read as wrong
-        // rather than cinematic: it took a third off the red and the blue of
-        // the grass while leaving the green, so the texture never appeared on
-        // screen as the pack drew it, and it pushed lit and shadowed faces
-        // further apart than they are. AgX passes these colours through and
-        // only rolls off the sky, which is the one thing here bright enough to
-        // need it.
-        gl={{ antialias: true, toneMapping: THREE.AgXToneMapping }}
+        // Tone mapping is the renderer's answer to brightness it cannot show.
+        // The filmic curve is not colour accurate: it takes a third off the red
+        // and the blue of a lit grass block while leaving the green. That was
+        // blamed for the grass looking wrong, which turned out to be the tint
+        // colour instead, and the curve's own contrast is what gives the scene
+        // its punch. The exposure lift is there because the curve darkens as
+        // it saturates, and without it the dirt reads heavier than the pack
+        // draws it.
+        gl={{
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.1,
+        }}
         onCreated={(state) => {
           // Development-only handles for the end-to-end tests: one to aim the
           // camera and read what was drawn, one to inspect the world itself.
@@ -269,7 +271,6 @@ export default function Editor() {
           <World editable playerBody={body} />
           <Player body={body} />
           <SaveControls />
-          {effects && <SceneEffects />}
         </Suspense>
         {/* Mouse-look would fight the cursor while the inventory or the save
             dialog is open, and there is nothing to look at while paused. */}
