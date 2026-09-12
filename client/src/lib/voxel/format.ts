@@ -5,42 +5,23 @@ import { fromKey, toKey, type BlockKey } from "./coords.ts";
 /**
  * Saved build format, version 5.
  *
- * Version 1 was the whole world written out as JSON, every block position
- * included, which is why a single save ran to megabytes and the API had to
- * accept 50 MB request bodies.
+ * A save is the seed plus the differences: blocks the player removed and blocks
+ * they added. The terrain is regenerated on load, so a build is proportional to
+ * what the player did rather than to the size of the world.
  *
- * This stores the seed instead. The terrain is regenerated on load and only the
- * differences are recorded: blocks the player removed, and blocks they added.
- * A build is therefore proportional to what the player actually did rather than
- * to the size of the world.
- *
- * Version 3 added slabs. Nothing about the shape of the file changed: a placed
- * block was always stored as its packed value rather than a bare id, and the
- * shape rides in that number alongside the id and the orientation. The version
- * went up anyway so that a payload says what it needs, and version 2 is still
- * read because it is exactly readable: no shape bits means every block is a
- * full cube, which is what version 2 builds are.
- *
- * Version 4 added the world size and whether the world was grown with trees.
- * Both are inputs to the generator, so without them the terrain a build is a
- * difference against cannot be rebuilt. `size` was always written but never
- * read back, which went unnoticed while every world was the same size. An
- * older payload has no `trees` field, and every world that could be saved then
- * had them, so its absence reads as true.
- *
- * Version 5 added fences, walls and trapdoors. A trapdoor keeps which half it
- * is in and whether it is open in two bits above its facing, which no earlier
- * version ever set, so older builds read exactly as they did. The version went
- * up so that a payload containing one says it needs a reader that knows what
- * those bits mean.
+ * The version rises whenever a payload needs a reader that knows something new,
+ * even when the shape of the file has not changed. Every older version is still
+ * readable, because each new field defaults to what the old data meant: no shape
+ * bits is a full cube (3), no `trees` field is a world grown with them (4), and
+ * no trapdoor bits is a build without trapdoors (5). The generator's inputs, the
+ * seed, the size and `trees`, all have to be stored: without them the terrain a
+ * build is a difference against cannot be rebuilt.
  */
 export const BUILD_FORMAT_VERSION = 5;
 
 /**
- * The versions this can load. Kept as a list rather than "anything up to the
- * current one", so adding a version is a decision about whether the old ones
- * still mean what they used to say rather than something that happens by
- * default.
+ * The versions this can load. A list rather than "anything up to the current
+ * one", so keeping an old version readable stays a decision.
  */
 const READABLE_VERSIONS = [2, 3, 4, 5] as const;
 

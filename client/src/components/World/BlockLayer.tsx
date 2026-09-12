@@ -30,15 +30,9 @@ interface Props {
 }
 
 /**
- * Every block of one type, drawn in as few calls as the block allows.
- *
- * The previous version mounted a React component per block, twice over: one for
- * the mesh and one for its collider. Placing a block re-rendered all of them.
- * Here the positions are written straight into an instance buffer.
- *
- * A block whose six faces share one texture is a single draw call. Grass, logs
- * and hay do not, so they get one material per face group, which is what lets
- * grass have a green top, a banded side and a plain dirt underside.
+ * Every block of one type, drawn in as few calls as the block allows: positions
+ * go straight into an instance buffer. A block whose six faces share one texture
+ * is a single draw call, and grass, logs and hay get one material per face group.
  */
 export default function BlockLayer({ block, shape, variant, positions, axes, textures }: Props) {
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -50,22 +44,17 @@ export default function BlockLayer({ block, shape, variant, positions, axes, tex
     const build = (url: string, cutout = block.draw === "cutout") =>
       new THREE.MeshLambertMaterial({
         map: textures.get(url) ?? null,
-        // A floor under the darkest pixels, added rather than multiplied, so
-        // it lifts them and leaves everything else where it is. The filmic
-        // curve is steep at the bottom, and without this the dark grain of a
-        // spruce log fell off the end of it and read as black rather than as
-        // wood. Raising it costs colour, since the light it adds is white:
-        // this is the most that can go in before the scene is less vibrant
-        // than it was without any of it.
+        // Added rather than multiplied, so it lifts the darkest pixels and
+        // leaves the rest alone: the filmic curve is steep at the bottom and
+        // a spruce log's grain falls off the end of it. Raising it costs
+        // colour, since the light it adds is white.
         emissive: new THREE.Color(BLACK_FLOOR, BLACK_FLOOR, BLACK_FLOOR),
         // The cube carries its face shading in its vertex colours, which this
         // multiplies into the texture. The sun adds cast shadows on top.
         vertexColors: true,
-        // Writing only back faces into the shadow map is what removes the need
-        // for a depth bias. Every block is a closed cube, so the recorded depth
-        // is its far side and a lit face can never be behind its own shadow.
-        // Biasing instead, as this used to, pushed the lookup outside the block
-        // and leaked daylight through the seams between blocks.
+        // Back faces only, which removes the need for a depth bias: every block
+        // is a closed cube, so the recorded depth is its far side and a lit face
+        // can never be behind its own shadow.
         shadowSide: THREE.BackSide,
         // Glass is a frame around a hole. Discarding the hole outright, rather
         // than blending it, keeps the frame at full strength and leaves no draw

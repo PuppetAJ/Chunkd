@@ -1,13 +1,9 @@
 /**
- * The numeric identity of every block type.
+ * The numeric identity of every block type. Kept apart from blocks.ts and its
+ * texture imports, which is what lets the generator, the save format and the
+ * culling be tested outside a browser.
  *
- * Kept apart from blocks.ts, which also carries textures, so that the world
- * model never depends on image imports. That separation is what lets terrain
- * generation, the save format and the renderer's culling be tested outside a
- * browser.
- *
- * These numbers appear in saved builds, so they must never be reused or
- * renumbered. Ids 1 to 9 are the original nine blocks and keep their meaning,
+ * These numbers appear in saved builds and must never be reused or renumbered,
  * which is why the list is not in a tidy order.
  */
 export const BLOCK_IDS = {
@@ -79,31 +75,16 @@ export const BLOCK_IDS = {
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
 
 /**
- * Blocks you can see through.
- *
- * This matters to the renderer's culling pass, which skips any block whose six
- * neighbours are all present. A neighbour only hides a face if it is opaque, so
- * a dirt block under a glass floor still has to be drawn: without this set it
- * was culled and you looked through the glass into a hole.
- *
- * It lives here rather than in blocks.ts so the culling pass stays free of
- * image imports and can still be tested outside a browser.
+ * Blocks you can see through. The culling pass skips a block whose six
+ * neighbours are all present, and only an opaque neighbour hides a face: a dirt
+ * block under a glass floor still has to be drawn.
  */
 /**
- * The blocks that can be laid as slabs, and as stairs.
+ * The blocks that can be laid as slabs, and as stairs. Taken from the game
+ * rather than worked out from our own textures: plain deepslate is out because
+ * only its cobbled, polished, brick and tile variants are cut in Minecraft.
  *
- * These are the blocks Minecraft gives those variants to, taken from the game
- * rather than worked out from our own textures. Sandstone has three textures
- * and is in; plain deepslate has two and is out, because only its cobbled,
- * polished, brick and tile variants are cut in the game and we carry the tiles
- * alone. A block cut in half wraps the expected face onto the new shape, so
- * how many textures it has does not come into it.
- *
- * Two sets because they differ by one: cut sandstone has a slab and no stairs.
- *
- * They live here rather than in blocks.ts so they can be tested and consulted
- * without pulling in the texture imports, the same reason the id table itself
- * is here.
+ * Two sets, because cut sandstone has a slab and no stairs.
  */
 export const SLAB_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.stone,

@@ -34,34 +34,21 @@ export interface RenderLayer {
 }
 
 /**
- * The blocks that actually need drawing.
+ * The blocks that actually need drawing: a block boxed in on all six sides
+ * cannot be seen, and on a solid landscape that is most of the world.
  *
- * A block boxed in on all six sides by opaque neighbours cannot be seen from
- * anywhere. On a solid landscape that is most of the world, and skipping them is
- * the difference between the cost of rendering scaling with the world's volume
- * and scaling with its surface.
- *
- * This is kept as its own map rather than recomputed from the world on demand,
- * because working it out from scratch means asking six questions about every
- * block in the world. That was around 23 ms once the terrain grew taller, so
- * every block placed cost a dropped frame. Placing a block can only change
- * whether that block and its six neighbours are visible, so the map is brought
- * up to date around the change instead.
+ * Kept as its own map and updated around each edit rather than worked out on
+ * demand, which costs six questions about every block in the world.
  */
 export type VisibleBlocks = Map<BlockKey, number>;
 
 /**
  * Does the block in this cell cover the whole of the face it shares with the
- * neighbour that is asking?
+ * neighbour that is asking? `dy` is the vertical step from that neighbour, so
+ * for +1 this block is above and the shared face is its underside.
  *
- * `dy` is the vertical step from the asking block to this one, so the face
- * they share is this block's face pointing back along it: for +1 this block is
- * above and the shared face is its underside.
- *
- * Glass never counts. Nor does most of a cut block: a slab or a stair fills
- * exactly one of its cell's six faces, its underside or its top, and half
- * covered is not covered. Treating one as a full occluder leaves see-through
- * holes where a cut floor meets terrain.
+ * Glass never counts, and a cut block covers only one of its six faces. Half
+ * covered is not covered: treating it as whole leaves holes in the world.
  */
 function coversFace(
   blocks: Map<BlockKey, number>,
@@ -79,13 +66,10 @@ function coversFace(
   if (shape === SHAPE_SLAB_BOTTOM) return dy === 1;
   if (shape === SHAPE_SLAB_TOP) return dy === -1;
 
-  // A stair's flat half fills the cell's footprint, so its outer face is
-  // whole. Its sides are not counted even where they are solid: how much of a
-  // stair's tall half is filled depends on that stair's own neighbours, so a
-  // side rule would make one block's visibility depend on cells two away,
-  // which the incremental update after an edit does not look at. Missing a
-  // chance to cull costs a drawn block nobody sees; culling something that
-  // should be drawn leaves a hole in the world.
+  // A stair's flat half fills the footprint, so its outer face is whole. Its
+  // sides are never counted, even where they are solid: how much of the tall
+  // half is filled depends on that stair's own neighbours, so the answer would
+  // depend on cells two away, which the update after an edit does not visit.
   if (shape === SHAPE_STAIRS_BOTTOM) return dy === 1;
   if (shape === SHAPE_STAIRS_TOP) return dy === -1;
 
@@ -181,14 +165,12 @@ function variantFor(
 }
 
 /**
- * Group the visible blocks by id, shape and variant, ready for one instanced
- * mesh each. Every instance in a mesh shares a geometry, and a stair's shape
- * is baked in rather than rotated per instance, so its faces keep the
- * brightness and the texture of the way they actually point.
+ * Group the visible blocks by id, shape and variant, one instanced mesh each.
+ * A stair's shape is baked into its geometry rather than rotated per instance,
+ * so its faces keep the brightness and texture of the way they point.
  *
- * `blocks` is the whole world because a stair's shape depends on the cells
- * around it, which is what lets a run of them turn a corner. Regrouping
- * happens on every edit, so corners correct themselves.
+ * `blocks` is the whole world because a stair's shape depends on its
+ * neighbours. This runs on every edit, so corners correct themselves.
  */
 export function groupVisible(
   visible: VisibleBlocks,

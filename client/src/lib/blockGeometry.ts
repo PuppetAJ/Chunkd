@@ -29,29 +29,15 @@ import { QUADRANT_COUNT, quadrantSides } from "./voxel/stairShape.ts";
 /**
  * The unit cube every block is drawn from, with its face shading baked in.
  *
- * Voxel worlds do not light well with a shadow map. Every surface is axis
- * aligned, so a sun at a shallow angle makes flat ground shadow itself in
- * stripes, and the usual cure, biasing the shadow lookup along the surface
- * normal, pushes the sample outside the block and leaks light through the seams
- * instead. Both were visible on the terrain.
- *
- * The games this borrows from give each face a fixed brightness according to
- * which way it points, so a cube always reads as a cube whatever the light is
- * doing: bright on top, darker on the sides, darkest underneath. That is what
- * this bakes in, and it is crisp at any distance with no artefacts to tune.
- *
- * The sun is then layered on top of it for cast shadows, which needs no bias:
- * only back faces are written into the shadow map, so a lit face is never
- * closer than its own recorded depth and cannot shadow itself.
+ * A shadow map cannot do this shading: every surface is axis aligned, so a low
+ * sun makes flat ground stripe itself, and the usual bias leaks light through
+ * the seams. A fixed brightness per face, as the games this borrows from use,
+ * is crisp at any distance. The sun is layered on top for cast shadows.
  */
 /**
- * Face brightness, in the linear space vertex colours are multiplied in.
- *
- * The familiar values are 1, 0.8, 0.6 and 0.5, but those describe how the
- * result should look after conversion back to sRGB for the screen, so they are
- * raised to 2.2 here. They are also pulled up from a straight conversion,
- * because the sun now contributes shading of its own on top of this and the two
- * together would otherwise leave the shaded sides almost black.
+ * Face brightness, in the linear space vertex colours are multiplied in. The
+ * familiar 1, 0.8, 0.6 and 0.5 describe the result on screen, so these are
+ * raised towards 2.2, and pulled up again because the sun shades on top.
  */
 const FACE_BRIGHTNESS = {
   top: 1,
@@ -64,25 +50,17 @@ const FACE_BRIGHTNESS = {
 
 /**
  * One axis-aligned part of a block, textured as though the texture were
- * projected through the cell.
+ * projected through the cell: each face takes the slice its own position
+ * covers. That is why a cut sandstone block needs no special handling.
  *
- * Every face takes the slice of the texture its own position covers, worked
- * out from the vertex and the direction the face points. That is what the
- * games this borrows from do, and it is the whole reason a sandstone stair
- * needs no special handling: a face pointing up gets top texture, a face
- * pointing sideways gets side texture, and each gets the part of it that lines
- * up with where the face sits in the cell.
+ * `min` and `max` are corners of the cell, which runs -0.5 to 0.5 on each axis.
+ * The offset is baked into the geometry rather than the instance, so every
+ * instance sits at the centre of its cell and rounding its position gives the
+ * cell back.
  *
- * `min` and `max` are corners of the cell, which runs -0.5 to 0.5 on each
- * axis. The offset is baked into the geometry rather than applied to the
- * instance, so an instance always sits at the centre of its cell: the raycast
- * recovers which cell was hit by rounding that position, and the block
- * highlight is drawn there too.
- *
- * `turnEdges` turns the top and bottom texture a quarter. A glass pane's edge
- * texture is a stripe down the middle of an otherwise empty image, which only
- * lines up with a pane running north to south. Without the turn, an arm
- * running east to west samples the empty part and its top edge disappears.
+ * `turnEdges` turns the top and bottom texture a quarter, for a glass pane's
+ * arm running east to west: its edge texture is a stripe down the middle of an
+ * otherwise empty image, and unturned the arm samples the empty part.
  */
 function boxPart(
   min: [number, number, number],
@@ -142,11 +120,8 @@ function boxPart(
  * BlockLayer's six-entry material array still lines up: index 2 is the top
  * texture, 3 the bottom, the rest the sides.
  *
- * mergeGeometries groups by part rather than by face, one group per part, so
- * the groups have to be rebuilt from the parts here. Reading them as face
- * groups instead drew the third part of a shape entirely with the top texture
- * and the fourth with the bottom, which is what put a pane's edge texture
- * across the whole of its east arm.
+ * The groups are rebuilt here because mergeGeometries makes one group per part
+ * rather than per face, which would draw a whole part with the top texture.
  */
 function fuse(parts: THREE.BoxGeometry[]): THREE.BufferGeometry {
   const merged = mergeGeometries(parts);
@@ -168,14 +143,10 @@ const SLAB_BOTTOM_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0, 0.5]);
 const SLAB_TOP_GEOMETRY = boxPart([-0.5, 0, -0.5], [0.5, 0.5, 0.5]);
 
 /**
- * The boxes a stair is built from: the half-height part that spans the whole
- * cell, and one for each quarter of the other half that is filled.
- *
- * Which quarters those are comes from stairShape.ts, which reads the
- * neighbours, so a straight run gives two, an outer corner one and an inner
- * corner three. The boxes meet along internal faces, which are left in rather
- * than trimmed away: they sit inside the solid, so an outer face is always
- * nearer the camera and hides them.
+ * The boxes a stair is built from: the half-height part spanning the cell, and
+ * one per filled quarter of the other half. Which quarters comes from
+ * stairShape.ts. The faces where boxes meet are left in; they sit inside the
+ * solid and nothing can see them.
  */
 export function stairParts(
   quadrants: number,
@@ -293,10 +264,9 @@ function cachedParts(key: string, parts: () => Box[]): THREE.BufferGeometry {
 }
 
 /**
- * The geometry one render layer should be drawn with. `variant` is whatever
- * part of the shape is not in the shape number: a stair's filled quarters, the
- * sides a fence or wall joins, or a trapdoor's facing, half and whether it is
- * open. The other shapes ignore it.
+ * The geometry one render layer is drawn with. `variant` is whatever is not in
+ * the shape number: a stair's filled quarters, the sides a fence or wall joins,
+ * a trapdoor's facing and half. Other shapes ignore it.
  */
 export function geometryForShape(shape: number, variant = 0): THREE.BufferGeometry {
   if (shape === SHAPE_SLAB_BOTTOM) return SLAB_BOTTOM_GEOMETRY;
@@ -323,12 +293,7 @@ export function geometryForBlock(blockId: number, shape: number, variant = 0): T
   return geometryForShape(shape, variant);
 }
 
-/**
- * Which way a block is turned, as a rotation of the shared cube.
- *
- * A log lying east to west is the same cube stood on its side, so orientation
- * costs nothing beyond the rotation already carried in each instance's matrix.
- */
+/** Which way a block is turned. A log on its side is the same cube rotated. */
 const UPRIGHT = new THREE.Quaternion();
 const LYING_EAST_WEST = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2));
 const LYING_NORTH_SOUTH = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));

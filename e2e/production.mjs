@@ -1,32 +1,15 @@
 /**
- * Critical-path check against a production build.
- *
- * Run this before deploying, and after. It exists because production differs
- * from development in ways the main suite cannot see:
- *
- *   - helmet applies a Content-Security-Policy only when NODE_ENV=production
- *   - the client is served as a built bundle by Express, not by Vite
- *   - window.__r3f and window.__world are stripped, so the main suite's editor
- *     assertions have nothing to hold on to
- *
- * The first run of this found a policy that blocked the axe model's textures
- * and, through the error that caused, stopped builds being saved at all.
- *
- * Usage:
+ * Critical-path check against a production build, where the
+ * Content-Security-Policy applies, Express serves the built bundle, and the
+ * editor's test handles are stripped. Fails on any console or page error.
  *
  *   pnpm build
  *   NODE_ENV=production PORT=4000 CLIENT_ORIGIN=http://localhost:4000 pnpm start
  *   pnpm test:prod
  *
- * Check the port is free first. A server left running from an earlier session
- * keeps it, the new one reports itself ready anyway, and the suite then tests
- * whatever was built days ago.
- *
- * Point it elsewhere with BASE, which is how you check a real deployment:
- *
- *   BASE=https://your-app.up.railway.app pnpm test:prod
- *
- * It fails on any console or page error, not only on a failed assertion.
+ * Check the port is free first: a server left over from an earlier session keeps
+ * it and the suite then tests whatever was built days ago. BASE points this at a
+ * real deployment.
  */
 import { chromium } from "playwright";
 const BASE = process.env.BASE ?? "http://localhost:4000";

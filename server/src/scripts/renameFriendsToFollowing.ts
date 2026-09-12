@@ -1,14 +1,10 @@
 /**
- * One-off migration: rename the `friends` array on every user to `following`.
- *
- * The field was always a one-way list. Adding someone wrote to your document
- * and nobody else's, so this only changes what it is called, not what it
- * holds. Nothing is lost and nothing is recomputed.
+ * One-off migration: rename the `friends` array to `following`. The field was
+ * always a one-way list, so only the name changes.
  *
  *   pnpm --filter server migrate:following
  *
- * Safe to run more than once: a document that has already been renamed has no
- * `friends` field, so the filter skips it.
+ * Safe to run twice: a renamed document has no `friends` field to match.
  */
 import mongoose from "mongoose";
 import { connectToDatabase, disconnectFromDatabase } from "../config/db.ts";

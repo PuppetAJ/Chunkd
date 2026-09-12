@@ -1,19 +1,10 @@
 <!doctype html>
-<!-- The site is dark only, so the class is fixed here rather than toggled.
-     shadcn/ui components carry "dark:" variants that key off it. -->
+<!-- Dark only: shadcn/ui's "dark:" variants key off this class. -->
 <html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
-    <!-- Pinch to zoom stays available. This used to carry maximum-scale=1 and
-         user-scalable=no to stop Safari zooming on a double tap in the editor,
-         but the tag applies to the whole site, so it also stopped anyone
-         enlarging the feed or a post to read it. That is a WCAG failure
-         (1.4.4 Resize Text) and axe reports it as one.
-
-         The double tap is handled without it: "touch-action: manipulation" in
-         index.css drops the double-tap gesture while keeping pinch, and the
-         editor additionally refuses ctrl+wheel and Safari's gesture events
-         through useSuppressZoomGestures. -->
+    <!-- Pinch to zoom must stay available here: blocking it fails WCAG 1.4.4.
+         The editor's double-tap zoom is handled in useSuppressZoomGestures. -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#17161a" />
     <meta
@@ -24,8 +15,7 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <!-- Link previews. og:image is relative because the site has no domain of
-         its own yet; it becomes absolute when there is one to point at. -->
+    <!-- og:image goes absolute once the site has a domain. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="CHUNK'D" />
     <meta property="og:title" content="CHUNK'D" />

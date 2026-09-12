@@ -3,19 +3,12 @@ import { toKey, type BlockKey } from "./coords.ts";
 
 /**
  * How much of a stair's tall half is filled, worked out from its neighbours so
- * that two stairs meeting at right angles form a corner.
+ * that two meeting at right angles form a corner. Derived rather than stored, so
+ * a staircase tidies itself up as you build and a save needs no room for it.
  *
- * This is derived rather than stored. Minecraft does the same, and it is the
- * reason a staircase tidies itself up as you build: breaking one stair leaves
- * the ones beside it correct with nothing to migrate, and a saved build needs
- * no room for it.
- *
- * The tall half is described as a set of quarters of the cell, which is the
- * form both the geometry and the face culling want:
- *
- * - straight, two quarters along one edge
- * - an outer corner, one quarter
- * - an inner corner, three quarters
+ * The answer is a set of quarters of the cell, which is what the geometry and
+ * the face culling both want: two along one edge for a straight stair, one for
+ * an outer corner, three for an inner one.
  */
 
 /** One quarter of the cell, by which side of the middle it sits on. */

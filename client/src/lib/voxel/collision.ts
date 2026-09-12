@@ -17,18 +17,13 @@ import { connectionMask, isPane, paneRects } from "./connectionShape.ts";
 /**
  * Collision between the player and the block grid.
  *
- * There is no physics engine. Every block fills its cell across X and Z and
- * the player is an upright box, so an exact answer is a few comparisons rather
- * than a general solver. Moving one axis at a time and snapping to the surface
- * that was hit is the standard way to do this, and it gives sliding along walls
- * for free: being blocked on X does not stop Z.
+ * No physics engine: every block fills its cell across X and Z and the player is
+ * an upright box, so one axis at a time and snapping to what was hit is exact,
+ * and gives sliding along walls for free.
  *
- * Height is the one thing the cell does not decide: a slab fills half of it,
- * so the surface underfoot comes from the block. Across X and Z a slab still
- * fills its cell, so walls, sliding and the reach checks are unchanged.
- *
- * Stairs are the exception to that last part, and the only shape whose height
- * changes across its own cell. They are handled in `extentAt` below.
+ * Height is the one thing the cell does not decide, since a slab fills half of
+ * it. Stairs go further and change height across their own cell, which is what
+ * `extentAt` is for.
  */
 
 export const PLAYER_HALF_WIDTH = 0.3;
@@ -151,16 +146,9 @@ function overlapsRects(
 }
 
 /**
- * How tall a block is where the player is standing.
- *
- * Every shape but stairs is the same height across its whole cell, so the
- * block's own extent is the whole answer. A stair is not: its tall half covers
- * only some quarters of the cell, and whether the player is over one of those
- * decides whether they stand at half height or full height.
- *
- * This used to report a stair as a whole cube, which made walking onto one a
- * full block rise, above the step height, so a staircase could not be climbed
- * without jumping up every step.
+ * How tall a block is where the player is standing. Only stairs differ across
+ * their own cell: which quarters the player is over decides whether they stand
+ * at half height or full, which is what makes a staircase walkable.
  */
 function extentAt(
   blocks: Map<BlockKey, number>,
@@ -237,12 +225,8 @@ export interface Body {
 }
 
 /**
- * Gap left between the player and any surface they stop against.
- *
- * Snapping the player's edge exactly onto a block boundary put that edge inside
- * the block by the overlap test's definition, so after touching a wall every
- * further move on every axis was reported as blocked and the player was stuck.
- * A hair of clearance means "touching" is never "overlapping".
+ * Gap left between the player and any surface they stop against, so that
+ * touching a wall is never counted as overlapping it and does not stick them.
  */
 const SKIN = 0.001;
 
@@ -259,13 +243,9 @@ const MAX_STEP = 0.4;
 const STEP_HEIGHT = 0.55;
 
 /**
- * Move as far along one step as the player can go before touching something.
- *
- * This used to snap the player to the edge of the cell they walked into, which
- * is exact for a whole block but stops them a cell short of anything thinner:
- * an open trapdoor against the far side of its cell became a wall at the near
- * side. Halving the step until it fits finds where contact really is, for any
- * shape, and for a whole block it lands where the snap did.
+ * Move as far along one step as the player can before touching something.
+ * Halving the step finds where contact really is for a shape thinner than its
+ * cell, such as an open trapdoor against the far side of one.
  */
 function slide(blocks: Map<BlockKey, number>, body: Body, stepX: number, stepZ: number): void {
   let clear = 0;
@@ -280,9 +260,8 @@ function slide(blocks: Map<BlockKey, number>, body: Body, stepX: number, stepZ: 
 }
 
 /**
- * Walk up a small rise rather than stopping against it, and say whether that
- * happened. Only from the ground: doing it mid-air would catch a falling
- * player on a ledge, and let a jumping one climb a wall half a block per hop.
+ * Walk up a small rise rather than stopping against it. Only from the ground,
+ * or a jumping player climbs a wall half a block per hop.
  */
 function tryStepUp(
   blocks: Map<BlockKey, number>,
@@ -310,11 +289,8 @@ function tryStepUp(
 }
 
 /**
- * Move `body` by the given amounts, stopping at whatever it runs into.
- *
- * Mutates the body in place because it runs every frame and allocating three
- * vectors per frame is exactly the kind of garbage the old player controller
- * produced.
+ * Move `body` by the given amounts, stopping at whatever it runs into. Mutates
+ * in place: this runs every frame.
  */
 export function moveBody(
   blocks: Map<BlockKey, number>,
@@ -326,9 +302,8 @@ export function moveBody(
   body.onGround = false;
 
   // Already inside something, most likely a block placed on top of the player.
-  // Turning collision off entirely here, which is what this used to do, meant
-  // gravity carried them straight down through the ground and out of the world.
-  // Rise out of it instead, and let them walk out horizontally while they do.
+  // Rise out of it rather than turning collision off, which drops them through
+  // the world.
   if (collides(blocks, body.x, body.y, body.z)) {
     body.x += dx;
     body.z += dz;
@@ -392,12 +367,8 @@ export function isSupported(blocks: Map<BlockKey, number>, body: Body): boolean 
 }
 
 /**
- * Would a block at these coordinates be inside the player?
- *
- * Used to refuse placing a block into the space the player occupies, which
- * would trap them. Placing a block *under* your own feet is the standard way to
- * build upwards, so this has to be exact rather than generous: it decides
- * whether pillar jumping is possible at all.
+ * Would a block at these coordinates be inside the player? Exact rather than
+ * generous: placing a block under your own feet is how you build upwards.
  */
 export function blockOverlapsPlayer(
   body: Body,

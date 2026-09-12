@@ -90,18 +90,13 @@ export default function Header() {
     // back to it at your next sign-in.
     logOut(location.pathname);
 
-    // resetStore rather than clearStore. Both empty the cache, so neither
-    // leaves the previous user's data where the next person in this tab could
-    // read it, but clearStore stops there and leaves every query that is still
-    // mounted showing the result it already had. That was visible: signing out
-    // rendered the landing page from a cached feed, and if the scheduled reset
-    // had run since the tab was opened, the build ids in that feed no longer
-    // existed, so the hero viewer reported the build as unavailable until a
-    // refresh. Re-running the queries fetches current ids.
+    // resetStore rather than clearStore: both empty the cache, but clearStore
+    // leaves every mounted query showing what it already had, which rendered
+    // the landing page from a stale feed.
     //
-    // It rejects as a matter of course, because `me` is one of the queries it
-    // retries and that one is unauthenticated now. Nothing is waiting on the
-    // result, and an uncaught rejection here would skip the navigate below.
+    // It rejects as a matter of course, since `me` is one of the queries it
+    // retries and nobody is signed in now. Uncaught, that would skip the
+    // navigate below.
     await apollo.resetStore().catch(() => {});
 
     navigate("/", { replace: true });

@@ -4,16 +4,13 @@ import { toKey, type BlockKey } from "./coords.ts";
 import { QUADRANT_COUNT, quadrantSides, stairQuadrants } from "./stairShape.ts";
 
 /**
- * Which sides a fence, a wall or a glass pane joins to, worked out from its
- * neighbours.
+ * Which sides a fence, a wall or a glass pane joins to, from its neighbours.
+ * Derived rather than stored, like a stair's corners, so breaking a block
+ * beside one tidies it up with nothing to migrate.
  *
- * Derived rather than stored, like a stair's corners, so placing or breaking a
- * block beside one tidies it up with nothing to migrate.
- *
- * The rules are Minecraft's. Each joins its own kind and any whole solid block,
- * glass included. Walls and panes also join each other, and a pane joins the
- * solid back of a stair, which the wiki gives for panes. Nothing joins leaves,
- * and a fence joins neither a wall nor a pane.
+ * The rules are Minecraft's: each joins its own kind and any whole solid block,
+ * glass included. Walls and panes join each other, and a pane joins the solid
+ * back of a stair. Nothing joins leaves, and a fence joins only fences.
  */
 
 export const SIDE_NORTH = 1;

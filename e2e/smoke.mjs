@@ -1,16 +1,9 @@
 /**
- * End-to-end smoke test.
+ * End-to-end smoke test. Drives a real browser through every route and the
+ * editor. Needs both servers up: `pnpm dev`, then `pnpm test:e2e`.
  *
- * Drives a real browser through every route and the editor's core interactions.
- * Needs both servers running:
- *
- *   pnpm dev
- *   pnpm test:e2e
- *
- * One scenario rather than a set of independent tests: later checks depend on
- * state earlier ones leave behind, so there is no way to run just one. Shared
- * setup is in lib.mjs, for scratch scripts that need it without the whole run.
- * E2E_TIMING=1 shows where the time goes.
+ * One scenario rather than independent tests, since later checks depend on what
+ * earlier ones leave behind. E2E_TIMING=1 shows where the time goes.
  */
 import {
   BASE,
@@ -72,8 +65,6 @@ await page.waitForURL("**/login", { timeout: 15000 }).catch(() => {});
 check("signed-out /editor redirects to login", page.url().endsWith("/login"), page.url());
 
 // ------------------------------------------------------- sign-up form errors
-// Every failure here used to render the same "Signup failed !", so nobody was
-// ever told which field to change.
 // Field problems and request failures are both rendered as destructive text.
 const formErrors = async () =>
   (await page.locator("p.text-destructive").allTextContents()).join(" | ");
@@ -161,10 +152,8 @@ await page.getByRole("button", { name: "Click to play" }).click();
 await goes(page.getByRole("button", { name: "Click to play" }));
 check("clicking to play dismisses the pause screen", (await page.getByRole("button", { name: "Click to play" }).count()) === 0);
 
-// Pin the world. A fresh editor seeds itself at random, so where the player
-// lands, and therefore whether a given camera angle can legally place a block,
-// changed from run to run. That made the placement check fail every so often
-// for reasons that had nothing to do with the code under test.
+// Pin the world: a fresh editor seeds itself at random, and where the player
+// lands decides whether a given camera angle can legally place a block.
 await page.evaluate(() => window.__world.getState().newWorld(20260905));
 check("the pinned world finishes drawing", await rendererSettled(),
   "the renderer never caught up with the world");
@@ -213,10 +202,10 @@ const afterBreak = await scene();
 check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
   `${before.blocks} -> ${afterBreak.blocks}`);
 
-// A fixed camera angle sometimes aims where a block cannot legally go: at the
-// sky, or at the cell the player stands in. Sweep until one lands. The world is
-// pinned above, so the angle that works is deterministic and goes first; a
-// failed attempt waits out its whole timeout, so order is worth 20 seconds.
+// A fixed angle sometimes aims where a block cannot go, at the sky or at the
+// player's own cell, so sweep until one lands. The world is pinned, so the
+// angle that works is deterministic and goes first: a failed attempt waits out
+// its whole timeout.
 let afterPlace = afterBreak;
 for (const [pitch, yaw] of [[0, 2.4], [-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1], [-0.2, 0.8]]) {
   await page.evaluate(([p, y]) => window.__r3f.camera.rotation.set(p, y, 0), [pitch, yaw]);
@@ -267,9 +256,8 @@ check("five clicks in a row break five blocks", wallBefore - wallAfter === 5,
   `${wallBefore} -> ${wallAfter}`);
 
 // --------------------------------------------------------------- zoom gestures
-// Zooming moves the crosshair away from where the player is aiming. The routes
-// a page can refuse are refused; a two-finger double tap on a Mac trackpad is
-// decided by the operating system and cannot be.
+// Zooming moves the crosshair off where the player is aiming. A page can refuse
+// most routes to it, but not a two-finger double tap on a Mac trackpad.
 const zoomProbe = await page.evaluate(() => {
   const pinch = new WheelEvent("wheel", { deltaY: -120, ctrlKey: true, cancelable: true, bubbles: true });
   document.body.dispatchEvent(pinch);
@@ -515,9 +503,8 @@ const steppedUp = await until((want) => window.__player?.y >= want, SLAB_PAD_Y +
 await page.keyboard.up("w");
 const afterStep = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
 // -------------------------------------------------------------------- stairs
-// R steps a slot on through the shapes its block can take, and the facing of a
-// stair comes from where the player is looking rather than the face they built
-// against, so walking forwards goes up it.
+// R steps a slot through the shapes its block can take, and a stair faces back
+// towards the player rather than away from the face they built against.
 await page.evaluate(() => {
   const store = window.__world.getState();
   store.setHotbarBlock(4, 9); // stone bricks
@@ -853,10 +840,8 @@ for (let i = 0; i < 5; i += 1) {
 }
 check("shift+` steps it back down and stops at one", smaller.join(",") === "7,5,3,1,1", smaller.join(","));
 
-// A wall of its own well clear of everything else, with a pad to stand on
-// three blocks back from it. Aiming at a wall rather than at the floor keeps
-// the player out of the square: a cell the player is standing in is refused,
-// which would leave the middle of the square empty.
+// Aimed at a wall rather than the floor, which keeps the player out of the
+// square: a cell they are standing in is refused and would leave a hole.
 const BRUSH_AT = { x: 60, y: 70, z: 60 };
 await page.evaluate(({ x, y, z }) => {
   const store = window.__world.getState();
@@ -933,10 +918,7 @@ check(
   JSON.stringify(pickedFresh),
 );
 
-// P saves the world. The key state is sampled inside the render loop, so a
-// press has to last longer than a frame to be seen.
-// P captures the world and opens the naming dialog. Every build used to be
-// saved as "Untitled build" because a keypress had nowhere to type a name.
+// P captures the world and opens the naming dialog.
 await page.keyboard.press("p");
 // The dialog previews a canvas capture, so it lags the key press.
 await page.locator("#buildName").waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
@@ -1023,12 +1005,9 @@ check("posting closes the dialog", (await page.locator('textarea[name="thoughtTe
 await page.goto(BASE, { waitUntil: "domcontentloaded" });
 await appears(page.locator("text=End-to-end test build"));
 check("the new post appears on the feed", (await page.locator("text=End-to-end test build").count()) > 0);
-// Read the rendered text, not the markup: each post carries a <time> element
-// whose datetime attribute is deliberately the raw ISO string, because that is
-// the machine-readable half that assistive technology and search engines use.
-// Editing a post is one of the mutations the API has always had and the UI
-// never offered. The author's own posts carry an actions menu; other people's
-// do not.
+// Read the rendered text, not the markup: a post's <time> carries the raw ISO
+// string in its datetime attribute for assistive technology.
+// The author's own posts carry an actions menu; other people's do not.
 await page.getByRole("button", { name: "Post actions" }).first().click();
 await page.getByRole("menuitem", { name: "Edit post" }).click();
 await page.fill('textarea[aria-label="Edit post text"]', "End-to-end test build, edited");
@@ -1043,11 +1022,9 @@ check("the edit survives a reload", (await page.locator("text=End-to-end test bu
 check("timestamps are formatted rather than raw ISO",
   !/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(await page.locator("body").innerText()));
 
-// The whole card opens the post, not only the comments button. The click is
-// forced because Playwright refuses to click an element something else covers,
-// and being covered by the card's stretched link is the whole point: the
-// browser delivers the click to that link, which is what a reader gets when
-// they click the post text.
+// The whole card opens the post. The click is forced because Playwright refuses
+// to click a covered element, and being covered by the card's stretched link is
+// the point.
 await page.locator("article").first().locator("p").first().click({ force: true });
 await page.waitForURL(/\/thought\//, { timeout: 15000 }).catch(() => {});
 check("clicking a post card opens the post", /\/thought\//.test(page.url()), page.url());
@@ -1074,9 +1051,7 @@ check("the comment box sits above the comments", commentOrder !== "list first", 
 check("the attached build renders in a canvas", (await page.locator("canvas").count()) > 0);
 
 // Rotating leaves the orbit target alone; panning moves it. That is the only
-// way to tell the two apart from outside the canvas, and telling them apart is
-// the point: shift and drag used to rotate, because rebinding the mouse button
-// cancelled out three's own built-in shift handling.
+// way to tell the two apart from outside the canvas.
 const orbitTarget = () => page.evaluate(() => window.__viewer?.target?.toArray() ?? null);
 const dragBy = async (shift) => {
   const box = await page.locator("canvas").first().boundingBox();
@@ -1108,10 +1083,8 @@ await page.getByRole("button", { name: "Comment" }).click();
 await appears(page.locator("text=Nice work"));
 check("a comment can be added", (await page.locator("text=Nice work").count()) > 0);
 
-// deleteReaction has existed on the API since the start and had no UI. Only
-// your own comments offer the button.
-// The button can arrive a moment after the comment's text, so this waits for it
-// rather than counting straight away, and reports both counts if it fails.
+// Only your own comments offer the delete button, and it can arrive a moment
+// after the comment's text, so wait for it rather than counting straight away.
 const deleteButtons = page.getByRole("button", { name: "Delete comment" });
 const deleteButtonsAtOnce = await deleteButtons.count();
 await appears(deleteButtons);
@@ -1352,10 +1325,9 @@ await until(() => /studio/.test(localStorage.getItem("editor-settings") ?? ""), 
 const editorScene = await page.evaluate(() => localStorage.getItem("editor-settings"));
 check("the editor keeps its own scene preference", /studio/.test(editorScene ?? ""), String(editorScene));
 
-// Changing the scene needs a cursor, and the pause screen is the only place
-// there is one. drei's pointer lock controls attach their click-to-lock handler
-// to the whole document unless told otherwise, so opening this menu used to
-// take the mouse and hand back mouse-look with the pause screen still on top.
+// Changing the scene needs a cursor, so it happens on the pause screen. drei's
+// controls lock on a click anywhere in the document unless told otherwise,
+// which would take the mouse back with the pause screen still up.
 const locksWhilePaused = await page.evaluate(() => {
   const seen = window.__lockRequests.slice();
   window.__lockRequests.length = 0;
@@ -1376,12 +1348,10 @@ check("starting play asks for the mouse", locksOnPlay.includes("editor"), locksO
 check("the pause screen goes away when play starts", (await page.locator("[data-pause-card]").count()) === 0);
 
 // ---------------------------------------------------- coming back to the tab
-// Coming back to the tab used to break or place a block with the first click.
-// The browser drops the lock when the player leaves, and can refuse a new one
-// asked for straight away, which left play running with the mouse loose. The
-// first click on the world then took the mouse and acted as well. A headless
-// browser has no pointer lock at all, so this page fakes one that behaves like
-// Chrome's.
+// The browser drops the lock when the player leaves the tab and can refuse a
+// new one, which leaves play running with the mouse loose: the first click back
+// should take the mouse and nothing else. A headless browser has no pointer
+// lock at all, so this page fakes one that behaves like Chrome's.
 {
   // A page with its own context, so the fake lock reaches nothing else in the
   // run. Playwright refuses a second page in the context launch() made, which
@@ -1511,12 +1481,8 @@ check("the pause screen goes away when play starts", (await page.locator("[data-
 }
 
 // ------------------------------------------------------------ signing out
-// Signing out has to re-run the queries that are on screen, not just empty the
-// cache. It used to call clearStore, which empties the cache and leaves every
-// mounted query showing the result it already had. On the live site the
-// database is wiped every few hours, so a tab opened before a reset held build
-// ids that no longer existed, and the landing page's hero viewer reported the
-// build as unavailable until a refresh. resetStore refetches instead.
+// Signing out has to refetch the queries on screen rather than only empty the
+// cache, or a tab holds build ids the reset database no longer has.
 await page.goto(BASE, { waitUntil: "domcontentloaded" });
 await appears(page.locator("article"));
 

@@ -23,12 +23,9 @@ import {
   type GraphQLContext,
 } from "../utils/auth.ts";
 
-// A saved world is a few kilobytes in the compact format, because it stores the
-// seed and the differences rather than the blocks. Two things push it up: a
-// 3x3 world is nine times the ground, and clearing its vegetation records every
-// removed leaf, which on its own is around 164 KB before a single block is
-// placed. This ceiling is a safety net against a bug or a malicious client, not
-// a real design limit, so it sits well above that.
+// A save is the seed plus the differences, so a few kilobytes usually, but a
+// 3x3 world cleared of vegetation records every removed leaf and reaches about
+// 164 KB before a block is placed. A safety net, not a design limit.
 const MAX_BUILD_BYTES = 2 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 256 * 1024;
 
@@ -50,11 +47,8 @@ const limitLogin = attemptLimiter("sign-in", 20, 15 * 60_000);
 const limitSignup = attemptLimiter("sign-up", 60, 60 * 60_000);
 const limitDemo = attemptLimiter("demo sign-in", 30, 60 * 60_000);
 
-// Compared against when an email is not registered, so that a request for an
-// unknown address takes as long as one with a wrong password. Without this,
-// the unknown address returned in under a millisecond and the wrong password
-// in about a hundred, which told anyone timing the endpoint which emails were
-// real. The password itself is irrelevant; only the cost of the comparison is.
+// Compared against when the email is unknown, so both answers cost the same
+// and timing the endpoint does not reveal which addresses are registered.
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 
 // How many builds one account can hold. A world is a few kilobytes, so this is
@@ -73,11 +67,8 @@ const DEMO_IS_READ_ONLY =
   "The demo account's sign-in details cannot be changed, because everyone shares it. Sign up for an account of your own to change these.";
 
 /**
- * The demo account, made on first use.
- *
- * HydratedDocument<UserDocument> means "a user that came back from the
- * database", so it carries .save() and the other Mongoose instance methods
- * rather than being a plain object.
+ * The demo account, made on first use. HydratedDocument is a user that came back
+ * from the database, so it carries .save() and the rest.
  */
 async function demoAccount(): Promise<HydratedDocument<UserDocument>> {
   const existing = await User.findOne({ username: DEMO_USERNAME }).exec();
@@ -168,12 +159,9 @@ export const resolvers = {
   User: {
     followingCount: (parent: UserDocument) => parent.following.length,
 
-    // Followers are not stored. They are everyone whose `following` list holds
-    // this user, which is what the index on that field is for.
-    //
-    // `.exec()` inside an async resolver matters: without it the resolver hands
-    // GraphQL a Mongoose Query, which is thenable, and a Query refuses to run
-    // twice. Awaiting it here runs it exactly once and returns a plain number.
+    // Followers are not stored: they are everyone whose `following` holds this
+    // user, which the index on that field is for. `.exec()` matters, or GraphQL
+    // gets a thenable Query and a Query refuses to run twice.
     // Coerced rather than read straight through: accounts created before this
     // field existed have no value stored, and the schema promises a boolean.
     isDemo: (parent: UserDocument) => Boolean(parent.isDemo),

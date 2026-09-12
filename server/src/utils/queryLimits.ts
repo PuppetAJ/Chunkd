@@ -9,19 +9,12 @@ import {
 /**
  * Refuse queries that are too deep or too wide before they run.
  *
- * `User.following` and `User.followers` refer back to `User`, so a query can
- * nest them as far as it likes. Each level asks the database about every user
- * the level above returned, which multiplies. Measured against a production
- * build: depth 5 took two seconds and returned three megabytes, depth 6 took
- * ten seconds and fifteen megabytes, and depth 7 killed the process with the
- * JavaScript heap exhausted. One request, no account needed.
+ * `User.following` and `User.followers` refer back to `User`, so nesting them
+ * multiplies: depth 7 killed the process with the heap exhausted, on one request
+ * from nobody. Width matters too, since aliases run a permitted query a hundred
+ * times over, so the field count is capped as well.
  *
- * Depth alone is not enough, because a query can also be wide: a hundred
- * aliased copies of a permitted query run in parallel and cost a hundred times
- * as much. So the number of fields is capped as well.
- *
- * Both limits sit well above anything the client sends. The deepest real query
- * is four levels and the widest is about twenty-six fields.
+ * Both sit well above the client, whose deepest query is four levels.
  */
 export interface QueryLimits {
   maxDepth: number;

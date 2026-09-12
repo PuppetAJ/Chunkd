@@ -1,14 +1,9 @@
 /**
- * The shapes the feed components expect.
+ * The shapes the feed components expect. Apollo hands back untyped results, so
+ * these describe what the queries in utils/queries.ts ask for, hand-written
+ * because there is no code generation step to keep in sync.
  *
- * GraphQL results arrive from Apollo untyped, so these interfaces exist to
- * describe what the queries in utils/queries.ts actually ask for. They are
- * hand-written on purpose: there is no code generation step to keep in sync,
- * and a component that reads `thought.username` should fail to compile if that
- * field is ever dropped from the query.
- *
- * Fields marked optional are the ones a given query may leave out, not fields
- * the server might omit at random.
+ * Optional fields are the ones a given query may leave out.
  */
 
 /** Enough of a user to link to them and draw their avatar. */
