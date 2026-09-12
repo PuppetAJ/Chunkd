@@ -10,7 +10,6 @@ import { deserializeWorld } from "../../lib/voxel/format.ts";
 import { fromKey, type BlockKey } from "../../lib/voxel/coords.ts";
 import { WORLD_SIZE } from "../../lib/voxel/terrain.ts";
 import { LIGHTING, LIGHT_SCALE, useViewerSettings } from "../../lib/sceneSettings.ts";
-import SceneEffects from "../SceneEffects/index.tsx";
 import SceneSettingsMenu from "../SceneSettingsMenu.tsx";
 
 interface Props {
@@ -151,9 +150,14 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
       <Canvas
         shadows
         dpr={[1, 2]}
-        // The same curve the editor renders with, so a build looks the same
-        // here as it did while it was being built. See Editor.tsx.
-        gl={{ antialias: true, toneMapping: THREE.AgXToneMapping }}
+        // The same curve and exposure the editor renders with, so a build
+        // looks the same here as it did while it was being built. See
+        // Editor.tsx.
+        gl={{
+          antialias: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.1,
+        }}
         camera={{
           fov: 45,
           far: bounds.radius * 12,
@@ -217,7 +221,7 @@ function BuildScene({
   const [cx, cy, cz] = bounds.centre;
   const extent = bounds.radius;
 
-  const { environment, grid: showGrid, light, effects } = useViewerSettings((state) => state.settings);
+  const { environment, grid: showGrid, light } = useViewerSettings((state) => state.settings);
 
   const studio = environment === "studio";
   const scale = LIGHT_SCALE[light];
@@ -286,7 +290,6 @@ function BuildScene({
 
       <BuildControls bounds={bounds} autoRotate={autoRotate} />
       <World blocks={world} />
-      {effects && <SceneEffects />}
     </>
   );
 }
