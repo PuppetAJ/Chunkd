@@ -150,7 +150,9 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
       <Canvas
         shadows
         dpr={[1, 2]}
-        gl={{ antialias: true }}
+        // The same curve the editor renders with, so a build looks the same
+        // here as it did while it was being built. See Editor.tsx.
+        gl={{ antialias: true, toneMapping: THREE.AgXToneMapping }}
         camera={{
           fov: 45,
           far: bounds.radius * 12,
