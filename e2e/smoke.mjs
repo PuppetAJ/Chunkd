@@ -186,9 +186,32 @@ const scene = () =>
       // Blocks in the world. This is what breaking and placing changes.
       blocks: window.__world.getState().blocks.size,
       meshes,
-      triangles: state.gl.info.render.triangles,
     };
   });
+
+/**
+ * Triangles handed to the GPU over one frame.
+ *
+ * The renderer clears its own counters on every render call, and with the
+ * effects on the last call of a frame is a single full-screen triangle, so
+ * reading the counter straight after a frame reported one triangle whatever
+ * the world held. Holding the reset off and doing it here counts the whole
+ * frame instead, effects or no effects.
+ */
+const trianglesInAFrame = async () => {
+  await page.evaluate(() => {
+    const info = window.__r3f.gl.info;
+    info.autoReset = false;
+    info.reset();
+  });
+  await frames(2);
+  return page.evaluate(() => {
+    const info = window.__r3f.gl.info;
+    const { triangles } = info.render;
+    info.autoReset = true;
+    return triangles;
+  });
+};
 
 const hotbarSlots = await page.locator('[aria-label$="slot 1"], [aria-label*="slot "]').count();
 check("the hotbar shows every block slot", hotbarSlots === 9, `${hotbarSlots} slots`);
@@ -196,7 +219,8 @@ check("the hotbar shows every block slot", hotbarSlots === 9, `${hotbarSlots} sl
 const before = await scene();
 check("editor exposes a live scene", before !== null);
 check("terrain generated blocks", (before?.blocks ?? 0) > 500, JSON.stringify(before));
-check("the scene is actually being drawn", (before?.triangles ?? 0) > 1000, JSON.stringify(before));
+const drawnTriangles = await trianglesInAFrame();
+check("the scene is actually being drawn", drawnTriangles > 1000, `${drawnTriangles} triangles in a frame`);
 check("buried blocks are not drawn", before.drawn < before.blocks, `${before.drawn} drawn of ${before.blocks}`);
 
 // Aim straight down so the block underfoot is inside the player's reach.
@@ -1367,6 +1391,19 @@ check(
   locksWhilePaused.join(", ") || "(none)",
 );
 check("the pause screen is still up after changing the scene", (await page.locator("[data-pause-card]").count()) > 0);
+
+// The effects draw over the finished image, so the thing to prove is that the
+// world is still drawn underneath rather than replaced by a blank pass.
+const toggleEffects = async () => {
+  await page.getByRole("button", { name: "Scene settings" }).click();
+  await appears(page.getByRole("menuitemcheckbox", { name: "Depth and colour" }));
+  await page.getByRole("menuitemcheckbox", { name: "Depth and colour" }).click();
+  await frames(4);
+};
+await toggleEffects();
+const withEffects = await trianglesInAFrame();
+check("the scene still draws with the effects on", withEffects > 1000, `${withEffects} triangles in a frame`);
+await toggleEffects();
 
 // And starting play still asks for it, from the editor rather than from drei.
 await page.getByRole("button", { name: "Click to play" }).click();

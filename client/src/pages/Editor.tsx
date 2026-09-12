@@ -6,6 +6,7 @@ import { Grid, PointerLockControls, Preload, Sky } from "@react-three/drei";
 import World from "../components/World/index.tsx";
 import Player from "../components/Player/index.tsx";
 import SaveControls from "../components/SaveControls/index.tsx";
+import SceneEffects from "../components/SceneEffects/index.tsx";
 import Hotbar from "../components/Hotbar/index.tsx";
 import Inventory from "../components/Inventory/index.tsx";
 import SaveToast from "../components/SaveToast/index.tsx";
@@ -74,7 +75,7 @@ export default function Editor() {
 
   // A build's thumbnail is a capture of this render, so how the editor is lit
   // decides how the build looks everywhere else on the site.
-  const { environment, grid: showGrid, light } = useEditorSettings((state) => state.settings);
+  const { environment, grid: showGrid, light, effects } = useEditorSettings((state) => state.settings);
   const studio = environment === "studio";
   const lightScale = LIGHT_SCALE[light];
   const lighting = LIGHTING[environment];
@@ -268,6 +269,7 @@ export default function Editor() {
           <World editable playerBody={body} />
           <Player body={body} />
           <SaveControls />
+          {effects && <SceneEffects />}
         </Suspense>
         {/* Mouse-look would fight the cursor while the inventory or the save
             dialog is open, and there is nothing to look at while paused. */}

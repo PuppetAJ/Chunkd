@@ -31,6 +31,22 @@ export async function launch({ width = 1280, height = 800 } = {}) {
     };
   });
 
+  // Post-processing costs a great deal on a software renderer, which is what
+  // every browser here has, and it turned a three minute run into a ten minute
+  // one. The suite runs with it off and switches it on for the check that
+  // covers it. Merged into whatever is already stored, so the checks that
+  // prove a scene preference survives a reload still see their own setting.
+  await page.addInitScript(() => {
+    for (const key of ["editor-settings", "viewer-settings"]) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(key) ?? "{}");
+        localStorage.setItem(key, JSON.stringify({ ...saved, effects: false }));
+      } catch {
+        // A browser that refuses storage renders with the effects on, slowly.
+      }
+    }
+  });
+
   const pageErrors = [];
   page.on("pageerror", (error) => {
     if (!/pointer lock/i.test(error.message)) pageErrors.push(error.message);
