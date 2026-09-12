@@ -1,5 +1,6 @@
 import { BLOCKS, type BlockGroup, type BlockType } from "../../lib/voxel/blocks.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
+import BlockIcon from "../BlockIcon/index.tsx";
 
 /**
  * Every block, grouped, for putting one into the selected hotbar slot.
@@ -58,12 +59,7 @@ export default function Inventory({ onClose }: Props) {
                         inHotbar ? "border-emerald-400" : "border-black/60"
                       }`}
                     >
-                      <img
-                        src={block.side}
-                        alt=""
-                        className="absolute inset-0 h-full w-full"
-                        style={{ imageRendering: "pixelated" }}
-                      />
+                      <BlockIcon block={block} />
                     </button>
                   </li>
                 );

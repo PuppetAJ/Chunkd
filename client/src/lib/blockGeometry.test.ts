@@ -141,7 +141,21 @@ test("an open trapdoor stands against the side it faces away from", () => {
 });
 
 test("a lone glass pane is a post two sixteenths across and a block tall", () => {
-  assert.deepEqual(paneParts(0), [{ min: [-0.0625, -0.5, -0.0625], max: [0.0625, 0.5, 0.0625] }]);
+  assert.deepEqual(paneParts(0), [
+    { min: [-0.0625, -0.5, -0.0625], max: [0.0625, 0.5, 0.0625], turnEdges: false },
+  ]);
+});
+
+test("a glass pane turns the edge texture on the arms that reach east and west", () => {
+  // The edge texture is a stripe down the middle of an otherwise empty image,
+  // which lines up only with a pane running north to south. Untuned, the arms
+  // the other way sampled the empty part and a run lost its top edge.
+  const parts = paneParts(SIDE_NORTH | SIDE_EAST | SIDE_SOUTH | SIDE_WEST);
+  const acrossX = parts.filter((part) => part.min[0] === -0.5 || part.max[0] === 0.5);
+  const rest = parts.filter((part) => !acrossX.includes(part));
+  assert.equal(acrossX.length, 2);
+  assert.ok(acrossX.every((part) => part.turnEdges), "the east and west arms should be turned");
+  assert.ok(rest.every((part) => !part.turnEdges), "the post and the other arms should not be");
 });
 
 test("a glass pane reaches the edge of its cell on each side it joins", () => {
