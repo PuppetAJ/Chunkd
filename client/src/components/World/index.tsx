@@ -22,6 +22,7 @@ import {
   SHAPE_STAIRS_BOTTOM,
   SHAPE_TRAPDOOR,
 } from "../../lib/voxel/blockValue.ts";
+import { brushCells } from "../../lib/voxel/brush.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { isEditorPaused, swingTool } from "../../lib/editorUiStore.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
@@ -38,6 +39,8 @@ interface Target {
   adjacent: [number, number, number];
   /** Which way a block with a grain should lie if placed here. */
   axis: number;
+  /** The face's normal, which a brush lies flat against. */
+  normal: [number, number, number];
   /** How far up the face the crosshair is, from -0.5 at its foot to 0.5 at its top. */
   heightInCell: number;
   /** The up component of the face's normal, which says whether it is a top, a bottom or a side. */
@@ -75,6 +78,13 @@ const KEY_BUTTONS: Record<string, number> = {
   KeyF: 2,
 };
 
+/**
+ * Picking the block you are looking at, on the middle button as in the game
+ * this borrows from, and on a key for anyone whose mouse has no middle button.
+ */
+const PICK_BUTTON = 1;
+const PICK_KEY = "KeyQ";
+
 interface Props {
   /**
    * Blocks to draw. Defaults to the editor's world; the saved-build viewer
@@ -90,8 +100,10 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const storeBlocks = useWorldStore((state) => state.blocks);
   const storeVisible = useWorldStore((state) => state.visible);
   const blocks = providedBlocks ?? storeBlocks;
-  const placeBlock = useWorldStore((state) => state.placeBlock);
-  const removeBlock = useWorldStore((state) => state.removeBlock);
+  const placeBlocks = useWorldStore((state) => state.placeBlocks);
+  const removeBlocks = useWorldStore((state) => state.removeBlocks);
+  const pickBlock = useWorldStore((state) => state.pickBlock);
+  const brush = useWorldStore((state) => state.brush);
   const fillSlab = useWorldStore((state) => state.fillSlab);
   const toggleTrapdoor = useWorldStore((state) => state.toggleTrapdoor);
   const selectedShape = useWorldStore((state) => state.selectedShape);
@@ -189,7 +201,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     swingTool();
 
     if (button === 0) {
-      removeBlock(...current.hit);
+      removeBlocks(brushCells(...current.hit, ...current.normal, brush));
       return;
     }
 
@@ -199,6 +211,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
       // Using a trapdoor opens or shuts it, as in Minecraft, and sneaking builds
       // against it instead. Only on the press: holding the button would flap it.
+      // Using something is aimed at the one block, so the brush does not apply
+      // here or to joining two slabs below.
       if (targeted !== undefined && isTrapdoor(targeted) && !sneaking.current) {
         if (fresh) toggleTrapdoor(...current.hit);
         return;
@@ -221,8 +235,12 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       }
 
       const [x, y, z] = current.adjacent;
-      // Refuse to place a block inside the player, which would trap them.
-      if (playerBody && blockOverlapsPlayer(playerBody, x, y, z)) return;
+      // Refuse to place a block inside the player, which would trap them. Only
+      // that cell is dropped, so a brush still fills the rest of its square.
+      const cells = brushCells(x, y, z, ...current.normal, brush).filter(
+        (cell) => !playerBody || !blockOverlapsPlayer(playerBody, ...cell),
+      );
+      if (cells.length === 0) return;
       // The slot decides which shape; the aim decides which half of the cell
       // it fills, and for stairs which way the step faces.
       let shape = chosenShape;
@@ -243,12 +261,21 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         const [hx, , hz] = current.hit;
         const facing = trapdoorFacingForPlacement(x - hx, z - hz, yaw);
         const top = trapdoorTopForPlacement(current.normalY, current.heightInCell);
-        placeBlock(x, y, z, current.axis, shape, facing, top);
+        placeBlocks(cells, current.axis, shape, facing, top);
         return;
       }
 
-      placeBlock(x, y, z, current.axis, shape, facingForYaw(yaw));
+      placeBlocks(cells, current.axis, shape, facingForYaw(yaw));
     }
+  };
+
+  /** Bring whatever the crosshair is on into the hotbar. */
+  const pick = useRef<() => void>(() => {});
+  pick.current = () => {
+    const current = findTarget();
+    if (!current) return;
+    const value = blocks.get(toKey(...current.hit));
+    if (value !== undefined) pickBlock(blockIdOf(value), blockShapeOf(value));
   };
 
   /**
@@ -304,6 +331,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         block[2] + Math.round(normal.z),
       ],
       axis: axisForFaceNormal(normal.x, normal.y, normal.z),
+      normal: [normal.x, normal.y, normal.z],
       // Instances sit at the centre of their cell whatever the shape.
       heightInCell: hit.point.y - block[1],
       normalY: normal.y,
@@ -311,13 +339,25 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
     target.current = found;
     if (highlightRef.current) {
-      // Outline what is actually there, or a slab gets a full cube of wireframe.
+      // The outline is the whole square a brush would cover, which is the only
+      // sign of its size while you are aiming. The square lies against the face
+      // being looked at, so the axis the face points along stays one cell deep.
+      const wide = Math.abs(normal.x) > 0.5 ? 1 : brush;
+      const tall = Math.abs(normal.y) > 0.5 ? 1 : brush;
+      const deep = Math.abs(normal.z) > 0.5 ? 1 : brush;
+
+      // A single cell outlines what is actually there, or a slab gets a full
+      // cube of wireframe. A square outlines the cells themselves, since it
+      // covers whole cells whatever shapes are in them.
       const value = blocks.get(toKey(block[0], block[1], block[2]));
       const [low, high] =
-        value === undefined ? [block[1] - 0.5, block[1] + 0.5] : verticalExtent(value, block[1]);
+        tall > 1 || value === undefined
+          ? [block[1] - tall / 2, block[1] + tall / 2]
+          : verticalExtent(value, block[1]);
+
       highlightRef.current.visible = true;
       highlightRef.current.position.set(block[0], (low + high) / 2, block[2]);
-      highlightRef.current.scale.set(1, high - low, 1);
+      highlightRef.current.scale.set(wide, high - low, deep);
     }
     return found;
   };
@@ -370,6 +410,10 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
     const onPointerDown = (event: PointerEvent) => {
       if (isEditorPaused()) return;
+      if (event.button === PICK_BUTTON) {
+        pick.current();
+        return;
+      }
       sneaking.current = event.shiftKey;
       buttonDown = true;
       // Only once the lock has worked: an automated browser never grants it,
@@ -413,8 +457,6 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     const onContextMenu = (event: Event) => event.preventDefault();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const button = KEY_BUTTONS[event.code];
-      if (button === undefined) return;
       // The frame loop does the repeating, so the key's own auto-repeat would
       // only fight it.
       if (event.repeat) return;
@@ -423,6 +465,13 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       const focused = document.activeElement;
       if (focused instanceof HTMLInputElement || focused instanceof HTMLTextAreaElement) return;
 
+      if (event.code === PICK_KEY) {
+        pick.current();
+        return;
+      }
+
+      const button = KEY_BUTTONS[event.code];
+      if (button === undefined) return;
       heldButton.current = button;
       sneaking.current = event.shiftKey;
       act.current(button, true);
