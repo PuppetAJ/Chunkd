@@ -5,6 +5,9 @@ import { applyBlockTextureSettings, type BlockTextures } from "../../lib/blockTe
 import { geometryForBlock, rotationForAxis } from "../../lib/blockGeometry.ts";
 import { SHAPE_TRAPDOOR } from "../../lib/voxel/blockValue.ts";
 
+/** How much light every block gets for free. See the material below. */
+const BLACK_FLOOR = 0.005;
+
 const matrix = new THREE.Matrix4();
 const position = new THREE.Vector3();
 const scale = new THREE.Vector3(1, 1, 1);
@@ -47,6 +50,14 @@ export default function BlockLayer({ block, shape, variant, positions, axes, tex
     const build = (url: string, cutout = block.draw === "cutout") =>
       new THREE.MeshLambertMaterial({
         map: textures.get(url) ?? null,
+        // A floor under the darkest pixels, added rather than multiplied, so
+        // it lifts them and leaves everything else where it is. The filmic
+        // curve is steep at the bottom, and without this the dark grain of a
+        // spruce log fell off the end of it and read as black rather than as
+        // wood. Raising it costs colour, since the light it adds is white:
+        // this is the most that can go in before the scene is less vibrant
+        // than it was without any of it.
+        emissive: new THREE.Color(BLACK_FLOOR, BLACK_FLOOR, BLACK_FLOOR),
         // The cube carries its face shading in its vertex colours, which this
         // multiplies into the texture. The sun adds cast shadows on top.
         vertexColors: true,
