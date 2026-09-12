@@ -1,30 +1,17 @@
 /**
  * How one block is stored in the world.
  *
- * The world is a `Map<BlockKey, number>`, and that single number carries three
- * things: the block's id in the low byte, which way round it was placed in the
- * next two bits, and what shape it is in the three bits above that. Logs and
- * hay bales have a grain, so a log placed against a wall has to lie sideways
- * the way it does in the games this borrows from, and a slab is half a block.
- *
- * Packing it into one number rather than storing an object keeps the world, the
- * save format, the collision code and the renderer all working with the plain
- * map they already expect.
- *
- * The defaults are both zero, so an ordinary upright cube stores exactly its
- * id and every build saved before orientation or shapes existed still loads
- * unchanged.
+ * The world is a `Map<BlockKey, number>` and that one number carries everything:
  *
  * ```
  *   bit 16   bit 15   bits 13-14   bits 10-12   bits 8-9   bits 0-7
  *    open     top       facing        shape        axis        id
  * ```
  *
- * Facing is only read for stairs and trapdoors, the shapes that are not the
- * same from every side. Axis is only read for blocks with a grain. The top two
- * bits are only read for trapdoors. All of them default to zero, so a plain
- * upright cube is still stored as exactly its id, and nothing saved before a
- * field existed ever set it.
+ * Every field defaults to zero, so a plain upright cube is stored as exactly its
+ * id and a build saved before a field existed still loads. Facing is read only
+ * for stairs and trapdoors, axis only for blocks with a grain, and the top two
+ * bits only for trapdoors.
  */
 
 /** Upright: the block's top face points up. The default. */
@@ -49,11 +36,9 @@ export const SHAPE_FENCE = 5;
 /** Like a fence but thicker, with a post only where it turns or ends. */
 export const SHAPE_WALL = 6;
 /**
- * A thin panel across the top or bottom of its cell, or standing against one
- * side when open.
- *
- * This is the last value three bits hold. Another shape means widening the
- * field, which moves facing and changes the meaning of every stored stair.
+ * A thin panel across the top or bottom of its cell, or against one side when
+ * open. This is the last value three bits hold: another shape means widening
+ * the field, which moves facing and changes every stored stair.
  */
 export const SHAPE_TRAPDOOR = 7;
 
@@ -179,18 +164,14 @@ export function verticalExtent(value: number, y: number): [number, number] {
       ? [y + 0.5 - TRAPDOOR_THICKNESS, y + 0.5]
       : [y - 0.5, y - 0.5 + TRAPDOOR_THICKNESS];
   }
-  // Everything else reports its whole cell, which is also what the block outline
-  // is drawn from. Collision then adjusts three of them: a stair per quarter so
-  // its low half stays a step, fences and walls half a block taller so they
-  // cannot be jumped, and an open trapdoor down to the strip it stands in. See
-  // extentAt in collision.ts.
+  // Everything else reports its whole cell. Collision adjusts stairs, fences,
+  // walls and open trapdoors from there; see extentAt in collision.ts.
   return [y - 0.5, y + 0.5];
 }
 
 /**
- * Which half of a cell a slab fills, from where on a face it was placed. A top
- * face gives one resting on it, a bottom face one hanging from it, and a side
- * splits down the middle. Same rule as the games this borrows from.
+ * Which half of a cell a slab fills: a top face gives one resting on it, a
+ * bottom face one hanging from it, a side splits down the middle.
  */
 export function slabShapeForPlacement(faceNormalY: number, hitHeightInCell: number): number {
   return upperHalfForPlacement(faceNormalY, hitHeightInCell)
@@ -212,12 +193,8 @@ function upperHalfForPlacement(faceNormalY: number, hitHeightInCell: number): bo
 }
 
 /**
- * Which way a stair placed now should face.
- *
- * From where the player is looking rather than from the face they built
- * against, which is what Minecraft does: the step faces back towards you, so
- * walking forwards goes up it. `yaw` is the camera's rotation about Y, where 0
- * looks along -Z.
+ * Which way a stair placed now should face: back towards the player, so walking
+ * forwards goes up it. `yaw` is rotation about Y, where 0 looks along -Z.
  */
 export function facingForYaw(yaw: number): number {
   // The camera looks along (-sin yaw, -cos yaw), so the opposite of that is
@@ -237,10 +214,8 @@ export function facingOffset(facing: number): [number, number] {
 }
 
 /**
- * The axis a block should lie along when placed against a given face.
- *
- * Building on top of something gives an upright block; building against its
- * side lays the block down along the direction you built from.
+ * The axis a block lies along when placed against a face: upright on top of
+ * something, laid down along the direction you built from on a side.
  */
 export function axisForFaceNormal(nx: number, ny: number, nz: number): number {
   const ax = Math.abs(nx);
@@ -256,10 +231,8 @@ export function trapdoorTopForPlacement(faceNormalY: number, hitHeightInCell: nu
 }
 
 /**
- * Which way a trapdoor placed now should face.
- *
- * Against the side of a block it faces out from that side, so its hinge is on
- * the block and it opens flat against it. On a top or bottom face there is no
+ * Which way a trapdoor placed now should face. Against a side it faces out from
+ * that side, so its hinge is on the block. On a top or bottom face there is no
  * side to hang from, so it faces the player the way a stair does.
  */
 export function trapdoorFacingForPlacement(normalX: number, normalZ: number, yaw: number): number {

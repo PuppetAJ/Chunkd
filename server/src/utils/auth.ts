@@ -85,15 +85,10 @@ export function notFound(message: string): GraphQLError {
 
 /**
  * Turn a Mongoose validation failure into a message worth showing someone.
+ * Mongoose reports one error holding an entry per bad field, which otherwise
+ * reaches the browser as an internal error and is shown as "Signup failed".
  *
- * Mongoose reports these as a single error holding one entry per bad field,
- * with the wording taken from the schema. Left alone it reached the browser as
- * an INTERNAL_SERVER_ERROR reading "User validation failed: password: Password
- * must be at least 8 characters", which the client then replaced with a generic
- * "Signup failed", so nobody was ever told what to change.
- *
- * Returns null for anything that is not a validation failure, so callers can
- * rethrow the original error untouched.
+ * Returns null for anything else, so callers can rethrow untouched.
  */
 export function asUserInputError(error: unknown): GraphQLError | null {
   if (!error || typeof error !== "object") return null;

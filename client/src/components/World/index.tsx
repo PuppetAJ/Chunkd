@@ -48,49 +48,29 @@ interface Target {
 }
 
 /**
- * Delay between repeats while a mouse button is held.
- *
- * Acting only on the initial press meant building a pillar required clicking
- * inside the third of a second the jump leaves room in. Holding the button
- * repeats, the way it does in the games this borrows from.
- *
- * This is wall-clock time rather than the render clock. It used to be scheduled
- * from whatever time the last frame had recorded, so on a machine dropping
- * frames that timestamp could already be older than the repeat delay, and a
- * single quick click fired an extra action the moment the next frame ran.
+ * Delay between repeats while a mouse button is held. Wall-clock rather than
+ * the render clock: a dropped frame would otherwise let one click act twice.
  */
 const REPEAT_MS = 160;
 
-/**
- * How long after a click is released to wait for the browser to answer the
- * lock request that click made. Chrome answers in a few tens of milliseconds;
- * this only matters when no answer ever comes.
- */
+/** How long to wait for the browser to answer a lock request before acting anyway. */
 const LOCK_ANSWER_MS = 250;
 
 /**
- * Keys that stand in for the mouse buttons, for anyone on a trackpad where
- * holding right-click to place a run of blocks is awkward. They map onto the
- * same button numbers, so they inherit hold-to-repeat and everything else.
+ * Stand-ins for the mouse buttons, for trackpads. They map onto the same button
+ * numbers, so they inherit hold-to-repeat and everything else.
  */
 const KEY_BUTTONS: Record<string, number> = {
   KeyC: 0,
   KeyF: 2,
 };
 
-/**
- * Picking the block you are looking at, on the middle button as in the game
- * this borrows from, and on a key for anyone whose mouse has no middle button.
- */
+/** Picking a block: the middle button as in the game, and a key for mice without one. */
 const PICK_BUTTON = 1;
 const PICK_KEY = "KeyQ";
 
 interface Props {
-  /**
-   * Blocks to draw. Defaults to the editor's world; the saved-build viewer
-   * passes its own so that opening someone else's build does not replace what
-   * you are building.
-   */
+  /** Defaults to the editor's world; the build viewer passes its own. */
   blocks?: Map<BlockKey, number>;
   playerBody?: Body;
   editable?: boolean;
@@ -113,9 +93,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const groupRef = useRef<THREE.Group>(null);
   const highlightRef = useRef<THREE.LineSegments>(null);
 
-  // Where the crosshair is pointing. Written every frame and read by the click
-  // handler, so it is a ref rather than state: putting it in state would
-  // re-render the whole world sixty times a second.
+  // A ref rather than state: this is written every frame.
   const target = useRef<Target | null>(null);
 
   /** Which mouse button is held, and the earliest time it may act again. */
@@ -127,32 +105,25 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   const lockGranted = useRef(false);
   const nextActionAt = useRef(0);
 
-  // Suspends until every block texture is in. The promise is shared and never
-  // rejects, so a missing image costs that one block its texture rather than
-  // costing the whole editor its WebGL context.
+  // Shared and never rejects, so a missing image costs one block its texture
+  // rather than costing the editor its WebGL context.
   const textures = use(loadBlockTextures());
 
-  // Recomputed once per edit rather than once per frame. A layer for a block id
-  // the table no longer knows about is dropped rather than crashing, so an old
-  // build referring to a removed block still opens.
-  // Nothing in the scene moves except the player, who casts no shadow, so the
-  // shadow map only needs redrawing when the world itself changes. Left on
-  // automatic it redrew every block twice a frame, forever.
+  // Nothing moves except the player, who casts no shadow, so the shadow map
+  // only needs redrawing when the world changes.
   useEffect(() => {
     gl.shadowMap.autoUpdate = false;
     gl.shadowMap.needsUpdate = true;
   }, [gl, blocks, storeVisible]);
 
   const layers = useMemo(() => {
-    // The editor's world keeps its own visible set up to date as blocks are
-    // placed, so only the grouping is redone here. The build viewer is handed a
-    // world it does not own, so that one is worked out in full, once.
+    // The editor keeps its visible set up to date as blocks are placed, so only
+    // the grouping is redone. A build viewer's world is worked out in full.
     const raw = providedBlocks
       ? buildRenderLayers(providedBlocks)
       : groupVisible(storeVisible, blocks);
-    // Development-only handle for the tests. A stair's shape is worked out
-    // from its neighbours rather than stored, so this is the only place that
-    // knows what was actually drawn.
+    // For the tests: a stair's shape comes from its neighbours, so this is the
+    // only place that knows what was drawn.
     if (import.meta.env.DEV && editable) window.__layers = raw;
     return raw.flatMap((layer) => {
       const block = getBlock(layer.blockId);
@@ -177,15 +148,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     return instance;
   }, []);
   const screenCentre = useMemo(() => new THREE.Vector2(0, 0), []);
-  // Scratch values for turning a hit face into a world-space normal, reused
-  // rather than allocated every frame.
+  // Reused rather than allocated every frame.
   const instanceMatrix = useMemo(() => new THREE.Matrix4(), []);
   const normal = useMemo(() => new THREE.Vector3(), []);
   const blockCentre = useMemo(() => new THREE.Vector3(), []);
   const lookDirection = useMemo(() => new THREE.Vector3(), []);
 
-  // Kept in a ref so the pointer handlers can act without being re-created,
-  // and so useFrame can repeat the action while a button is held.
+  // A ref so the pointer handlers need not be re-created, and so the frame loop
+  // can repeat the action while a button is held.
   const clearTarget = () => {
     target.current = null;
     if (highlightRef.current) highlightRef.current.visible = false;
@@ -196,8 +166,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     const current = findTarget();
     if (!current) return;
 
-    // Swing on a hit rather than on the press, so waving the tool at the sky
-    // does not animate.
+    // On a hit rather than on the press, so waving at the sky does not animate.
     swingTool();
 
     if (button === 0) {
@@ -209,18 +178,16 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       const chosenShape = selectedShape();
       const targeted = blocks.get(toKey(...current.hit));
 
-      // Using a trapdoor opens or shuts it, as in Minecraft, and sneaking builds
-      // against it instead. Only on the press: holding the button would flap it.
-      // Using something is aimed at the one block, so the brush does not apply
-      // here or to joining two slabs below.
+      // Using a trapdoor opens it; sneaking builds against it instead. Only on
+      // the press, or holding the button would flap it. Using something is aimed
+      // at one block, so the brush does not apply here or to slabs below.
       if (targeted !== undefined && isTrapdoor(targeted) && !sneaking.current) {
         if (fresh) toggleTrapdoor(...current.hit);
         return;
       }
 
-      // Two slabs of the same block make a whole one, rather than the second
-      // going into the cell next door. Only when the exposed half is the one
-      // being built on: from the side, a slab still places its neighbour.
+      // Two slabs of the same block make a whole one, but only when the exposed
+      // half is the one being built on: from the side, a slab places a neighbour.
       if (
         chosenShape === SHAPE_SLAB_BOTTOM &&
         targeted !== undefined &&
@@ -241,8 +208,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         (cell) => !playerBody || !blockOverlapsPlayer(playerBody, ...cell),
       );
       if (cells.length === 0) return;
-      // The slot decides which shape; the aim decides which half of the cell
-      // it fills, and for stairs which way the step faces.
+      // The slot decides the shape, the aim decides which half of the cell.
       let shape = chosenShape;
       if (chosenShape === SHAPE_SLAB_BOTTOM) {
         shape = slabShapeForPlacement(current.normalY, current.heightInCell);
@@ -250,14 +216,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
         shape = stairsShapeForPlacement(current.normalY, current.heightInCell);
       }
 
-      // Taken from the direction the camera looks rather than camera.rotation,
-      // so it does not depend on the rotation order the controls happen to use.
+      // From the look direction rather than camera.rotation, which depends on
+      // whatever rotation order the controls use.
       camera.getWorldDirection(lookDirection);
       const yaw = Math.atan2(-lookDirection.x, -lookDirection.z);
 
       if (chosenShape === SHAPE_TRAPDOOR) {
-        // A trapdoor hangs from the face it was built against, so the side of
-        // that face, rather than the look direction, decides its facing.
+        // A trapdoor hangs from the face it was built against, so that face
+        // decides its facing rather than the look direction.
         const [hx, , hz] = current.hit;
         const facing = trapdoorFacingForPlacement(x - hx, z - hz, yaw);
         const top = trapdoorTopForPlacement(current.normalY, current.heightInCell);
@@ -279,36 +245,27 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   };
 
   /**
-   * Work out what the crosshair is on, right now, and remember it.
-   *
-   * Both the frame loop and the click handler call this. Clicking used to reuse
-   * whatever the last frame had found, which meant a click was only as good as
-   * the most recent frame: if that target had since been broken, or the frame
-   * loop had not caught up with an edit, the click quietly did nothing at all.
+   * What the crosshair is on, right now. The click handler calls this rather
+   * than reading the last frame's answer, which could already be stale.
    */
   const findTarget = (): Target | null => {
     if (!groupRef.current) return null;
 
-    // Only the block layers are tested, so the axe in the player's hand and the
-    // sky cannot swallow the ray the way scene-wide raycasting did.
+    // Only the block layers, so the axe and the sky cannot swallow the ray.
     raycaster.setFromCamera(screenCentre, camera);
     const hits = raycaster.intersectObjects(groupRef.current.children, false);
     const hit = hits[0];
     const mesh = hit?.object as THREE.InstancedMesh | undefined;
 
     if (!hit || hit.instanceId === undefined || !hit.face || !mesh?.isInstancedMesh) {
-      // Every way out of here has to forget the previous target. Leaving it in
-      // place left the crosshair aimed at a block that had already been broken,
-      // so the first click worked and every one after it silently did nothing.
+      // Every way out has to forget the previous target, or the crosshair stays
+      // aimed at a block that has already been broken.
       clearTarget();
       return null;
     }
 
-    // Position and rotation both come from the instance matrix the raycast
-    // itself walked. They used to come from two different places, the position
-    // from an array hung off the mesh and the rotation from the matrix, and
-    // those two could disagree for a frame after an edit, which aimed the
-    // crosshair at the wrong block.
+    // Position and rotation both from the matrix the raycast itself walked, so
+    // they cannot disagree after an edit.
     mesh.getMatrixAt(hit.instanceId, instanceMatrix);
     blockCentre.setFromMatrixPosition(instanceMatrix);
     const block: [number, number, number] = [
@@ -317,10 +274,8 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       Math.round(blockCentre.z),
     ];
 
-    // The face normal comes back in the shared cube's own space. Most instances
-    // are pure translations, for which that is already the world normal, but a
-    // log lying on its side is a rotated instance and would report the wrong
-    // face, so the instance's own rotation is applied.
+    // The normal comes back in the shared cube's space, which is the world
+    // normal only for an unrotated instance. A log on its side is rotated.
     normal.copy(hit.face.normal).transformDirection(instanceMatrix);
 
     const found: Target = {
@@ -339,16 +294,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
     target.current = found;
     if (highlightRef.current) {
-      // The outline is the whole square a brush would cover, which is the only
-      // sign of its size while you are aiming. The square lies against the face
-      // being looked at, so the axis the face points along stays one cell deep.
+      // The outline covers the whole brush square, which lies against the face
+      // being looked at, so that face's own axis stays one cell deep.
       const wide = Math.abs(normal.x) > 0.5 ? 1 : brush;
       const tall = Math.abs(normal.y) > 0.5 ? 1 : brush;
       const deep = Math.abs(normal.z) > 0.5 ? 1 : brush;
 
       // A single cell outlines what is actually there, or a slab gets a full
-      // cube of wireframe. A square outlines the cells themselves, since it
-      // covers whole cells whatever shapes are in them.
+      // cube of wireframe. A square outlines whole cells instead.
       const value = blocks.get(toKey(block[0], block[1], block[2]));
       const [low, high] =
         tall > 1 || value === undefined
@@ -384,16 +337,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     if (!editable) return;
     const canvas = gl.domElement;
 
-    // Listening on the canvas covers both mouse buttons. React's onClick only
-    // fires for the primary button, which is why placing a block never worked.
-    // With the mouse loose, a click on the world may be the one that takes it
-    // back, which should do nothing else: coming back to the tab used to break
-    // or place a block with that first click. Whether it was is only known when
-    // the browser answers the lock request drei makes on the click, so the
-    // action waits for that answer. It is dropped if the lock arrives and
-    // carried out if the lock is refused or no answer comes. Deciding before
-    // the answer, as this first did, left every click doing nothing in a
-    // browser that had granted the lock once and then stopped.
+    // Listening on the canvas covers both buttons; React's onClick only fires
+    // for the primary one.
+    //
+    // With the mouse loose, a click may be the one that takes it back, and that
+    // click should do nothing else. Whether it was is only known once the
+    // browser answers drei's lock request, so the action waits for the answer:
+    // dropped if the lock arrives, carried out if it is refused or never comes.
+    // Deciding earlier breaks every click in a browser that stops granting it.
     let waiting: number | null = null;
     let waitingTimer = 0;
     let buttonDown = false;
@@ -416,16 +367,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       }
       sneaking.current = event.shiftKey;
       buttonDown = true;
-      // Only once the lock has worked: an automated browser never grants it,
-      // and there play goes on without mouse-look and clicks act at once.
+      // Only once the lock has worked: an automated browser never grants it.
       if (!document.pointerLockElement && lockGranted.current) {
         waiting = event.button;
         return;
       }
       heldButton.current = event.button;
-      // Act now rather than waiting for the next frame. A quick click can send
-      // both press and release inside a single frame, and deferring meant such
-      // a click did nothing at all.
+      // Now rather than next frame: a quick click can press and release inside
+      // a single frame.
       act.current(event.button, true);
       nextActionAt.current = performance.now() + REPEAT_MS;
     };
@@ -433,16 +382,15 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     const stop = () => {
       buttonDown = false;
       heldButton.current = null;
-      // drei asks for the lock on the click that follows this release, so the
-      // wait for its answer starts here rather than when the button went down.
+      // drei asks for the lock on the click after this release, so the wait for
+      // its answer starts here.
       if (waiting !== null) {
         window.clearTimeout(waitingTimer);
         waitingTimer = window.setTimeout(() => answerLock(false), LOCK_ANSWER_MS);
       }
     };
 
-    // Losing the pointer mid-drag, or having the lock taken away, has to count
-    // as a release. Otherwise the button stays "held" and keeps repeating.
+    // Losing the lock counts as a release, or the button stays held.
     const onPointerLockChange = () => {
       if (document.pointerLockElement) {
         lockGranted.current = true;
@@ -457,8 +405,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     const onContextMenu = (event: Event) => event.preventDefault();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      // The frame loop does the repeating, so the key's own auto-repeat would
-      // only fight it.
+      // The frame loop does the repeating; the key's own would fight it.
       if (event.repeat) return;
       if (isEditorPaused()) return;
       // A dialog that does not pause the world could still take the keyboard.

@@ -1,17 +1,11 @@
 import { create } from "zustand";
 
 /**
- * How a voxel scene is lit and what it sits in.
+ * How a voxel scene is lit and what it sits in. The viewer and the editor share
+ * the vocabulary but keep separate preferences.
  *
- * The viewer and the editor both use this. They keep separate preferences,
- * because the editor is a place you stand in and the viewer is a place you look
- * at, but they share the vocabulary so that switching between them is not
- * learning two different sets of words.
- *
- * The editor matters here for a reason that is not obvious: a build's thumbnail
- * is a capture of the editor's own render at the moment you press P. Without
- * these settings the only thumbnail anyone could produce was a bright daylight
- * one, which is not what the site shows a build in.
+ * The editor needs them because a build's thumbnail is a capture of its own
+ * render at the moment you press P.
  */
 export type SceneEnvironment = "studio" | "daylight";
 

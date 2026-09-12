@@ -2,11 +2,8 @@ import { moveBody, type Body } from "./collision.ts";
 import type { BlockKey } from "./coords.ts";
 
 /**
- * How the player moves.
- *
- * This is deliberately a plain function rather than something buried in a React
- * component, so the way jumping and walking actually behave can be tested
- * directly instead of only being judged by playing the game.
+ * How the player moves. A plain function rather than something inside a React
+ * component, so jumping and walking can be tested directly.
  */
 
 export const WALK_SPEED = 6;
@@ -14,13 +11,9 @@ export const SNEAK_SPEED = 3;
 export const GRAVITY = -30;
 
 /**
- * Upward speed at the start of a jump.
- *
- * Peak height is JUMP_SPEED squared over twice gravity, so this reaches roughly
- * 1.35 blocks. That matters for more than stepping up: to build a pillar you
- * jump and place a block beneath your own feet, which is only possible while
- * your feet are more than one block clear of the ground. This height gives
- * about a third of a second in which that placement is legal.
+ * Upward speed at the start of a jump, which peaks at roughly 1.35 blocks. The
+ * height matters: building a pillar means placing a block under your own feet,
+ * which is only legal while they are more than a block clear of the ground.
  */
 export const JUMP_SPEED = 9;
 

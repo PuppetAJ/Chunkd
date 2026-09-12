@@ -1,20 +1,12 @@
 import { useEffect, useState } from "react";
 
 /**
- * Does this device have a precise pointer, such as a mouse or a trackpad?
+ * Does this device have a precise pointer? The editor is keyboard and mouse
+ * only, and none of it has a touch equivalent yet.
  *
- * The editor is keyboard and mouse only. Movement is WASD, aiming is mouse
- * look through the Pointer Lock API, and the hotbar is the number keys and the
- * scroll wheel. None of that has a touch equivalent yet.
- *
- * `any-pointer: fine` is the right question to ask. `pointer: coarse` only
- * describes the primary pointer, so a laptop with a touchscreen would look like
- * a phone, and an iPad with a trackpad attached would look like a tablet even
- * though the editor works perfectly well on it. Asking whether *any* precise
- * pointer is available gets both of those right.
- *
- * Checking for the Pointer Lock API instead does not work. Every modern browser
- * reports it as present, including mobile ones that then refuse to grant it.
+ * `any-pointer: fine` rather than `pointer: coarse`, which describes only the
+ * primary pointer and would call a touchscreen laptop a phone. Checking for the
+ * Pointer Lock API does not work: mobile browsers report it and then refuse it.
  */
 const FINE_POINTER = "(any-pointer: fine)";
 

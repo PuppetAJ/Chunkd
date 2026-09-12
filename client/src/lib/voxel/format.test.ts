@@ -32,25 +32,15 @@ const TREE_BLOCK_IDS = new Set<number>([
 ]);
 
 /**
- * A saved build stores its seed and the blocks the player changed, not the
- * world. Loading one regenerates the terrain and reapplies those changes, so
- * the generator is part of the save format: if it ever produces different
- * output, every build saved before the change quietly loads as a different
- * world. No error, just the wrong build.
+ * The generator is part of the save format: a build is its seed plus the blocks
+ * the player changed, so different terrain from the same seed means every older
+ * build quietly loads as a different world, with no error.
  *
- * These hashes pin the generator down. A failure here is not necessarily a bug,
- * it is a warning that saved builds have changed meaning. Either undo the
- * change to the terrain, or raise BUILD_FORMAT_VERSION and keep the old
- * generator around for old builds, then record the new hashes here.
- *
- * They changed once, at version 4, when tree canopies lost the four corners of
- * their top ring. No old generator was kept, and that was a decision rather
- * than an oversight: the change only ever removes blocks, so an older build
- * rebuilds exactly as it was apart from those leaves, which is the shape it is
- * meant to have now. Keeping a second generator would have frozen square tree
- * tops into old builds forever and left two generators to maintain. The test
- * below named "a build saved before the canopy changed loses only leaves"
- * holds that reasoning in place.
+ * These hashes pin it down. A failure is a warning that saved builds have
+ * changed meaning: either undo the change, or raise BUILD_FORMAT_VERSION and
+ * record the new hashes here. That happened once, at version 4, when canopies
+ * lost their top corners; no old generator was kept because the change only
+ * removes leaves, which the test below holds in place.
  */
 const TERRAIN_HASHES: Record<number, string> = {
   1: "4cc5becfc119f0b5",
