@@ -32,60 +32,65 @@ The licence asks for two things, both of which this project does.
 
 1. Credit, with a link to the licence. It is in the site footer on every page,
    and in the in-game controls panel, since the editor covers the footer.
-2. ShareAlike on anything adapted. The four tinted files below are adaptations
-   and are offered under the same CC BY-SA 4.0 licence. The other 61 are
-   unchanged copies, and the rest of this repository stays MIT: bundling images
-   in an application is a collection rather than an adaptation of the images,
-   which the licence treats separately.
+2. ShareAlike on anything adapted. Every texture here is adapted, as the next
+   section describes, so all of them are offered under the same CC BY-SA 4.0
+   licence. The rest of this repository stays MIT: bundling images in an
+   application is a collection rather than an adaptation of the images, which
+   the licence treats separately.
 
 ## What was changed
 
-61 of the 65 files are byte-for-byte copies and can be checked by hashing them
-against the packs above.
+Every file here is adapted rather than copied, in two steps.
 
-Four are derived:
+### The dark end, and the colour, on all 65
+
+Each texture has its darkest pixels raised and its colour pushed a little
+further from grey. Neither step moves a texture's average brightness, so the
+pack still reads as itself; what changes is the bottom of its range and how
+saturated it is.
+
+The reason is the renderer. It draws through a filmic curve, which the game
+does not, and that curve is steep at the bottom: the dark grain of a spruce log
+came out of it as a black mass rather than as wood. Lifting the dark end in the
+texture, by scaling each pixel's own colour rather than adding grey light to
+it, is the one correction that costs no colour and no frames. The numbers are
+a power of 0.7 on the luminance, renormalised to hold the average, and a
+saturation of 1.25.
+
+### The four that are tinted
 
 | File | How it was made |
 |---|---|
-| `grass_block_top.png` | tinted with the pack's plains grass colour, `#6DC475` |
-| `grass_block_side.png` | the pack's own side, with `grass_block_side_overlay` tinted `#6DC475` composited over it |
-| `oak_leaves.png` | tinted with the pack's plains foliage colour, `#5BB155` |
-| `grass_block_snow.png` | only the green of the snow edge, tinted `#6DC475` |
+| `grass_block_top.png` | tinted with Minecraft's plains grass colour, `#91BD59` |
+| `grass_block_side.png` | the pack's own side, with `grass_block_side_overlay` tinted `#91BD59` composited over it |
+| `oak_leaves.png` | tinted with Minecraft's plains foliage colour, `#77AB2F` |
+| `grass_block_snow.png` | only the green of the snow edge, tinted `#91BD59` |
 
 The first three exist because Minecraft stores those textures greyscale and
 colours them by biome at runtime, which a single-biome world cannot do. Birch,
-spruce and cherry leaves are copied through untouched: this pack paints them in
-their final colours, birch as golden autumn leaves rather than green, so
-tinting them would undo the artwork.
+spruce and cherry leaves are left alone: this pack paints them in their final
+colours, birch as golden autumn leaves rather than green, so tinting them would
+undo the artwork.
 
-The two colours come from the pack's own `colormap/grass.png` and
-`colormap/foliage.png`, read at the coordinate Minecraft looks up for plains,
-which is temperature 0.8 and downfall 0.4. Pixel Perfection replaces those
-colour maps, so the game renders it in greens of the pack's choosing rather
-than Minecraft's defaults. Its plains grass is `#6DC475` against Minecraft's
-`#91BD59`, a good deal less red, and using Minecraft's number left the grass
-olive and wrong beside the pack's own artwork.
+Tinting takes the texture's luminance, raises it to the power 0.7, scales the
+result so its average is 0.58, the level Minecraft's own greyscale sits at, and
+multiplies by the colour.
 
-Tinting is three steps rather than the straight multiply the game does:
-
-1. Take the texture's luminance, which drops any colour cast it carries.
-2. Raise it to the power 0.7 and scale the result so its average is 0.58, the
-   level Minecraft's own greyscale sits at.
-3. Multiply by the colour.
-
-The power is what separates this from the game's own tint. The renderer's
-filmic curve is hard on dark pixels, and the darkest pixels of the grass came
-out of it looking like dirt in the grass rather than shading. Raising the dark
-end without moving the average keeps the colour where it is and stops the
-speckles reading as grime. Measured on screen, the darkest tenth of the grass
-edge went from a luminance of 23 to 32, and the snowy grass edge from 13 to 27,
-with the average unchanged.
+The colours are Minecraft's own rather than the pack's. Pixel Perfection ships
+replacement colour maps whose plains grass is `#6DC475`, a cooler and greener
+thing than Minecraft's `#91BD59`, and both were tried on screen. The olive cast
+of Minecraft's own numbers is the one this project kept.
 
 `grass_block_snow.png` is the odd one out. Minecraft does not tint it at all,
 and the pack paints its grass edge several shades darker than the tint
 produces, which beside a normal grass block read as a black line under the
-snow. Only the green pixels of it are redone, so its snow and its dirt are
-still the pack's own.
+snow. Only the green pixels of it are redone.
+
+### Rebuilding them
+
+None of this is done by hand, and none of it is reversible from the files
+themselves: to change a number, take the two packs listed above and run the
+steps again in the order they appear here.
 
 ## Using a different texture pack
 
