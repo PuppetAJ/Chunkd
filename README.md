@@ -369,12 +369,13 @@ is why `.node-version` matters. It must stay at 22.18 or newer.
 
 ## Block textures
 
-The blocks use [Faithful 32x](https://faithfulpack.net/faithful32x), under the
-[Faithful licence](https://faithfulpack.net/license) version 4, which permits
-using and distributing their work in your own games provided you credit them
-clearly and link back. That credit is in the site footer and in the in-game
-controls panel. Full detail, including the five textures that are tinted copies
-rather than exact ones, is in
+The blocks use [Pixel Perfection](https://github.com/Athemis/PixelPerfectionCE),
+a 16x pack by XSSheep continued by the community, under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/). That licence
+asks for credit and a link, which are in the site footer and in the in-game
+controls panel, and for share-alike on anything adapted, which covers the five
+textures that are tinted copies rather than exact ones. Full detail, including
+which files come from the Community Edition and which from Legacy, is in
 [`client/src/assets/textures/CREDITS.md`](client/src/assets/textures/CREDITS.md).
 
 Because the file names are Minecraft's own, any Minecraft resource pack can
@@ -412,8 +413,9 @@ editor and its renderer, the save format, the GraphQL API and the interface.
 The original 2022 version was a team project with Alexander Havers, Caleb
 Funderburk, Austin Reed and Dane Cronin. None of that interface remains.
 
-Block textures are [Faithful 32x](https://faithfulpack.net/faithful32x), used
-under the [Faithful licence](https://faithfulpack.net/license), with the exact
+Block textures are [Pixel Perfection](https://github.com/Athemis/PixelPerfectionCE)
+by XSSheep and its community maintainers, used under
+[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), with the exact
 files and any edits listed in
 [client/src/assets/textures/CREDITS.md](client/src/assets/textures/CREDITS.md).
 The 3D editor started from [this sandbox](https://codesandbox.io/s/vkgi6).

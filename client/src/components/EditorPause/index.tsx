@@ -114,26 +114,26 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
         </dl>
 
         {/* The site footer carries this too, but the editor covers the footer,
-            and Faithful's licence asks for the credit to be somewhere obvious
-            wherever their work is used. */}
+            and the licence asks for the credit to be somewhere obvious wherever
+            the work is used. */}
         <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
           Block textures from{" "}
           <a
             className="underline underline-offset-2 hover:text-foreground"
-            href="https://faithfulpack.net/faithful32x"
+            href="https://github.com/Athemis/PixelPerfectionCE"
             target="_blank"
             rel="noreferrer"
           >
-            Faithful 32x
-          </a>
-          , used under the{" "}
+            Pixel Perfection
+          </a>{" "}
+          by XSSheep and its community maintainers, used under{" "}
           <a
             className="underline underline-offset-2 hover:text-foreground"
-            href="https://faithfulpack.net/license"
+            href="https://creativecommons.org/licenses/by-sa/4.0/"
             target="_blank"
             rel="noreferrer"
           >
-            Faithful licence
+            CC BY-SA 4.0
           </a>
           . Not an official Minecraft product.
         </p>

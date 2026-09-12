@@ -64,7 +64,7 @@ test("a block behind glass is still drawn", () => {
 });
 
 test("a block behind leaves is still drawn", () => {
-  // Faithful's leaves have gaps in them, so they do not hide what is behind.
+  // The pack's leaves have gaps in them, so they do not hide what is behind.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), BLOCK_IDS.oakLeaves);
   assert.equal(drawnPositions(blocks).has("0,0,0"), true);
