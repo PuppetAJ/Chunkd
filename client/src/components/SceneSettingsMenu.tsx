@@ -73,6 +73,15 @@ export default function SceneSettingsMenu({
           Floor grid
         </DropdownMenuCheckboxItem>
 
+        {/* Off is a real choice, not only a preference: this is the one
+            setting here that costs frames, and a slow machine feels it. */}
+        <DropdownMenuCheckboxItem
+          checked={settings.effects}
+          onCheckedChange={(effects) => onChange({ ...settings, effects })}
+        >
+          Depth and colour
+        </DropdownMenuCheckboxItem>
+
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Light</DropdownMenuLabel>
         <DropdownMenuRadioGroup

@@ -184,6 +184,15 @@ you press P, so without them every thumbnail could only ever be a bright dayligh
 one. The editor and the viewer remember their choices separately, and both are
 kept in the browser.
 
+"Depth and colour" is the one setting that costs frames. It draws two passes
+over the finished image: ambient occlusion, which darkens the places blocks
+meet and is what makes a voxel scene read as depth rather than flat colour, and
+a lift in saturation and contrast, because the renderer's AgX curve is accurate
+but reserved. It is on by default and worth turning off on a slow machine. The
+end-to-end suite turns it off for the same reason, since a browser with no GPU
+spends most of a run on it, and switches it back on for the one check that
+covers it.
+
 ## Slabs
 
 The blocks Minecraft gives slabs to can be laid as a slab, half a block tall,
