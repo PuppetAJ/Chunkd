@@ -90,6 +90,13 @@ export const typeDefs = /* GraphQL */ `
     """
     demoLogin: Auth!
 
+    """
+    Trade a token that is still valid for a fresh one. A session otherwise ends
+    at a fixed hour whatever the person is in the middle of, and in the editor
+    that means an unsaved world.
+    """
+    renewToken: Auth!
+
     addThought(thoughtText: String!, buildId: ID): Thought!
     updateThought(thoughtId: ID!, thoughtText: String!): Thought!
     deleteThought(thoughtId: ID!): ID!
