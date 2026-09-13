@@ -16,7 +16,9 @@ import Crosshair from "../components/Crosshair/index.tsx";
 import FlightIndicator from "../components/FlightIndicator/index.tsx";
 import EditorPause from "../components/EditorPause/index.tsx";
 import SaveBuildDialog from "../components/SaveBuildDialog/index.tsx";
+import SessionExpired from "../components/SessionExpired/index.tsx";
 import { Toaster } from "../components/ui/sonner.tsx";
+import { useAuthStore } from "../lib/auth.ts";
 import { useEditorUiStore } from "../lib/editorUiStore.ts";
 import { LIGHTING, LIGHT_SCALE, useEditorSettings } from "../lib/sceneSettings.ts";
 import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
@@ -209,6 +211,16 @@ export default function Editor() {
     if (inventoryOpen && document.pointerLockElement) document.exitPointerLock();
   }, [inventoryOpen]);
 
+  // A session can run out mid-build. The route keeps the editor mounted so the
+  // world survives it; this stops the world moving underneath the sign-in box
+  // and hands the mouse back for typing.
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  useEffect(() => {
+    if (isLoggedIn) return;
+    setPlaying(false);
+    if (document.pointerLockElement) document.exitPointerLock();
+  }, [isLoggedIn, setPlaying]);
+
   // The player's position is deliberately not React state. It changes every
   // frame, and both the movement code and the block placement check read it
   // directly rather than through a re-render.
@@ -327,12 +339,13 @@ export default function Editor() {
       <SaveToast />
       {inventoryOpen && <Inventory onClose={closeInventory} />}
       <SaveBuildDialog />
+      {!isLoggedIn && <SessionExpired />}
       {/* The editor is routed outside the site shell, so it carries its own. */}
       <Toaster />
 
       {/* The pause screen would otherwise stack on top of the two things that
           legitimately take the mouse away from the world. */}
-      {!playing && !inventoryOpen && !pendingSave && (
+      {isLoggedIn && !playing && !inventoryOpen && !pendingSave && (
         <EditorPause firstVisit={!everPlayed} loading={loadingBuild} onPlay={startPlaying} />
       )}
     </>
