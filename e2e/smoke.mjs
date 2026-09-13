@@ -977,6 +977,60 @@ await page.keyboard.press("Escape");
 await appears(page.getByRole("button", { name: /^Delete / }));
 check("a build offers a delete button to its owner", (await page.getByRole("button", { name: /^Delete / }).count()) > 0);
 
+// ------------------------------------------------------- editing a saved build
+// Edit reopens the build in the editor, and saving it under the same name
+// offers to overwrite rather than leaving a second copy.
+await page.getByRole("link", { name: "Edit Ridge fort" }).click();
+await page.waitForURL("**/editor?build=*", { timeout: 15000 });
+const reopened = await until(
+  () => window.__world?.getState().source?.name === "Ridge fort",
+  null,
+  20000,
+);
+check("Edit reopens the saved build in the editor", reopened);
+check(
+  "the reopened world is the saved one, not a fresh seed",
+  await page.evaluate(() => {
+    const state = window.__world.getState();
+    return new URL(location.href).searchParams.get("build") === state.source?.id;
+  }),
+);
+// The store has the world before the canvas has drawn it, and the key that
+// saves is listened for inside the canvas.
+await rendererSettled();
+await appears(page.getByRole("button", { name: "Click to play" }));
+check(
+  "play is offered once the build has loaded",
+  await page.getByRole("button", { name: "Click to play" }).isEnabled(),
+);
+await page.getByRole("button", { name: "Click to play" }).click();
+await goes(page.getByRole("button", { name: "Click to play" }));
+await page.keyboard.press("p");
+await page.locator("#buildName").waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+check(
+  "saving a reopened build starts from its own name",
+  (await page.locator("#buildName").inputValue()) === "Ridge fort",
+);
+await page.getByRole("button", { name: "Save build" }).click();
+await appears(page.locator("text=/already have a build named/i"));
+check("a name that is already taken asks before overwriting", (await page.locator("text=/already have a build named/i").count()) > 0);
+await page.getByRole("button", { name: "Overwrite" }).click();
+const overwroteToast = page.locator("text=/build saved/i").first();
+await overwroteToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+check("overwriting confirms like a save", (await page.locator("text=/build saved/i").count()) > 0);
+await overwroteToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
+
+await page.keyboard.press("Escape");
+await appears(page.getByRole("link", { name: "Leave the editor" }));
+await page.getByRole("link", { name: "Leave the editor" }).click();
+await page.waitForURL(`${BASE}/`, { timeout: 15000 });
+await page.getByRole("link", { name: "My builds" }).first().click();
+await page.waitForURL("**/profile", { timeout: 15000 });
+await appears(page.getByRole("tab", { name: "Builds" }));
+await appears(page.getByText("Ridge fort", { exact: true }));
+const copies = await page.getByText("Ridge fort", { exact: true }).count();
+check("overwriting leaves one build, not two", copies === 1, `${copies} builds named Ridge fort`);
+
 // Nothing has been posted yet at this point in the run, so the posts tab is
 // the place to check that an empty list explains itself instead of going blank.
 await page.getByRole("tab", { name: "Posts" }).click();

@@ -17,6 +17,7 @@ export interface BuildSummary {
   name: string;
   thumbnail?: string | null;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Reaction {

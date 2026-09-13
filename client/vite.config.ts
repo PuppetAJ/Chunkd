@@ -25,7 +25,9 @@ export default defineConfig({
     // and cookies behave the same way they do in production.
     proxy: {
       "/graphql": {
-        target: "http://localhost:3001",
+        // API_PORT points a second client at a second API, for running one
+        // branch beside another.
+        target: `http://localhost:${process.env["API_PORT"] ?? 3001}`,
         changeOrigin: true,
       },
     },

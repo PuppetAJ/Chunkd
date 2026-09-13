@@ -36,10 +36,12 @@ const CONTROLS: [string, string][] = [
 interface Props {
   /** True the first time, so the copy can welcome rather than say "paused". */
   firstVisit: boolean;
+  /** The name of a saved build still being fetched, which holds play back. */
+  loading?: string | null;
   onPlay: () => void;
 }
 
-export default function EditorPause({ firstVisit, onPlay }: Props) {
+export default function EditorPause({ firstVisit, loading = null, onPlay }: Props) {
   const settings = useEditorSettings((state) => state.settings);
   const setSettings = useEditorSettings((state) => state.setSettings);
   const [newWorldOpen, setNewWorldOpen] = useState(false);
@@ -47,7 +49,7 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
   return (
     <div
       className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
-      onClick={onPlay}
+      onClick={loading ? undefined : onPlay}
     >
       <div
         // Named so a test can find the pause screen without matching on
@@ -68,12 +70,14 @@ export default function EditorPause({ firstVisit, onPlay }: Props) {
 
         <h1 className="font-display text-2xl">{firstVisit ? "Build something" : "Paused"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {firstVisit
-            ? "A fresh world, generated just for you."
-            : "Your world is exactly where you left it."}
+          {loading
+            ? `Loading "${loading}"...`
+            : firstVisit
+              ? "A fresh world, generated just for you."
+              : "Your world is exactly where you left it."}
         </p>
 
-        <Button className="mt-5 w-full" size="lg" onClick={onPlay}>
+        <Button className="mt-5 w-full" size="lg" onClick={onPlay} disabled={loading !== null}>
           <MousePointerClick />
           Click to play
         </Button>

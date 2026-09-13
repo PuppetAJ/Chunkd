@@ -36,7 +36,15 @@ export interface WorldOptions {
   trees?: boolean;
 }
 
+/** The saved build a world was opened from, so saving can offer to overwrite it. */
+export interface BuildSource {
+  id: string;
+  name: string;
+}
+
 interface WorldState {
+  /** Null for a world that has never been saved, or was made fresh. */
+  source: BuildSource | null;
   seed: number;
   /** Width of the world in blocks. One of WORLD_SIZES. */
   size: number;
@@ -64,7 +72,8 @@ interface WorldState {
   brush: number;
 
   newWorld: (seed?: number, options?: WorldOptions) => void;
-  loadBuild: (payload: string) => boolean;
+  loadBuild: (payload: string, source?: BuildSource) => boolean;
+  setSource: (source: BuildSource | null) => void;
   serialize: () => string;
 
   placeBlock: (
@@ -142,6 +151,7 @@ const initialSeed = randomSeed();
 const initialBlocks = generateTerrain(initialSeed);
 
 export const useWorldStore = create<WorldState>((set, get) => ({
+  source: null,
   seed: initialSeed,
   size: WORLD_SIZE,
   trees: true,
@@ -155,13 +165,14 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   newWorld: (seed = randomSeed(), options = {}) => {
     const { size = WORLD_SIZE, trees = true } = options;
     const blocks = generateTerrain(seed, size, { trees });
-    set({ seed, size, trees, blocks, visible: computeVisible(blocks) });
+    set({ source: null, seed, size, trees, blocks, visible: computeVisible(blocks) });
   },
 
-  loadBuild: (payload: string) => {
+  loadBuild: (payload, source = undefined) => {
     const world = deserializeWorld(payload);
     if (!world) return false;
     set({
+      source: source ?? null,
       seed: world.seed,
       size: world.size,
       trees: world.trees,
@@ -170,6 +181,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     });
     return true;
   },
+
+  setSource: (source) => set({ source }),
 
   serialize: () => {
     const { seed, blocks, size, trees } = get();
