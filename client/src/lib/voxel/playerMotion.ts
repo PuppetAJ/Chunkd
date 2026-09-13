@@ -135,3 +135,18 @@ export function stepPlayer(
   // Landing or hitting a ceiling cancels vertical momentum.
   if (body.onGround && motion.verticalSpeed < 0) motion.verticalSpeed = 0;
 }
+
+/**
+ * How far past the edge of the world someone may go before being put back at
+ * the spawn point. Far enough to fly out and look at what they have built, near
+ * enough that the island is never a speck behind them.
+ */
+export const STRAY_MARGIN = 32;
+
+/**
+ * Whether someone has wandered off the world. Height is deliberately not part
+ * of it: building tall is the point, and falling is caught by its own check.
+ */
+export function hasStrayed(x: number, z: number, size: number): boolean {
+  return x < -STRAY_MARGIN || z < -STRAY_MARGIN || x > size + STRAY_MARGIN || z > size + STRAY_MARGIN;
+}
