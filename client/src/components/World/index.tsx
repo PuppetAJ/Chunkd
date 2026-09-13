@@ -23,6 +23,7 @@ import {
   SHAPE_TRAPDOOR,
 } from "../../lib/voxel/blockValue.ts";
 import { brushCells } from "../../lib/voxel/brush.ts";
+import { raycastBlocks } from "../../lib/voxel/raycast.ts";
 import { loadBlockTextures } from "../../lib/blockTextures.ts";
 import { isEditorPaused, swingTool } from "../../lib/editorUiStore.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
@@ -143,15 +144,12 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
 
   const raycaster = useMemo(() => {
     const instance = new THREE.Raycaster();
-    // Range is enforced here rather than by measuring distances afterwards.
+    // Carried into the ray test for the shapes that are not whole cubes.
     instance.far = REACH;
     return instance;
   }, []);
   const screenCentre = useMemo(() => new THREE.Vector2(0, 0), []);
   // Reused rather than allocated every frame.
-  const instanceMatrix = useMemo(() => new THREE.Matrix4(), []);
-  const normal = useMemo(() => new THREE.Vector3(), []);
-  const blockCentre = useMemo(() => new THREE.Vector3(), []);
   const lookDirection = useMemo(() => new THREE.Vector3(), []);
 
   // A ref so the pointer handlers need not be re-created, and so the frame loop
@@ -249,34 +247,18 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
    * than reading the last frame's answer, which could already be stale.
    */
   const findTarget = (): Target | null => {
-    if (!groupRef.current) return null;
-
-    // Only the block layers, so the axe and the sky cannot swallow the ray.
     raycaster.setFromCamera(screenCentre, camera);
-    const hits = raycaster.intersectObjects(groupRef.current.children, false);
-    const hit = hits[0];
-    const mesh = hit?.object as THREE.InstancedMesh | undefined;
+    const hit = raycastBlocks(blocks, raycaster, REACH);
 
-    if (!hit || hit.instanceId === undefined || !hit.face || !mesh?.isInstancedMesh) {
+    if (!hit) {
       // Every way out has to forget the previous target, or the crosshair stays
       // aimed at a block that has already been broken.
       clearTarget();
       return null;
     }
 
-    // Position and rotation both from the matrix the raycast itself walked, so
-    // they cannot disagree after an edit.
-    mesh.getMatrixAt(hit.instanceId, instanceMatrix);
-    blockCentre.setFromMatrixPosition(instanceMatrix);
-    const block: [number, number, number] = [
-      Math.round(blockCentre.x),
-      Math.round(blockCentre.y),
-      Math.round(blockCentre.z),
-    ];
-
-    // The normal comes back in the shared cube's space, which is the world
-    // normal only for an unrotated instance. A log on its side is rotated.
-    normal.copy(hit.face.normal).transformDirection(instanceMatrix);
+    const block = hit.cell;
+    const normal = hit.normal;
 
     const found: Target = {
       hit: block,
@@ -287,7 +269,7 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       ],
       axis: axisForFaceNormal(normal.x, normal.y, normal.z),
       normal: [normal.x, normal.y, normal.z],
-      // Instances sit at the centre of their cell whatever the shape.
+      // A block sits at the centre of its cell whatever its shape.
       heightInCell: hit.point.y - block[1],
       normalY: normal.y,
     };

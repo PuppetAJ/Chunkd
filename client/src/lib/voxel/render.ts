@@ -143,7 +143,7 @@ const SHAPE_SLOTS = 8;
 const VARIANT_SLOTS = 32;
 
 /** The part of a block's shape that comes from its neighbours or its state. */
-function variantFor(
+export function variantFor(
   blocks: Map<BlockKey, number>,
   value: number,
   x: number,
