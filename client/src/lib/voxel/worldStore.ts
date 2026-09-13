@@ -116,6 +116,13 @@ interface WorldState {
   selectedBlockId: () => number;
   selectedShape: () => number;
   spawnPoint: () => [number, number, number];
+
+  /**
+   * Whether anything has been built since this world was generated, loaded or
+   * saved. What decides whether there is work worth keeping a draft of.
+   */
+  edited: boolean;
+  setEdited: (edited: boolean) => void;
 }
 
 /**
@@ -152,6 +159,7 @@ const initialBlocks = generateTerrain(initialSeed);
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   source: null,
+  edited: false,
   seed: initialSeed,
   size: WORLD_SIZE,
   trees: true,
@@ -165,7 +173,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   newWorld: (seed = randomSeed(), options = {}) => {
     const { size = WORLD_SIZE, trees = true } = options;
     const blocks = generateTerrain(seed, size, { trees });
-    set({ source: null, seed, size, trees, blocks, visible: computeVisible(blocks) });
+    set({ source: null, edited: false, seed, size, trees, blocks, visible: computeVisible(blocks) });
   },
 
   loadBuild: (payload, source = undefined) => {
@@ -173,6 +181,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     if (!world) return false;
     set({
       source: source ?? null,
+      edited: false,
       seed: world.seed,
       size: world.size,
       trees: world.trees,
@@ -183,6 +192,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   setSource: (source) => set({ source }),
+  setEdited: (edited) => set({ edited }),
 
   serialize: () => {
     const { seed, blocks, size, trees } = get();
@@ -222,7 +232,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         blocks.set(toKey(x, y, z), value);
         refreshVisibleAround(blocks, visible, x, y, z);
       }
-      return { blocks, visible };
+      return { blocks, visible, edited: true };
     });
   },
 
@@ -235,7 +245,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       blocks.set(key, packBlock(blockIdOf(existing)));
       const visible = new Map(state.visible);
       refreshVisibleAround(blocks, visible, x, y, z);
-      return { blocks, visible };
+      return { blocks, visible, edited: true };
     });
   },
 
@@ -248,7 +258,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       blocks.set(key, toggledTrapdoor(existing));
       const visible = new Map(state.visible);
       refreshVisibleAround(blocks, visible, x, y, z);
-      return { blocks, visible };
+      return { blocks, visible, edited: true };
     });
   },
 
@@ -266,7 +276,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
         blocks.delete(toKey(x, y, z));
         refreshVisibleAround(blocks, visible, x, y, z);
       }
-      return { blocks, visible };
+      return { blocks, visible, edited: true };
     });
   },
 
