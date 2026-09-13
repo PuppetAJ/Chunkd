@@ -15,16 +15,16 @@ that stores accounts, posts, comments, follows and saved worlds.
 
 ## Stack
 
-| Layer | Choice |
-|---|---|
-| Package manager | pnpm workspaces |
-| Client | React 19, Vite, Tailwind CSS v4, React Router |
-| Interface | shadcn/ui on Radix primitives, Lucide icons |
-| 3D | three.js, React Three Fiber, drei |
-| Data | Apollo Client against a GraphQL API |
-| Server | Express 5, Apollo Server 5, Mongoose, TypeScript run directly by Node |
-| Database | MongoDB |
-| Tooling | oxlint, Playwright, `node --test` |
+| Layer           | Choice                                                                |
+| --------------- | --------------------------------------------------------------------- |
+| Package manager | pnpm workspaces                                                       |
+| Client          | React 19, Vite, Tailwind CSS v4, React Router                         |
+| Interface       | shadcn/ui on Radix primitives, Lucide icons                           |
+| 3D              | three.js, React Three Fiber, drei                                     |
+| Data            | Apollo Client against a GraphQL API                                   |
+| Server          | Express 5, Apollo Server 5, Mongoose, TypeScript run directly by Node |
+| Database        | MongoDB                                                               |
+| Tooling         | oxlint, Playwright, `node --test`                                     |
 
 Collision and terrain generation are written by hand rather than pulled from a
 physics library. They live in `client/src/lib/voxel/` and are covered by tests.
@@ -88,20 +88,20 @@ followed by `@chunkd.test`.
 
 Run these from the repository root.
 
-| Command | What it does |
-|---|---|
-| `pnpm dev` | Runs the client and the API together |
-| `pnpm build` | Builds the client for production |
-| `pnpm start` | Runs the API, serving the built client in production mode |
-| `pnpm seed` | Resets the database to example content. Does nothing if it is already in that state; `--force` resets anyway |
-| `pnpm lint` | Lints the whole workspace with oxlint |
-| `pnpm test` | Runs the unit tests |
-| `pnpm typecheck` | Type-checks both packages |
-| `pnpm test:e2e` | Drives a real browser through every route, needs `pnpm dev` running |
-| `pnpm test:a11y` | Runs axe-core over every page and fails on any WCAG 2.1 A or AA violation, needs `pnpm dev` running |
-| `pnpm test:prod` | Drives the critical path against a production build, see Deploying |
-| `pnpm db:up` / `pnpm db:down` | Starts and stops the MongoDB container |
-| `pnpm --filter server migrate:following` | One-off, renames the old `friends` field to `following` |
+| Command                                  | What it does                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `pnpm dev`                               | Runs the client and the API together                                                                         |
+| `pnpm build`                             | Builds the client for production                                                                             |
+| `pnpm start`                             | Runs the API, serving the built client in production mode                                                    |
+| `pnpm seed`                              | Resets the database to example content. Does nothing if it is already in that state; `--force` resets anyway |
+| `pnpm lint`                              | Lints the whole workspace with oxlint                                                                        |
+| `pnpm test`                              | Runs the unit tests                                                                                          |
+| `pnpm typecheck`                         | Type-checks both packages                                                                                    |
+| `pnpm test:e2e`                          | Drives a real browser through every route, needs `pnpm dev` running                                          |
+| `pnpm test:a11y`                         | Runs axe-core over every page and fails on any WCAG 2.1 A or AA violation, needs `pnpm dev` running          |
+| `pnpm test:prod`                         | Drives the critical path against a production build, see Deploying                                           |
+| `pnpm db:up` / `pnpm db:down`            | Starts and stops the MongoDB container                                                                       |
+| `pnpm --filter server migrate:following` | One-off, renames the old `friends` field to `following`                                                      |
 
 ## Usage
 
@@ -133,22 +133,22 @@ equivalent yet. On a phone or a tablet with no trackpad the editor is left out
 of the menu and its page explains why instead of loading. The rest of the site
 works on any device, including turning a saved build around with a finger.
 
-| Input | Action |
-|---|---|
-| W A S D | Move |
-| Space | Jump |
-| Double-tap space | Toggle flight |
-| Shift | Walk slowly, or descend while flying |
-| Mouse | Look, once you click to capture the pointer |
-| Left click | Break a block. Hold to keep breaking |
-| Right click | Place a block. Hold to keep placing |
-| 1 to 9 | Choose a hotbar slot |
-| Scroll wheel | Move along the hotbar, wrapping at both ends |
-| R | Step the selected slot through whole block, slab and stairs |
-| E | Open the block inventory |
-| Shift and drag | Pan, when looking at a saved build |
-| P | Name and save the current world |
-| Esc | Release the mouse and pause |
+| Input            | Action                                                      |
+| ---------------- | ----------------------------------------------------------- |
+| W A S D          | Move                                                        |
+| Space            | Jump                                                        |
+| Double-tap space | Toggle flight                                               |
+| Shift            | Walk slowly, or descend while flying                        |
+| Mouse            | Look, once you click to capture the pointer                 |
+| Left click       | Break a block. Hold to keep breaking                        |
+| Right click      | Place a block. Hold to keep placing                         |
+| 1 to 9           | Choose a hotbar slot                                        |
+| Scroll wheel     | Move along the hotbar, wrapping at both ends                |
+| R                | Step the selected slot through whole block, slab and stairs |
+| E                | Open the block inventory                                    |
+| Shift and drag   | Pan, when looking at a saved build                          |
+| P                | Name and save the current world                             |
+| Esc              | Release the mouse and pause                                 |
 
 The editor opens on a pause screen listing all of this. Clicking plays, Escape
 comes back to it, and that screen is also where you leave the editor.
@@ -278,12 +278,12 @@ deploy does not depend on what the platform infers.
 Add a MongoDB, either Railway's template or a MongoDB Atlas cluster, then set
 these variables on the service:
 
-| Variable | Value |
-|---|---|
-| `NODE_ENV` | `production` |
-| `MONGODB_URI` | a reference to the database service, or an Atlas connection string |
-| `JWT_SECRET` | a generated value of at least 32 characters |
-| `CLIENT_ORIGIN` | the service's own public URL |
+| Variable        | Value                                                              |
+| --------------- | ------------------------------------------------------------------ |
+| `NODE_ENV`      | `production`                                                       |
+| `MONGODB_URI`   | a reference to the database service, or an Atlas connection string |
+| `JWT_SECRET`    | a generated value of at least 32 characters                        |
+| `CLIENT_ORIGIN` | the service's own public URL                                       |
 
 `PORT` is supplied by the platform and read automatically.
 
@@ -413,7 +413,7 @@ Built and maintained by Adrian Jimenez. The 2026 rebuild is his work: the voxel
 editor and its renderer, the save format, the GraphQL API and the interface.
 
 The original 2022 version was a team project with Alexander Havers, Caleb
-Funderburk, Austin Reed and Dane Cronin. None of that interface remains.
+Funderburk, Austin Reed and Dane Cronin.
 
 Block textures are [Pixel Perfection](https://github.com/Athemis/PixelPerfectionCE)
 by XSSheep and its community maintainers, used under
