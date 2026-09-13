@@ -1020,6 +1020,46 @@ await overwroteToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {
 check("overwriting confirms like a save", (await page.locator("text=/build saved/i").count()) > 0);
 await overwroteToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
 
+// Saving the same world under a second name keeps both, and leaves the world
+// alone. The editor used to decide what to load by comparing the address with
+// the build it had last saved as, so a second name made those disagree and the
+// first build was fetched back over the work in progress.
+const marker = await page.evaluate(() => {
+  const store = window.__world.getState();
+  const camera = window.__r3f.camera;
+  const x = Math.round(camera.position.x);
+  const y = Math.round(camera.position.y) + 4;
+  const z = Math.round(camera.position.z);
+  store.placeBlock(x, y, z);
+  return `${x},${y},${z}`;
+});
+await rendererSettled();
+await page.keyboard.press("p");
+await page.locator("#buildName").waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+await page.fill("#buildName", "Ridge outpost");
+await page.getByRole("button", { name: "Save build" }).click();
+const keptToast = page.locator("text=/build saved/i").first();
+await keptToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+await keptToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
+// The reload this guards against needed a fetch and a render to happen.
+await frames(4);
+const afterSecondName = await page.evaluate((key) => ({
+  kept: window.__world.getState().blocks.has(key),
+  source: window.__world.getState().source,
+  address: new URL(location.href).searchParams.get("build"),
+}), marker);
+check(
+  "saving under a second name leaves the world where it is",
+  afterSecondName.kept === true,
+  JSON.stringify(afterSecondName),
+);
+check(
+  "the editor carries on in the build it was saved as",
+  afterSecondName.source?.name === "Ridge outpost" &&
+    afterSecondName.address === afterSecondName.source?.id,
+  JSON.stringify(afterSecondName),
+);
+
 await page.keyboard.press("Escape");
 await appears(page.getByRole("link", { name: "Leave the editor" }));
 await page.getByRole("link", { name: "Leave the editor" }).click();
