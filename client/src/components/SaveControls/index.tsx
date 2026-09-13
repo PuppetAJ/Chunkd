@@ -37,12 +37,15 @@ export default function SaveControls() {
     }
   }, [gl, scene, camera]);
 
-  useKeyPress((code) => {
+  useKeyPress((code, _shift, event) => {
     if (code !== "KeyP") return;
     const ui = useEditorUiStore.getState();
     if (ui.saveStatus === "saving" || ui.pendingSave) return;
     // The pause screen is inert; P there should not capture a world.
     if (!ui.playing) return;
+    // The dialog this opens focuses its name box at once, and the same
+    // keystroke would otherwise type a "p" into it.
+    event.preventDefault();
 
     // Typing a name needs the cursor back.
     if (document.pointerLockElement) document.exitPointerLock();

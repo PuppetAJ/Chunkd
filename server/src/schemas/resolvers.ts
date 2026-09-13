@@ -55,6 +55,28 @@ const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 // not about disk. It stops one script filling the database between resets.
 const MAX_BUILDS_PER_USER = 50;
 
+interface BuildPayload {
+  name?: string | null;
+  data: string;
+  thumbnail?: string | null;
+  format?: number | null;
+}
+
+function checkBuildPayload(args: BuildPayload): void {
+  if (Buffer.byteLength(args.data, "utf8") > MAX_BUILD_BYTES) {
+    throw badRequest("That build is too large to save.");
+  }
+  if (args.thumbnail && Buffer.byteLength(args.thumbnail, "utf8") > MAX_THUMBNAIL_BYTES) {
+    throw badRequest("That build's preview image is too large.");
+  }
+  // The client renders this straight into an <img>. Anything but an inline
+  // image is refused here rather than left for the content security policy
+  // to catch, since that policy is only on in production.
+  if (args.thumbnail && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(args.thumbnail)) {
+    throw badRequest("That build's preview is not an image.");
+  }
+}
+
 // How many of a user's follows, followers, posts or builds one query returns.
 // The counts stay exact; only the lists are capped. Along with the depth limit
 // this is what bounds how much work one query can ask for.
@@ -179,7 +201,7 @@ export const resolvers = {
 
     builds: async (parent: UserDocument) =>
       Build.find({ owner: parent._id })
-        .select("_id name thumbnail createdAt")
+        .select("_id name thumbnail createdAt updatedAt")
         .sort({ createdAt: -1 })
         .limit(MAX_LIST),
 
@@ -200,7 +222,7 @@ export const resolvers = {
 
     build: async (parent: ThoughtDocument) =>
       parent.build
-        ? Build.findById(parent.build).select("_id name thumbnail createdAt")
+        ? Build.findById(parent.build).select("_id name thumbnail createdAt updatedAt")
         : null,
 
     reactionCount: (parent: ThoughtDocument) => parent.reactions.length,
@@ -222,10 +244,12 @@ export const resolvers = {
   Build: {
     owner: async (parent: BuildDocument) => User.findById(parent.owner),
     createdAt: (parent: BuildDocument) => parent.createdAt.toISOString(),
+    updatedAt: (parent: BuildDocument) => parent.updatedAt.toISOString(),
   },
 
   BuildSummary: {
     createdAt: (parent: BuildDocument) => parent.createdAt.toISOString(),
+    updatedAt: (parent: BuildDocument) => parent.updatedAt.toISOString(),
   },
 
   // ---- Mutations -------------------------------------------------------
@@ -495,23 +519,11 @@ export const resolvers = {
 
     saveBuild: async (
       _parent: unknown,
-      args: { name?: string | null; data: string; thumbnail?: string | null; format?: number | null },
+      args: BuildPayload,
       context: GraphQLContext,
     ) => {
       const auth = requireAuth(context);
-
-      if (Buffer.byteLength(args.data, "utf8") > MAX_BUILD_BYTES) {
-        throw badRequest("That build is too large to save.");
-      }
-      if (args.thumbnail && Buffer.byteLength(args.thumbnail, "utf8") > MAX_THUMBNAIL_BYTES) {
-        throw badRequest("That build's preview image is too large.");
-      }
-      // The client renders this straight into an <img>. Anything but an inline
-      // image is refused here rather than left for the content security policy
-      // to catch, since that policy is only on in production.
-      if (args.thumbnail && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(args.thumbnail)) {
-        throw badRequest("That build's preview is not an image.");
-      }
+      checkBuildPayload(args);
 
       const owned = await Build.countDocuments({ owner: auth._id });
       if (owned >= MAX_BUILDS_PER_USER) {
@@ -529,6 +541,28 @@ export const resolvers = {
         data: args.data,
         thumbnail: args.thumbnail ?? undefined,
       });
+    },
+
+    // Overwriting is not subject to the cap: it makes no new build.
+    updateBuild: async (
+      _parent: unknown,
+      args: BuildPayload & { buildId: string },
+      context: GraphQLContext,
+    ) => {
+      const auth = requireAuth(context);
+      checkBuildPayload(args);
+
+      const build = await Build.findById(toObjectId(args.buildId, "Build id"));
+      if (!build) throw notFound("That build no longer exists.");
+      if (build.owner.toString() !== auth._id) {
+        throw forbidden("You can only overwrite your own builds.");
+      }
+
+      if (args.name?.trim()) build.name = args.name.trim();
+      build.format = args.format ?? CURRENT_BUILD_FORMAT;
+      build.data = args.data;
+      build.thumbnail = args.thumbnail ?? undefined;
+      return build.save();
     },
 
     deleteBuild: async (

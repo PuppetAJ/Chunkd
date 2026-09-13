@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useMutation } from "@apollo/client/react";
-import { Blocks, Boxes, Trash2 } from "lucide-react";
+import { Blocks, Boxes, Pencil, Trash2 } from "lucide-react";
 
 import { DELETE_BUILD } from "../../utils/mutations.ts";
 import { QUERY_ME } from "../../utils/queries.ts";
@@ -74,9 +75,9 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
             <div className="p-4">
               <div className="min-w-0">
                 <p className="truncate font-medium">{build.name}</p>
-                {build.createdAt && (
+                {(build.updatedAt ?? build.createdAt) && (
                   <p className="text-xs text-muted-foreground">
-                    Saved {formatTimestamp(build.createdAt)}
+                    Saved {formatTimestamp(build.updatedAt ?? build.createdAt ?? "")}
                   </p>
                 )}
               </div>
@@ -85,6 +86,14 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
                 <Button size="sm" variant="outline" onClick={() => setOpenBuild(build)}>
                   Open
                 </Button>
+                {canManage && (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to={`/editor?build=${build._id}`} aria-label={`Edit ${build.name}`}>
+                      <Pencil />
+                      Edit
+                    </Link>
+                  </Button>
+                )}
                 {canManage && (
                   <Button
                     size="icon-sm"

@@ -172,6 +172,18 @@ export const SAVE_BUILD = gql`
   }
 `;
 
+export const UPDATE_BUILD = gql`
+  mutation updateBuild($buildId: ID!, $name: String, $data: String!, $thumbnail: String, $format: Int) {
+    updateBuild(buildId: $buildId, name: $name, data: $data, thumbnail: $thumbnail, format: $format) {
+      _id
+      name
+      thumbnail
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 export const DELETE_BUILD = gql`
   mutation deleteBuild($buildId: ID!) {
     deleteBuild(buildId: $buildId)

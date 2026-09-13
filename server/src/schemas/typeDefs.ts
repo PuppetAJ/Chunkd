@@ -26,6 +26,7 @@ export const typeDefs = /* GraphQL */ `
     name: String!
     thumbnail: String
     createdAt: String!
+    updatedAt: String!
   }
 
   "A build including the encoded world. Fetch one at a time."
@@ -37,6 +38,7 @@ export const typeDefs = /* GraphQL */ `
     thumbnail: String
     owner: User!
     createdAt: String!
+    updatedAt: String!
   }
 
   type Thought {
@@ -104,6 +106,8 @@ export const typeDefs = /* GraphQL */ `
     unfollow(userId: ID!): User!
 
     saveBuild(name: String, data: String!, thumbnail: String, format: Int): Build!
+    "Write a new world and picture into a build the caller owns."
+    updateBuild(buildId: ID!, name: String, data: String!, thumbnail: String, format: Int): Build!
     deleteBuild(buildId: ID!): ID!
   }
 `;

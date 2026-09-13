@@ -72,6 +72,7 @@ export const QUERY_USER = gql`
         name
         thumbnail
         createdAt
+        updatedAt
       }
       thoughts {
         _id
@@ -96,6 +97,7 @@ export const QUERY_ME = gql`
         name
         thumbnail
         createdAt
+        updatedAt
       }
       thoughts {
         _id

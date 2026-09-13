@@ -1,4 +1,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
+import { useQuery } from "@apollo/client/react";
+import { toast } from "sonner";
 import * as THREE from "three";
 import { useThree, Canvas } from "@react-three/fiber";
 import { Grid, PointerLockControls, Preload, Sky } from "@react-three/drei";
@@ -19,6 +22,7 @@ import { LIGHTING, LIGHT_SCALE, useEditorSettings } from "../lib/sceneSettings.t
 import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
 import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
+import { QUERY_BUILD } from "../utils/queries.ts";
 import type { Body } from "../lib/voxel/collision.ts";
 
 /**
@@ -63,6 +67,33 @@ export default function Editor() {
   const spawnPoint = useWorldStore((state) => state.spawnPoint);
 
   const [everPlayed, setEverPlayed] = useState(false);
+
+  // A build named in the URL is fetched and loaded in place of the fresh world.
+  // Play is held back until it lands, or the first click would be into a world
+  // about to be replaced.
+  const [params] = useSearchParams();
+  const buildId = params.get("build");
+  const source = useWorldStore((state) => state.source);
+  const loadBuild = useWorldStore((state) => state.loadBuild);
+  const wanted = buildId !== null && source?.id !== buildId;
+  const { data: fetchedData, error: fetchError } = useQuery(QUERY_BUILD, {
+    variables: { id: buildId ?? "" },
+    skip: !wanted,
+  });
+  const fetched = (fetchedData as { build?: { _id: string; name: string; data: string } | null } | undefined)
+    ?.build;
+  useEffect(() => {
+    if (!wanted) return;
+    if (fetchError) {
+      toast.error("That build could not be loaded.");
+      return;
+    }
+    if (!fetched) return;
+    if (!loadBuild(fetched.data, { id: fetched._id, name: fetched.name })) {
+      toast.error("That build was saved in a format this version cannot read.");
+    }
+  }, [wanted, fetched, fetchError, loadBuild]);
+  const loadingBuild = wanted && !fetchError ? (fetched?.name ?? "your build") : null;
 
   // A build's thumbnail is a capture of this render, so how the editor is lit
   // decides how the build looks everywhere else on the site.
@@ -274,7 +305,7 @@ export default function Editor() {
       {/* The pause screen would otherwise stack on top of the two things that
           legitimately take the mouse away from the world. */}
       {!playing && !inventoryOpen && !pendingSave && (
-        <EditorPause firstVisit={!everPlayed} onPlay={startPlaying} />
+        <EditorPause firstVisit={!everPlayed} loading={loadingBuild} onPlay={startPlaying} />
       )}
     </>
   );
