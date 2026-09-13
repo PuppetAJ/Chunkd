@@ -71,11 +71,17 @@ export default function Editor() {
   // A build named in the URL is fetched and loaded in place of the fresh world.
   // Play is held back until it lands, or the first click would be into a world
   // about to be replaced.
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const buildId = params.get("build");
   const source = useWorldStore((state) => state.source);
   const loadBuild = useWorldStore((state) => state.loadBuild);
-  const wanted = buildId !== null && source?.id !== buildId;
+  // Which build this world came from, which is not the same question as which
+  // build it was last saved as. Saving under a second name moves the store's
+  // `source` to the new build, and comparing the address against that would
+  // read as "the address names a build we do not have" and fetch it back over
+  // the world in progress.
+  const [held, setHeld] = useState<string | null>(null);
+  const wanted = buildId !== null && buildId !== held;
   const { data: fetchedData, error: fetchError } = useQuery(QUERY_BUILD, {
     variables: { id: buildId ?? "" },
     skip: !wanted,
@@ -85,15 +91,37 @@ export default function Editor() {
   useEffect(() => {
     if (!wanted) return;
     if (fetchError) {
+      // Held anyway, so a build that cannot be read is not asked for again.
+      setHeld(buildId);
       toast.error("That build could not be loaded.");
       return;
     }
     if (!fetched) return;
+    setHeld(buildId);
     if (!loadBuild(fetched.data, { id: fetched._id, name: fetched.name })) {
       toast.error("That build was saved in a format this version cannot read.");
     }
-  }, [wanted, fetched, fetchError, loadBuild]);
+  }, [wanted, buildId, fetched, fetchError, loadBuild]);
   const loadingBuild = wanted && !fetchError ? (fetched?.name ?? "your build") : null;
+
+  // The address names whichever build the editor is holding, so that saving
+  // under a new name, or starting a new world, leaves a link that reopens what
+  // is actually on screen.
+  useEffect(() => {
+    if (wanted) return;
+    const id = source?.id ?? null;
+    if (id === buildId) return;
+    setHeld(id);
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (id) next.set("build", id);
+        else next.delete("build");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [wanted, source, buildId, setParams]);
 
   // A build's thumbnail is a capture of this render, so how the editor is lit
   // decides how the build looks everywhere else on the site.
