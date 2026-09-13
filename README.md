@@ -121,7 +121,9 @@ too many fields is refused before it runs.
 Sign up to create an account. Once you are logged in you can read the feed,
 open a build in 3D, comment on a post, and follow other users. The editor is
 where you make a build of your own. Press P to name and save the world you are
-standing in, then attach it to a post to share it.
+standing in, then attach it to a post to share it. Edit on any of your builds
+reopens it in the editor, and saving under a name you already use asks whether
+to overwrite that build or keep both.
 
 ### Controls
 

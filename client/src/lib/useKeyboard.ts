@@ -36,14 +36,16 @@ export function useHeldKeys(): RefObject<Set<string>> {
  * code sampled them inside the render loop, so holding the key fired them on
  * every frame and a quick tap could be missed entirely.
  */
-export function useKeyPress(handler: (code: string, shift: boolean) => void): void {
+export function useKeyPress(
+  handler: (code: string, shift: boolean, event: KeyboardEvent) => void,
+): void {
   const latest = useRef(handler);
   latest.current = handler;
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => {
       if (event.repeat) return;
-      latest.current(event.code, event.shiftKey);
+      latest.current(event.code, event.shiftKey, event);
     };
     window.addEventListener("keydown", down);
     return () => window.removeEventListener("keydown", down);
