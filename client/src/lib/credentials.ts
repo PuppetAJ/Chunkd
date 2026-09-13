@@ -1,3 +1,5 @@
+import { CombinedGraphQLErrors, ServerError, ServerParseError } from "@apollo/client/errors";
+
 /**
  * The sign-up rules, checked in the browser before a request goes out.
  *
@@ -46,14 +48,19 @@ export function passwordError(password: string): string | null {
 /**
  * The sentence to show for a failed request.
  *
- * Apollo puts the server's message on `error.message`. A request that never
- * reached the server has its own browser-supplied wording, which is not worth
- * showing anyone, so that case gets a sentence of its own.
+ * A request the server answered carries its message; one that never arrived
+ * carries the browser's own wording, which is not worth showing anyone, so it
+ * gets a sentence of its own.
  */
 export function requestErrorMessage(error: unknown): string {
+  if (CombinedGraphQLErrors.is(error)) {
+    return error.errors[0]?.message ?? "Something went wrong. Please try again.";
+  }
+  if (ServerError.is(error) || ServerParseError.is(error)) {
+    return "Could not reach the server. Check your connection and try again.";
+  }
   if (error && typeof error === "object") {
-    const { networkError, message } = error as { networkError?: unknown; message?: string };
-    if (networkError) return "Could not reach the server. Check your connection and try again.";
+    const { message } = error as { message?: string };
     if (typeof message === "string" && message) return message;
   }
   return "Something went wrong. Please try again.";
