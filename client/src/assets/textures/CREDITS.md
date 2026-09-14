@@ -6,12 +6,13 @@ Every texture in this folder is Pixel Perfection, a 16x pack originally made by
 XSSheep and continued by the community since.
 
 - Community Edition: https://github.com/Athemis/PixelPerfectionCE, commit
-  `28e38ca`, which is where 59 of the 74 files come from.
+  `28e38ca`, which is where 81 of the 100 files come from.
 - Legacy: https://modrinth.com/resourcepack/pixel-perfection-legacy, version
-  `26.2-88.0-1`, which is where the other 15 come from. The Community Edition
-  stopped in 2021 at Minecraft 1.18, and those 15 are blocks the game added
+  `26.2-88.0-1`, which is where the other 19 come from. The Community Edition
+  stopped in 2021 at Minecraft 1.18, and those 19 are blocks the game added
   later: the cherry set, mud, packed mud, mud bricks, deepslate, deepslate
-  tiles, tuff, calcite, dripstone and amethyst.
+  tiles, deepslate bricks, polished deepslate, tuff, calcite, dripstone,
+  amethyst, oxidized cut copper and moss.
 - The original release:
   https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/resource-packs/1242533-pixel-perfection-now-with-polar-bears-1-11
 
@@ -42,7 +43,7 @@ The licence asks for two things, both of which this project does.
 
 Every file here is adapted rather than copied, in two steps.
 
-### The dark end, and the colour, on all 74
+### The dark end, and the colour, on all 100
 
 Each texture has its darkest pixels raised and its colour pushed a little
 further from grey. Neither step moves a texture's average brightness, so the
