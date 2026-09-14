@@ -70,6 +70,14 @@ export const BLOCK_IDS = {
 
   // Glass.
   glassPane: 50,
+
+  // Added for the imported showcase builds.
+  strippedSpruceLog: 51,
+  strippedDarkOakLog: 52,
+  darkOakPlanks: 53,
+  lightGrayConcrete: 54,
+  grayConcrete: 55,
+  redConcrete: 56,
 } as const;
 
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
@@ -108,6 +116,7 @@ export const SLAB_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.sprucePlanks,
   BLOCK_IDS.birchPlanks,
   BLOCK_IDS.cherryPlanks,
+  BLOCK_IDS.darkOakPlanks,
 ]);
 
 /** Everything with a slab except cut sandstone, which has no stairs. */
@@ -119,7 +128,7 @@ export const STAIR_BLOCK_IDS: ReadonlySet<number> = new Set(
  * The blocks Minecraft gives a fence, a wall and a trapdoor, checked against
  * the game's own lists rather than inferred from ours.
  *
- * Fences and trapdoors exist for every wood, which of ours is the four planks.
+ * Fences and trapdoors exist for every wood, which of ours is the five planks.
  * Walls are the uneven set: there is no wall of plain stone, of cut or chiseled
  * sandstone, or of polished granite, diorite or andesite, and the deepslate
  * wall is of cobbled deepslate, which we do not carry.
@@ -129,6 +138,7 @@ export const FENCE_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.sprucePlanks,
   BLOCK_IDS.birchPlanks,
   BLOCK_IDS.cherryPlanks,
+  BLOCK_IDS.darkOakPlanks,
 ]);
 
 export const TRAPDOOR_BLOCK_IDS: ReadonlySet<number> = new Set([
@@ -136,6 +146,7 @@ export const TRAPDOOR_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.sprucePlanks,
   BLOCK_IDS.birchPlanks,
   BLOCK_IDS.cherryPlanks,
+  BLOCK_IDS.darkOakPlanks,
 ]);
 
 export const WALL_BLOCK_IDS: ReadonlySet<number> = new Set([
