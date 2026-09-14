@@ -171,10 +171,15 @@ export function variantFor(
  *
  * `blocks` is the whole world because a stair's shape depends on its
  * neighbours. This runs on every edit, so corners correct themselves.
+ *
+ * Given the previous grouping, a layer the edit did not touch comes back as the
+ * very same object. An edit changes a handful of cells, and every other layer
+ * would otherwise be handed to React and the GPU afresh each time.
  */
 export function groupVisible(
   visible: VisibleBlocks,
   blocks: Map<BlockKey, number> = visible,
+  previous: RenderLayer[] = [],
 ): RenderLayer[] {
   const positionsByType = new Map<number, number[]>();
   const axesByType = new Map<number, number[]>();
@@ -196,17 +201,36 @@ export function groupVisible(
     axes.push(blockAxisOf(value));
   }
 
+  const before = new Map<number, RenderLayer>();
+  for (const layer of previous) before.set(typeOf(layer), layer);
+
   // Sorted so layer order is stable between edits, which keeps React from
   // tearing down and rebuilding instanced meshes on every block placed.
   return [...positionsByType.keys()]
     .sort((a, b) => a - b)
-    .map((type) => ({
-      blockId: Math.floor(type / (SHAPE_SLOTS * VARIANT_SLOTS)),
-      shape: Math.floor(type / VARIANT_SLOTS) % SHAPE_SLOTS,
-      variant: type % VARIANT_SLOTS,
-      positions: new Float32Array(positionsByType.get(type)!),
-      axes: Uint8Array.from(axesByType.get(type)!),
-    }));
+    .map((type) => {
+      const positions = positionsByType.get(type)!;
+      const axes = axesByType.get(type)!;
+      const kept = before.get(type);
+      if (kept && sameNumbers(kept.positions, positions) && sameNumbers(kept.axes, axes)) return kept;
+      return {
+        blockId: Math.floor(type / (SHAPE_SLOTS * VARIANT_SLOTS)),
+        shape: Math.floor(type / VARIANT_SLOTS) % SHAPE_SLOTS,
+        variant: type % VARIANT_SLOTS,
+        positions: new Float32Array(positions),
+        axes: Uint8Array.from(axes),
+      };
+    });
+}
+
+function typeOf(layer: RenderLayer): number {
+  return (layer.blockId * SHAPE_SLOTS + layer.shape) * VARIANT_SLOTS + layer.variant;
+}
+
+function sameNumbers(kept: Float32Array | Uint8Array, fresh: number[]): boolean {
+  if (kept.length !== fresh.length) return false;
+  for (let i = 0; i < fresh.length; i += 1) if (kept[i] !== fresh[i]) return false;
+  return true;
 }
 
 /** The whole job in one step. Convenient for tests and for the build viewer. */

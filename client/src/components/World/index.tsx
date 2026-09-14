@@ -5,7 +5,7 @@ import * as THREE from "three";
 import BlockLayer from "./BlockLayer.tsx";
 import { getBlock } from "../../lib/voxel/blocks.ts";
 import { toKey, type BlockKey } from "../../lib/voxel/coords.ts";
-import { buildRenderLayers, groupVisible } from "../../lib/voxel/render.ts";
+import { buildRenderLayers, groupVisible, type RenderLayer } from "../../lib/voxel/render.ts";
 import {
   axisForFaceNormal,
   blockIdOf,
@@ -117,28 +117,21 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
     gl.shadowMap.needsUpdate = true;
   }, [gl, blocks, storeVisible]);
 
+  // The last grouping, so an edit can hand back the layers it did not touch.
+  const lastGrouping = useRef<RenderLayer[]>([]);
   const layers = useMemo(() => {
     // The editor keeps its visible set up to date as blocks are placed, so only
     // the grouping is redone. A build viewer's world is worked out in full.
     const raw = providedBlocks
       ? buildRenderLayers(providedBlocks)
-      : groupVisible(storeVisible, blocks);
+      : groupVisible(storeVisible, blocks, lastGrouping.current);
+    lastGrouping.current = raw;
     // For the tests: a stair's shape comes from its neighbours, so this is the
     // only place that knows what was drawn.
     if (import.meta.env.DEV && editable) window.__layers = raw;
     return raw.flatMap((layer) => {
       const block = getBlock(layer.blockId);
-      return block
-        ? [
-            {
-              block,
-              shape: layer.shape,
-              variant: layer.variant,
-              positions: layer.positions,
-              axes: layer.axes,
-            },
-          ]
-        : [];
+      return block ? [{ block, layer }] : [];
     });
   }, [providedBlocks, storeVisible, blocks, editable]);
 
@@ -437,15 +430,12 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   return (
     <>
       <group ref={groupRef}>
-        {layers.map(({ block, shape, variant, positions, axes }) => (
+        {layers.map(({ block, layer }) => (
           <BlockLayer
             // One mesh per block, shape and variant, so the key carries all three.
-            key={`${block.id}-${shape}-${variant}`}
+            key={`${block.id}-${layer.shape}-${layer.variant}`}
             block={block}
-            shape={shape}
-            variant={variant}
-            positions={positions}
-            axes={axes}
+            layer={layer}
             textures={textures}
           />
         ))}
