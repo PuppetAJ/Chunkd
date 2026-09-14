@@ -1,7 +1,7 @@
 import { ApolloClient, ApolloLink, HttpLink, InMemoryCache } from "@apollo/client";
 import { SetContextLink } from "@apollo/client/link/context";
 import { ErrorLink } from "@apollo/client/link/error";
-import { forceLogOut, getAuthToken } from "./auth.ts";
+import { forceLogOut, getAuthToken, isUnauthenticated } from "./auth.ts";
 
 // Vite proxies /graphql to the API in development, so this stays a relative
 // path in both environments and no CORS preflight is needed.
@@ -21,16 +21,7 @@ const authLink = new SetContextLink((prevContext) => {
 // leave the page stuck on a loading state. Clear it instead, so the UI falls
 // back to the logged-out view.
 const errorLink = new ErrorLink(({ error }) => {
-  const unauthenticated =
-    error &&
-    typeof error === "object" &&
-    "graphQLErrors" in error &&
-    Array.isArray(error.graphQLErrors) &&
-    error.graphQLErrors.some(
-      (graphQLError) => graphQLError?.extensions?.["code"] === "UNAUTHENTICATED",
-    );
-
-  if (unauthenticated) forceLogOut();
+  if (isUnauthenticated(error)) forceLogOut();
 });
 
 export const apolloClient = new ApolloClient({

@@ -161,6 +161,18 @@ export const DELETE_REACTION = gql`
 `;
 
 /** Replaces ADD_BUILD, which appended a JSON blob to an array on the user. */
+export const RENEW_TOKEN = gql`
+  mutation renewToken {
+    renewToken {
+      token
+      user {
+        _id
+        username
+      }
+    }
+  }
+`;
+
 export const SAVE_BUILD = gql`
   mutation saveBuild($name: String, $data: String!, $thumbnail: String, $format: Int) {
     saveBuild(name: $name, data: $data, thumbnail: $thumbnail, format: $format) {

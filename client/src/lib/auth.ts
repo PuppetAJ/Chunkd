@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { CombinedGraphQLErrors } from "@apollo/client/errors";
 import { jwtDecode } from "jwt-decode";
 
 const TOKEN_KEY = "id_token";
@@ -25,6 +26,11 @@ interface AuthState {
    * the visitor should end up.
    */
   signedOutFrom: string | null;
+  /**
+   * The address of the last session, kept when one expires so that signing
+   * back in only asks for a password. Cleared by a deliberate sign-out.
+   */
+  lastEmail: string | null;
   logIn: (token: string) => void;
   /** Sign out on purpose. Pass the page it was done from. */
   logOut: (from?: string) => void;
@@ -69,6 +75,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: initialUser,
   isLoggedIn: initialUser !== null,
   signedOutFrom: null,
+  lastEmail: initialUser?.email ?? null,
 
   logIn: (token: string) => {
     const user = readToken(token);
@@ -78,12 +85,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // Not being able to persist is survivable; the session lasts this tab.
     }
-    set({ token, user, isLoggedIn: true, signedOutFrom: null });
+    set({ token, user, isLoggedIn: true, signedOutFrom: null, lastEmail: user.email });
   },
 
   logOut: (from?: string) => {
     forgetToken();
-    set({ token: null, user: null, isLoggedIn: false, signedOutFrom: from ?? null });
+    set({ token: null, user: null, isLoggedIn: false, signedOutFrom: from ?? null, lastEmail: null });
   },
 }));
 
@@ -101,5 +108,19 @@ export function getAuthToken(): string | null {
  */
 export function forceLogOut(): void {
   forgetToken();
+  // `lastEmail` is deliberately left alone: whoever was here is still here.
   useAuthStore.setState({ token: null, user: null, isLoggedIn: false });
+}
+
+/**
+ * Whether a failed request failed because the session is over.
+ *
+ * Apollo 4 hands every GraphQL failure over as one CombinedGraphQLErrors
+ * holding the server's errors. The check here used to read `graphQLErrors`,
+ * which is where version 3 kept them, so it never matched and an expired token
+ * was never noticed: the save simply failed and left no way forward.
+ */
+export function isUnauthenticated(error: unknown): boolean {
+  if (!CombinedGraphQLErrors.is(error)) return false;
+  return error.errors.some((one) => one.extensions?.["code"] === "UNAUTHENTICATED");
 }

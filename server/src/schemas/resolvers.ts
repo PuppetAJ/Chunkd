@@ -320,6 +320,15 @@ export const resolvers = {
       return { token: signToken(user), user };
     },
 
+    renewToken: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
+      const auth = requireAuth(context);
+      // Read the account back rather than re-signing what the old token said,
+      // so a deleted account cannot keep extending its own session.
+      const user = await User.findById(auth._id);
+      if (!user) throw notFound("That account no longer exists.");
+      return { token: signToken(user), user };
+    },
+
     addThought: async (
       _parent: unknown,
       args: { thoughtText: string; buildId?: string | null },

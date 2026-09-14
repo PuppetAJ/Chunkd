@@ -11,6 +11,7 @@ import NoMatch from "./pages/NoMatch.tsx";
 import EditorUnavailable from "./components/EditorUnavailable/index.tsx";
 import { useHasFinePointer } from "./lib/useHasFinePointer.ts";
 import { useAuthStore } from "./lib/auth.ts";
+import { useSessionRenewal } from "./lib/useSessionRenewal.ts";
 
 // Three.js, the physics engine and its WebAssembly module together are larger
 // than everything else in the app combined. Loading these routes on demand keeps
@@ -21,6 +22,10 @@ const SingleThought = lazy(() => import("./pages/SingleThought.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 
 export default function App() {
+  // A session that would otherwise run out mid-build is extended in the
+  // background. See useSessionRenewal.
+  useSessionRenewal();
+
   return (
     <Routes>
       {/* Everything except the editor is a page inside the site shell. */}
@@ -88,7 +93,7 @@ function EditorRoute() {
   if (!hasFinePointer) return <EditorUnavailable />;
 
   return (
-    <RequireAuth>
+    <RequireAuth keepMounted>
       <ErrorBoundary>
         <Suspense fallback={<EditorLoading />}>
           <Editor />

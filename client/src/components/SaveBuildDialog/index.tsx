@@ -6,6 +6,7 @@ import { QUERY_ME } from "../../utils/queries.ts";
 import { BUILD_FORMAT_VERSION } from "../../lib/voxel/format.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
 import { useEditorUiStore } from "../../lib/editorUiStore.ts";
+import { isUnauthenticated } from "../../lib/auth.ts";
 import { requestErrorMessage } from "../../lib/credentials.ts";
 import type { BuildSummary } from "../../lib/feedTypes.ts";
 import { Button } from "../ui/button.tsx";
@@ -71,7 +72,13 @@ export default function SaveBuildDialog() {
 
   const fail = (requestError: unknown) => {
     setSaveStatus("idle");
-    setError(requestErrorMessage(requestError));
+    // The captured world is held until the save succeeds or the dialog is
+    // cancelled, so an ended session only costs a password and a second press.
+    setError(
+      isUnauthenticated(requestError)
+        ? "Your session ended while you were building. Sign in, then save again: this world is still here."
+        : requestErrorMessage(requestError),
+    );
   };
 
   const trimmedName = () => name.trim() || "Untitled build";
