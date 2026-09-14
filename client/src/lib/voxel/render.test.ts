@@ -20,8 +20,8 @@ import {
   SHAPE_WALL,
   trapdoorVariant,
 } from "./blockValue.ts";
-import { toKey, type BlockKey } from "./coords.ts";
-import { buildRenderLayers, computeVisible, refreshVisibleAround } from "./render.ts";
+import { fromKey, toKey, type BlockKey } from "./coords.ts";
+import { buildRenderLayers, computeVisible, groupVisible, refreshVisibleAround } from "./render.ts";
 import { straightQuadrants } from "./stairShape.ts";
 import { generateTerrain } from "./terrain.ts";
 
@@ -346,4 +346,31 @@ test("a glass pane never hides the block beside it, and is drawn by what it join
   );
   assert.ok(middle, "the middle pane should join east and west");
   assert.deepEqual([...middle.positions], [1, 0, 0]);
+});
+
+test("an edit hands back the layers it did not touch", () => {
+  const blocks = generateTerrain(4242, 24);
+  const visible = computeVisible(blocks);
+  const first = groupVisible(visible, blocks);
+
+  // Break one block on the surface.
+  let broken: [number, number, number] | null = null;
+  for (const key of visible.keys()) {
+    const [x, y, z] = fromKey(key);
+    if (y > 4 && !visible.has(toKey(x, y + 1, z))) { broken = [x, y, z]; break; }
+  }
+  assert.ok(broken);
+  blocks.delete(toKey(...broken));
+  refreshVisibleAround(blocks, visible, ...broken);
+
+  const second = groupVisible(visible, blocks, first);
+  const kept = second.filter((layer) => first.includes(layer));
+  const fresh = second.filter((layer) => !first.includes(layer));
+  assert.ok(fresh.length >= 1, "the layer the block came from is rebuilt");
+  assert.ok(fresh.length <= 3, `only the layers around the edit change, not ${fresh.length}`);
+  assert.equal(kept.length + fresh.length, second.length);
+
+  // Without the previous grouping every layer is new, which is what a viewer gets.
+  const plain = groupVisible(visible, blocks);
+  assert.equal(plain.filter((layer) => second.includes(layer)).length, 0);
 });
