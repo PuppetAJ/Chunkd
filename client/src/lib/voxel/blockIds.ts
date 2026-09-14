@@ -78,6 +78,29 @@ export const BLOCK_IDS = {
   lightGrayConcrete: 54,
   grayConcrete: 55,
   redConcrete: 56,
+  // "Wood" is a log with bark on all six faces, which is what a tree's
+  // branches are built from.
+  oakWood: 57,
+  strippedSpruceWood: 58,
+  strippedDarkOakWood: 59,
+  mossyStoneBricks: 60,
+  quartz: 61,
+  acaciaPlanks: 62,
+  spruceWood: 63,
+  orangeWool: 64,
+  limeWool: 65,
+  deepslateBricks: 66,
+  polishedDeepslate: 67,
+  barrel: 68,
+  strippedBirchLog: 69,
+  smoothSandstone: 70,
+  junglePlanks: 71,
+  oxidizedCutCopper: 72,
+  darkOakLog: 73,
+  strippedOakLog: 74,
+  strippedJungleLog: 75,
+  brownMushroomBlock: 76,
+  mossBlock: 77,
 } as const;
 
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
@@ -117,6 +140,14 @@ export const SLAB_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.birchPlanks,
   BLOCK_IDS.cherryPlanks,
   BLOCK_IDS.darkOakPlanks,
+  BLOCK_IDS.acaciaPlanks,
+  BLOCK_IDS.junglePlanks,
+  BLOCK_IDS.mossyStoneBricks,
+  BLOCK_IDS.quartz,
+  BLOCK_IDS.deepslateBricks,
+  BLOCK_IDS.polishedDeepslate,
+  BLOCK_IDS.smoothSandstone,
+  BLOCK_IDS.oxidizedCutCopper,
 ]);
 
 /** Everything with a slab except cut sandstone, which has no stairs. */
@@ -128,7 +159,7 @@ export const STAIR_BLOCK_IDS: ReadonlySet<number> = new Set(
  * The blocks Minecraft gives a fence, a wall and a trapdoor, checked against
  * the game's own lists rather than inferred from ours.
  *
- * Fences and trapdoors exist for every wood, which of ours is the five planks.
+ * Fences and trapdoors exist for every wood, which of ours is the seven planks.
  * Walls are the uneven set: there is no wall of plain stone, of cut or chiseled
  * sandstone, or of polished granite, diorite or andesite, and the deepslate
  * wall is of cobbled deepslate, which we do not carry.
@@ -139,6 +170,8 @@ export const FENCE_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.birchPlanks,
   BLOCK_IDS.cherryPlanks,
   BLOCK_IDS.darkOakPlanks,
+  BLOCK_IDS.acaciaPlanks,
+  BLOCK_IDS.junglePlanks,
 ]);
 
 export const TRAPDOOR_BLOCK_IDS: ReadonlySet<number> = new Set([
@@ -147,6 +180,8 @@ export const TRAPDOOR_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.birchPlanks,
   BLOCK_IDS.cherryPlanks,
   BLOCK_IDS.darkOakPlanks,
+  BLOCK_IDS.acaciaPlanks,
+  BLOCK_IDS.junglePlanks,
 ]);
 
 export const WALL_BLOCK_IDS: ReadonlySet<number> = new Set([
@@ -162,6 +197,9 @@ export const WALL_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.bricks,
   BLOCK_IDS.mudBricks,
   BLOCK_IDS.sandstone,
+  BLOCK_IDS.mossyStoneBricks,
+  BLOCK_IDS.deepslateBricks,
+  BLOCK_IDS.polishedDeepslate,
 ]);
 
 export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([

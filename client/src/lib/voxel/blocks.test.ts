@@ -24,7 +24,8 @@ test("the blocks that can be slabs are the ones Minecraft gives slabs to", () =>
     "tuff", "blackstone", "stoneBricks", "bricks", "mudBricks", "sandstone",
     "cutSandstone", "polishedGranite", "polishedDiorite", "polishedAndesite",
     "deepslateTiles", "oakPlanks", "sprucePlanks", "birchPlanks", "cherryPlanks",
-    "darkOakPlanks",
+    "darkOakPlanks", "acaciaPlanks", "junglePlanks", "mossyStoneBricks", "quartz",
+    "deepslateBricks", "polishedDeepslate", "smoothSandstone", "oxidizedCutCopper",
   ];
   assert.deepEqual([...SLAB_BLOCK_IDS].map(nameOf).sort(), expected.sort());
 });
@@ -70,9 +71,11 @@ test("every eligible id is a real block", () => {
 
 test("the blocks that can be fences are the ones Minecraft gives fences to", () => {
   assert.deepEqual([...FENCE_BLOCK_IDS].map(nameOf).sort(), [
+    "acaciaPlanks",
     "birchPlanks",
     "cherryPlanks",
     "darkOakPlanks",
+    "junglePlanks",
     "oakPlanks",
     "sprucePlanks",
   ]);
@@ -80,9 +83,11 @@ test("the blocks that can be fences are the ones Minecraft gives fences to", () 
 
 test("the blocks that can be trapdoors are the ones Minecraft gives trapdoors to", () => {
   assert.deepEqual([...TRAPDOOR_BLOCK_IDS].map(nameOf).sort(), [
+    "acaciaPlanks",
     "birchPlanks",
     "cherryPlanks",
     "darkOakPlanks",
+    "junglePlanks",
     "oakPlanks",
     "sprucePlanks",
   ]);
@@ -95,6 +100,7 @@ test("the blocks that can be walls are the ones Minecraft gives walls to", () =>
   const expected = [
     "cobblestone", "mossyCobblestone", "stoneBricks", "granite", "diorite", "andesite",
     "tuff", "blackstone", "deepslateTiles", "bricks", "mudBricks", "sandstone",
+    "mossyStoneBricks", "deepslateBricks", "polishedDeepslate",
   ];
   assert.deepEqual([...WALL_BLOCK_IDS].map(nameOf).sort(), expected.sort());
 });
