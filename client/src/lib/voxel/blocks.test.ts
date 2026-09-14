@@ -24,6 +24,7 @@ test("the blocks that can be slabs are the ones Minecraft gives slabs to", () =>
     "tuff", "blackstone", "stoneBricks", "bricks", "mudBricks", "sandstone",
     "cutSandstone", "polishedGranite", "polishedDiorite", "polishedAndesite",
     "deepslateTiles", "oakPlanks", "sprucePlanks", "birchPlanks", "cherryPlanks",
+    "darkOakPlanks",
   ];
   assert.deepEqual([...SLAB_BLOCK_IDS].map(nameOf).sort(), expected.sort());
 });
@@ -71,6 +72,7 @@ test("the blocks that can be fences are the ones Minecraft gives fences to", () 
   assert.deepEqual([...FENCE_BLOCK_IDS].map(nameOf).sort(), [
     "birchPlanks",
     "cherryPlanks",
+    "darkOakPlanks",
     "oakPlanks",
     "sprucePlanks",
   ]);
@@ -80,6 +82,7 @@ test("the blocks that can be trapdoors are the ones Minecraft gives trapdoors to
   assert.deepEqual([...TRAPDOOR_BLOCK_IDS].map(nameOf).sort(), [
     "birchPlanks",
     "cherryPlanks",
+    "darkOakPlanks",
     "oakPlanks",
     "sprucePlanks",
   ]);
@@ -99,7 +102,8 @@ test("the blocks that can be walls are the ones Minecraft gives walls to", () =>
 test("every block with a trapdoor has its trapdoor texture", () => {
   // blocks.ts cannot be loaded here, so this checks the files themselves.
   for (const id of TRAPDOOR_BLOCK_IDS) {
-    const wood = nameOf(id).replace("Planks", "");
+    // darkOakPlanks -> dark_oak, the way the files are named.
+    const wood = nameOf(id).replace("Planks", "").replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
     const file = new URL(`../../assets/textures/${wood}_trapdoor.png`, import.meta.url);
     assert.ok(existsSync(file), `missing ${wood}_trapdoor.png`);
   }

@@ -28,6 +28,8 @@ import cherryTrapdoorUrl from "../../assets/textures/cherry_trapdoor.png";
 import chiseledSandstoneUrl from "../../assets/textures/chiseled_sandstone.png";
 import cobblestoneUrl from "../../assets/textures/cobblestone.png";
 import cutSandstoneUrl from "../../assets/textures/cut_sandstone.png";
+import darkOakPlanksUrl from "../../assets/textures/dark_oak_planks.png";
+import darkOakTrapdoorUrl from "../../assets/textures/dark_oak_trapdoor.png";
 import deepslateTilesUrl from "../../assets/textures/deepslate_tiles.png";
 import deepslateTopUrl from "../../assets/textures/deepslate_top.png";
 import deepslateUrl from "../../assets/textures/deepslate.png";
@@ -39,12 +41,14 @@ import farmlandUrl from "../../assets/textures/farmland.png";
 import glassUrl from "../../assets/textures/glass.png";
 import glassPaneTopUrl from "../../assets/textures/glass_pane_top.png";
 import graniteUrl from "../../assets/textures/granite.png";
+import grayConcreteUrl from "../../assets/textures/gray_concrete.png";
 import grassBlockSideUrl from "../../assets/textures/grass_block_side.png";
 import grassBlockSnowUrl from "../../assets/textures/grass_block_snow.png";
 import grassBlockTopUrl from "../../assets/textures/grass_block_top.png";
 import gravelUrl from "../../assets/textures/gravel.png";
 import hayBlockSideUrl from "../../assets/textures/hay_block_side.png";
 import hayBlockTopUrl from "../../assets/textures/hay_block_top.png";
+import lightGrayConcreteUrl from "../../assets/textures/light_gray_concrete.png";
 import mossyCobblestoneUrl from "../../assets/textures/mossy_cobblestone.png";
 import mudBricksUrl from "../../assets/textures/mud_bricks.png";
 import mudUrl from "../../assets/textures/mud.png";
@@ -58,6 +62,7 @@ import packedMudUrl from "../../assets/textures/packed_mud.png";
 import polishedAndesiteUrl from "../../assets/textures/polished_andesite.png";
 import polishedDioriteUrl from "../../assets/textures/polished_diorite.png";
 import polishedGraniteUrl from "../../assets/textures/polished_granite.png";
+import redConcreteUrl from "../../assets/textures/red_concrete.png";
 import sandUrl from "../../assets/textures/sand.png";
 import sandstoneBottomUrl from "../../assets/textures/sandstone_bottom.png";
 import sandstoneTopUrl from "../../assets/textures/sandstone_top.png";
@@ -68,6 +73,10 @@ import spruceLogTopUrl from "../../assets/textures/spruce_log_top.png";
 import spruceLogUrl from "../../assets/textures/spruce_log.png";
 import sprucePlanksUrl from "../../assets/textures/spruce_planks.png";
 import spruceTrapdoorUrl from "../../assets/textures/spruce_trapdoor.png";
+import strippedDarkOakLogTopUrl from "../../assets/textures/stripped_dark_oak_log_top.png";
+import strippedDarkOakLogUrl from "../../assets/textures/stripped_dark_oak_log.png";
+import strippedSpruceLogTopUrl from "../../assets/textures/stripped_spruce_log_top.png";
+import strippedSpruceLogUrl from "../../assets/textures/stripped_spruce_log.png";
 import stoneBricksUrl from "../../assets/textures/stone_bricks.png";
 import stoneUrl from "../../assets/textures/stone.png";
 import tuffUrl from "../../assets/textures/tuff.png";
@@ -218,11 +227,17 @@ export const BLOCKS: readonly BlockType[] = [
   define({ id: BLOCK_IDS.cherryLog, name: "cherry_log", label: "Cherry Log", group: "Wood", top: cherryLogTopUrl, side: cherryLogUrl, directional: true }),
   define({ id: BLOCK_IDS.cherryPlanks, name: "cherry_planks", label: "Cherry Planks", group: "Wood", texture: cherryPlanksUrl, trapdoor: cherryTrapdoorUrl }),
   define({ id: BLOCK_IDS.cherryLeaves, name: "cherry_leaves", label: "Cherry Leaves", group: "Wood", texture: cherryLeavesUrl, draw: "cutout" }),
+  define({ id: BLOCK_IDS.strippedSpruceLog, name: "stripped_spruce_log", label: "Stripped Spruce Log", group: "Wood", top: strippedSpruceLogTopUrl, side: strippedSpruceLogUrl, directional: true }),
+  define({ id: BLOCK_IDS.strippedDarkOakLog, name: "stripped_dark_oak_log", label: "Stripped Dark Oak Log", group: "Wood", top: strippedDarkOakLogTopUrl, side: strippedDarkOakLogUrl, directional: true }),
+  define({ id: BLOCK_IDS.darkOakPlanks, name: "dark_oak_planks", label: "Dark Oak Planks", group: "Wood", texture: darkOakPlanksUrl, trapdoor: darkOakTrapdoorUrl }),
 
   // Other
   define({ id: BLOCK_IDS.glass, name: "glass", label: "Glass", group: "Other", texture: glassUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.glassPane, name: "glass_pane", label: "Glass Pane", group: "Other", top: glassPaneTopUrl, side: glassUrl, bottom: glassPaneTopUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.hayBale, name: "hay_bale", label: "Hay Bale", group: "Other", top: hayBlockTopUrl, side: hayBlockSideUrl, directional: true }),
+  define({ id: BLOCK_IDS.lightGrayConcrete, name: "light_gray_concrete", label: "Light Gray Concrete", group: "Other", texture: lightGrayConcreteUrl }),
+  define({ id: BLOCK_IDS.grayConcrete, name: "gray_concrete", label: "Gray Concrete", group: "Other", texture: grayConcreteUrl }),
+  define({ id: BLOCK_IDS.redConcrete, name: "red_concrete", label: "Red Concrete", group: "Other", texture: redConcreteUrl }),
 ];
 
 const BY_ID = new Map(BLOCKS.map((block) => [block.id, block]));
