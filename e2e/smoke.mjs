@@ -918,6 +918,39 @@ check(
   JSON.stringify(pickedFresh),
 );
 
+// ------------------------------------------------------------- wandering off
+// Flying far enough from the island used to leave someone in empty space with
+// no way back. Height is deliberately not part of the check.
+const spawn = await page.evaluate(() => window.__world.getState().spawnPoint());
+await page.evaluate(() => {
+  window.__player.x = -400;
+  window.__player.z = -400;
+});
+await frames(3);
+const returned = await page.evaluate(() => ({ x: window.__player.x, z: window.__player.z }));
+check(
+  "wandering off the world puts you back at the spawn point",
+  Math.abs(returned.x - spawn[0]) < 1 && Math.abs(returned.z - spawn[2]) < 1,
+  `${JSON.stringify(returned)} against ${JSON.stringify(spawn)}`,
+);
+
+await page.evaluate(() => {
+  window.__player.y = 180;
+});
+await frames(3);
+const high = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y, z: window.__player.z }));
+check(
+  "building high is never what puts you back",
+  high.y > 100 && Math.abs(high.x - returned.x) < 1 && Math.abs(high.z - returned.z) < 1,
+  JSON.stringify(high),
+);
+await page.evaluate((at) => {
+  window.__player.x = at[0];
+  window.__player.y = at[1];
+  window.__player.z = at[2];
+}, spawn);
+await rendererSettled();
+
 // P captures the world and opens the naming dialog.
 await page.keyboard.press("p");
 // The dialog previews a canvas capture, so it lags the key press.
@@ -952,6 +985,58 @@ const savedToast = page.locator("text=/build saved/i").first();
 await savedToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
 check("the save confirmation appears", (await page.locator("text=/build saved/i").count()) > 0);
 await savedToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
+
+// ------------------------------------------------------- work that was never saved
+// The world is kept in this browser as it is built, so a closed tab does not
+// take an afternoon with it. Saving clears it, so this starts by making some.
+const unsaved = await page.evaluate(() => {
+  const store = window.__world.getState();
+  const camera = window.__r3f.camera;
+  const cell = [
+    Math.round(camera.position.x),
+    Math.round(camera.position.y) + 5,
+    Math.round(camera.position.z),
+  ];
+  store.placeBlock(...cell);
+  return cell.join(",");
+});
+await rendererSettled();
+check(
+  "the world knows it has work in it",
+  await page.evaluate(() => window.__world.getState().edited === true),
+);
+
+// Reloading is the thing this has to survive.
+await page.reload({ waitUntil: "domcontentloaded" });
+await rendererSettled();
+const offer = page.getByRole("heading", { name: "Pick up where you left off?" });
+await appears(offer);
+check("an unsaved world is offered back after a reload", (await offer.count()) > 0);
+check(
+  "it is not there yet, until it is asked for",
+  await page.evaluate((key) => !window.__world.getState().blocks.has(key), unsaved),
+);
+
+await page.getByRole("button", { name: "Restore it" }).click();
+await goes(offer);
+check("restoring brings the unsaved work back", await page.evaluate((key) => window.__world.getState().blocks.has(key), unsaved));
+check(
+  "and it is still counted as unsaved",
+  await page.evaluate(() => window.__world.getState().edited === true),
+);
+
+// Asked again, and turned down this time.
+await page.reload({ waitUntil: "domcontentloaded" });
+await rendererSettled();
+await appears(offer);
+await page.getByRole("button", { name: "Start fresh" }).click();
+await goes(offer);
+check("turning it down leaves the world as it was loaded", await page.evaluate((key) => !window.__world.getState().blocks.has(key), unsaved));
+
+await page.reload({ waitUntil: "domcontentloaded" });
+await rendererSettled();
+await frames(3);
+check("and it is not offered again", (await offer.count()) === 0);
 
 // -------------------------------------------------------------------- profile
 // The editor is outside the site shell now, so there is no header to click.

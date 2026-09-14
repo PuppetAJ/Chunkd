@@ -125,6 +125,16 @@ standing in, then attach it to a post to share it. Edit on any of your builds
 reopens it in the editor, and saving under a name you already use asks whether
 to overwrite that build or keep both.
 
+The editor keeps a copy of whatever you are building in your own browser, so a
+closed tab, a crash or a sign-in that runs out does not take the work with it.
+Next time you open the editor it offers that world back. Saving a build clears
+it, because the copy only exists to stand between unsaved work and losing it.
+The copy never leaves your browser, and only the most recent one is kept.
+
+If you wander too far from the island the editor puts you back at the spawn
+point. Only distance across the map counts, never height, so there is no limit
+on how tall you build.
+
 ### Controls
 
 The editor needs a keyboard and a mouse or trackpad. Movement is WASD, aiming
@@ -262,11 +272,15 @@ terrain for four fixed seeds to catch that. If it fails, either put the terrain
 back the way it was, or raise `BUILD_FORMAT_VERSION` and keep the old generator
 for old builds.
 
-The format is at version 3, which added slabs. Version 2 builds are still read,
-because they are exactly readable: no shape bits means every block is a whole
-cube, which is what a version 2 build is. `READABLE_VERSIONS` in `format.ts` is
-the list, kept explicit so that accepting an old version stays a decision
-rather than something that happens by default.
+The format is at version 5. Every older version is still read, because each one
+is exactly readable: no shape bits means every block is a whole cube, no `trees`
+field means a world grown with them, and no trapdoor bits means a build without
+trapdoors. `READABLE_VERSIONS` in `format.ts` is the list, kept explicit so that
+accepting an old version stays a decision rather than something that happens by
+default.
+
+The browser copy described under Usage is the same encoding, so a world held in
+a browser and a world held on the server are the same thing in two places.
 
 ## Deploying
 

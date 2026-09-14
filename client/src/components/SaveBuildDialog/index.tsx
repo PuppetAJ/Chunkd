@@ -5,6 +5,7 @@ import { SAVE_BUILD, UPDATE_BUILD } from "../../utils/mutations.ts";
 import { QUERY_ME } from "../../utils/queries.ts";
 import { BUILD_FORMAT_VERSION } from "../../lib/voxel/format.ts";
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
+import { draftSaved } from "../../lib/useWorldDraft.ts";
 import { useEditorUiStore } from "../../lib/editorUiStore.ts";
 import { isUnauthenticated } from "../../lib/auth.ts";
 import { requestErrorMessage } from "../../lib/credentials.ts";
@@ -65,6 +66,7 @@ export default function SaveBuildDialog() {
 
   const finish = (saved: BuildSummary) => {
     setSource({ id: saved._id, name: saved.name });
+    draftSaved();
     setPendingSave(null);
     setSaveStatus("saved", "Build saved");
     window.setTimeout(() => useEditorUiStore.getState().setSaveStatus("idle"), 2500);
