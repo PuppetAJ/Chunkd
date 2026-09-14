@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useQuery } from "@apollo/client/react";
 import { toast } from "sonner";
@@ -17,12 +17,15 @@ import FlightIndicator from "../components/FlightIndicator/index.tsx";
 import EditorPause from "../components/EditorPause/index.tsx";
 import SaveBuildDialog from "../components/SaveBuildDialog/index.tsx";
 import SessionExpired from "../components/SessionExpired/index.tsx";
+import DraftRestore from "../components/DraftRestore/index.tsx";
 import { Toaster } from "../components/ui/sonner.tsx";
 import { useAuthStore } from "../lib/auth.ts";
 import { useEditorUiStore } from "../lib/editorUiStore.ts";
 import { LIGHTING, LIGHT_SCALE, useEditorSettings } from "../lib/sceneSettings.ts";
 import { useSuppressZoomGestures } from "../lib/useSuppressZoomGestures.ts";
 import { useWorldStore } from "../lib/voxel/worldStore.ts";
+import { clearDraft, readDraft, type Draft } from "../lib/voxel/draft.ts";
+import { useWorldDraft } from "../lib/useWorldDraft.ts";
 import { WORLD_SIZE } from "../lib/voxel/terrain.ts";
 import { QUERY_BUILD } from "../utils/queries.ts";
 import type { Body } from "../lib/voxel/collision.ts";
@@ -124,6 +127,38 @@ export default function Editor() {
       { replace: true },
     );
   }, [wanted, source, buildId, setParams]);
+
+  // The world is kept in this browser as it is built. See useWorldDraft.
+  useWorldDraft();
+
+  // An unsaved world from last time is offered back, but only once whatever the
+  // address asked for has arrived: a build still on its way in would otherwise
+  // land on top of the one just restored.
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const offeredDraft = useRef(false);
+  useEffect(() => {
+    if (wanted || offeredDraft.current) return;
+    offeredDraft.current = true;
+    setDraft(readDraft());
+  }, [wanted]);
+
+  const restoreDraft = () => {
+    if (!draft) return;
+    if (loadBuild(draft.data, draft.source ?? undefined)) {
+      // Restored work is still unsaved work, so it keeps being drafted.
+      useWorldStore.getState().setEdited(true);
+      setHeld(draft.source?.id ?? null);
+    } else {
+      toast.error("That unsaved world could not be read.");
+      clearDraft();
+    }
+    setDraft(null);
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    setDraft(null);
+  };
 
   // A build's thumbnail is a capture of this render, so how the editor is lit
   // decides how the build looks everywhere else on the site.
@@ -340,12 +375,13 @@ export default function Editor() {
       {inventoryOpen && <Inventory onClose={closeInventory} />}
       <SaveBuildDialog />
       {!isLoggedIn && <SessionExpired />}
+      {draft && <DraftRestore draft={draft} onRestore={restoreDraft} onDiscard={discardDraft} />}
       {/* The editor is routed outside the site shell, so it carries its own. */}
       <Toaster />
 
       {/* The pause screen would otherwise stack on top of the two things that
           legitimately take the mouse away from the world. */}
-      {isLoggedIn && !playing && !inventoryOpen && !pendingSave && (
+      {isLoggedIn && !draft && !playing && !inventoryOpen && !pendingSave && (
         <EditorPause firstVisit={!everPlayed} loading={loadingBuild} onPlay={startPlaying} />
       )}
     </>

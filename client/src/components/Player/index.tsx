@@ -9,6 +9,7 @@ import { isEditorPaused, sinceSwing, useEditorUiStore } from "../../lib/editorUi
 import { EYE_HEIGHT, type Body } from "../../lib/voxel/collision.ts";
 import {
   createMotionState,
+  hasStrayed,
   stepPlayer,
   type MoveInput,
 } from "../../lib/voxel/playerMotion.ts";
@@ -149,7 +150,8 @@ export default function Player({ body }: Props) {
       useEditorUiStore.getState().setFlying(motion.flying);
     }
 
-    if (body.y < VOID_HEIGHT) {
+    // Off the bottom of the world, or too far from it to find the way back.
+    if (body.y < VOID_HEIGHT || hasStrayed(body.x, body.z, useWorldStore.getState().size)) {
       const [x, y, z] = spawnPoint();
       body.x = x;
       body.y = y;

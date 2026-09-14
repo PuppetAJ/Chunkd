@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createMotionState, stepPlayer, type MoveInput } from "./playerMotion.ts";
+import { createMotionState, hasStrayed, stepPlayer, type MoveInput } from "./playerMotion.ts";
 import { blockOverlapsPlayer, type Body } from "./collision.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 
@@ -273,4 +273,27 @@ test("flying does not pass through blocks", () => {
     stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
   }
   assert.ok(body.y + 1.8 <= 3.5 + 1e-6, `head at ${(body.y + 1.8).toFixed(2)} went through the ceiling`);
+});
+
+test("standing on the world is not straying off it", () => {
+  assert.equal(hasStrayed(0, 0, 64), false);
+  assert.equal(hasStrayed(32, 32, 64), false);
+  assert.equal(hasStrayed(63, 63, 64), false);
+});
+
+test("a short way past the edge is still allowed, so a build can be looked at", () => {
+  assert.equal(hasStrayed(-20, 32, 64), false);
+  assert.equal(hasStrayed(90, 32, 64), false);
+});
+
+test("a long way past the edge is not", () => {
+  assert.equal(hasStrayed(-33, 32, 64), true);
+  assert.equal(hasStrayed(97, 32, 64), true);
+  assert.equal(hasStrayed(32, -33, 64), true);
+  assert.equal(hasStrayed(32, 97, 64), true);
+});
+
+test("a bigger world gives a bigger place to stand", () => {
+  assert.equal(hasStrayed(120, 120, 192), false);
+  assert.equal(hasStrayed(120, 120, 64), true);
 });
