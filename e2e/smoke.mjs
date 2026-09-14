@@ -918,6 +918,27 @@ check(
   JSON.stringify(pickedFresh),
 );
 
+// ------------------------------------------------- an edit touches few layers
+// Every layer used to be rebuilt and handed to React on every edit, which in
+// Firefox stalled each click for tens of milliseconds. Now a layer the edit
+// did not touch is the same object as before, so React skips it.
+const layersBefore = await page.evaluateHandle(() => window.__layers);
+await page.evaluate(() => {
+  const store = window.__world.getState();
+  const camera = window.__r3f.camera;
+  store.placeBlock(Math.round(camera.position.x), Math.round(camera.position.y) + 6, Math.round(camera.position.z));
+});
+await rendererSettled();
+const layerReuse = await page.evaluate((before) => {
+  const after = window.__layers;
+  return { before: before.length, after: after.length, kept: after.filter((layer) => before.includes(layer)).length };
+}, layersBefore);
+check(
+  "an edit hands back the layers it did not touch",
+  layerReuse.kept >= layerReuse.after - 2 && layerReuse.kept < layerReuse.after,
+  JSON.stringify(layerReuse),
+);
+
 // ------------------------------------------------------------- wandering off
 // Flying far enough from the island used to leave someone in empty space with
 // no way back. Height is deliberately not part of the check.
