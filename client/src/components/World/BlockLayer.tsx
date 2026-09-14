@@ -1,9 +1,10 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { memo, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { BlockType } from "../../lib/voxel/blocks.ts";
 import { applyBlockTextureSettings, type BlockTextures } from "../../lib/blockTextures.ts";
 import { geometryForBlock, rotationForAxis } from "../../lib/blockGeometry.ts";
 import { SHAPE_TRAPDOOR } from "../../lib/voxel/blockValue.ts";
+import type { RenderLayer } from "../../lib/voxel/render.ts";
 
 /** How much light every block gets for free. See the material below. */
 const BLACK_FLOOR = 0.005;
@@ -19,13 +20,8 @@ function capacityFor(count: number): number {
 
 interface Props {
   block: BlockType;
-  /** Every instance shares a geometry, so shape and variant belong to the layer. */
-  shape: number;
-  variant: number;
-  /** Flat x, y, z triples for every block of this type. */
-  positions: Float32Array;
-  /** Which way each of those blocks is turned. */
-  axes: Uint8Array;
+  /** Every block of one type, shape and variant: where each is and which way it is turned. */
+  layer: RenderLayer;
   textures: BlockTextures;
 }
 
@@ -34,7 +30,8 @@ interface Props {
  * go straight into an instance buffer. A block whose six faces share one texture
  * is a single draw call, and grass, logs and hay get one material per face group.
  */
-export default function BlockLayer({ block, shape, variant, positions, axes, textures }: Props) {
+function BlockLayer({ block, layer, textures }: Props) {
+  const { shape, variant, positions, axes } = layer;
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const geometry = geometryForBlock(block.id, shape, variant);
   const count = positions.length / 3;
@@ -118,3 +115,8 @@ export default function BlockLayer({ block, shape, variant, positions, axes, tex
     />
   );
 }
+
+// An edit hands back the same layer object for every layer it did not touch.
+// Skipping those here is what keeps an edit from putting every layer in the
+// world through React, which is what made each click stall in Firefox.
+export default memo(BlockLayer);
