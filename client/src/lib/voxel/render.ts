@@ -164,73 +164,143 @@ export function variantFor(
   return 0;
 }
 
+/** Id, shape and variant folded into one number: which layer a block is drawn in. */
+function layerTypeFor(blocks: Map<BlockKey, number>, value: number, x: number, y: number, z: number): number {
+  const variant = variantFor(blocks, value, x, y, z);
+  return (blockIdOf(value) * SHAPE_SLOTS + blockShapeOf(value)) * VARIANT_SLOTS + variant;
+}
+
+function layerFor(type: number, keys: Iterable<BlockKey>, blocks: Map<BlockKey, number>): RenderLayer {
+  const positions: number[] = [];
+  const axes: number[] = [];
+  for (const key of keys) {
+    const [x, y, z] = fromKey(key);
+    positions.push(x, y, z);
+    axes.push(blockAxisOf(blocks.get(key) ?? 0));
+  }
+  return {
+    blockId: Math.floor(type / (SHAPE_SLOTS * VARIANT_SLOTS)),
+    shape: Math.floor(type / VARIANT_SLOTS) % SHAPE_SLOTS,
+    variant: type % VARIANT_SLOTS,
+    positions: new Float32Array(positions),
+    axes: Uint8Array.from(axes),
+  };
+}
+
+/**
+ * Which layer every drawn block is in, kept between edits.
+ *
+ * Grouping the whole world again on each edit costs as much as the world is
+ * big, and the largest world has tens of thousands of visible blocks. With this
+ * an edit re-examines the cells around it and rebuilds only the layers those
+ * cells moved between. Every other layer is handed back as the same object, so
+ * React and the GPU leave it alone.
+ */
+export interface LayerIndex {
+  /** The layer type of every visible block. */
+  typeByKey: Map<BlockKey, number>;
+  /** The blocks in each layer. */
+  keysByType: Map<number, Set<BlockKey>>;
+  /** The layer last built for each type. A type missing here is rebuilt on the next read. */
+  layerByType: Map<number, RenderLayer>;
+}
+
 /**
  * Group the visible blocks by id, shape and variant, one instanced mesh each.
  * A stair's shape is baked into its geometry rather than rotated per instance,
  * so its faces keep the brightness and texture of the way they point.
  *
- * `blocks` is the whole world because a stair's shape depends on its
- * neighbours. This runs on every edit, so corners correct themselves.
- *
- * Given the previous grouping, a layer the edit did not touch comes back as the
- * very same object. An edit changes a handful of cells, and every other layer
- * would otherwise be handed to React and the GPU afresh each time.
+ * `blocks` is the whole world because a stair's shape depends on its neighbours.
  */
-export function groupVisible(
-  visible: VisibleBlocks,
-  blocks: Map<BlockKey, number> = visible,
-  previous: RenderLayer[] = [],
-): RenderLayer[] {
-  const positionsByType = new Map<number, number[]>();
-  const axesByType = new Map<number, number[]>();
-
+export function createLayerIndex(visible: VisibleBlocks, blocks: Map<BlockKey, number> = visible): LayerIndex {
+  const index: LayerIndex = { typeByKey: new Map(), keysByType: new Map(), layerByType: new Map() };
   for (const [key, value] of visible) {
     const [x, y, z] = fromKey(key);
-    const shape = blockShapeOf(value);
-    const variant = variantFor(blocks, value, x, y, z);
-    const type = (blockIdOf(value) * SHAPE_SLOTS + shape) * VARIANT_SLOTS + variant;
-    let positions = positionsByType.get(type);
-    let axes = axesByType.get(type);
-    if (!positions || !axes) {
-      positions = [];
-      axes = [];
-      positionsByType.set(type, positions);
-      axesByType.set(type, axes);
-    }
-    positions.push(x, y, z);
-    axes.push(blockAxisOf(value));
+    addToIndex(index, key, layerTypeFor(blocks, value, x, y, z));
   }
+  return index;
+}
 
-  const before = new Map<number, RenderLayer>();
-  for (const layer of previous) before.set(typeOf(layer), layer);
+function addToIndex(index: LayerIndex, key: BlockKey, type: number): void {
+  index.typeByKey.set(key, type);
+  let keys = index.keysByType.get(type);
+  if (!keys) {
+    keys = new Set();
+    index.keysByType.set(type, keys);
+  }
+  keys.add(key);
+  index.layerByType.delete(type);
+}
 
-  // Sorted so layer order is stable between edits, which keeps React from
-  // tearing down and rebuilding instanced meshes on every block placed.
-  return [...positionsByType.keys()]
+function removeFromIndex(index: LayerIndex, key: BlockKey, type: number): void {
+  index.typeByKey.delete(key);
+  const keys = index.keysByType.get(type);
+  if (!keys) return;
+  keys.delete(key);
+  if (keys.size === 0) index.keysByType.delete(type);
+  index.layerByType.delete(type);
+}
+
+/**
+ * Bring the index up to date after one cell changed. The cell and its six
+ * neighbours are the only blocks whose layer the change can affect: a stair,
+ * fence, wall or pane takes its shape from the cells next to it, and nothing
+ * looks further than that.
+ */
+export function refreshLayersAround(
+  index: LayerIndex,
+  visible: VisibleBlocks,
+  blocks: Map<BlockKey, number>,
+  x: number,
+  y: number,
+  z: number,
+): void {
+  const cells: [number, number, number][] = [
+    [x, y, z],
+    [x + 1, y, z],
+    [x - 1, y, z],
+    [x, y + 1, z],
+    [x, y - 1, z],
+    [x, y, z + 1],
+    [x, y, z - 1],
+  ];
+
+  const centre = toKey(x, y, z);
+  for (const [cx, cy, cz] of cells) {
+    const key = toKey(cx, cy, cz);
+    const value = visible.get(key);
+    const was = index.typeByKey.get(key);
+    const now = value === undefined ? undefined : layerTypeFor(blocks, value, cx, cy, cz);
+    // A neighbour whose layer has not changed has not changed at all: an edit
+    // never alters a neighbour's value, only its shape or whether it is seen.
+    // The edited cell itself is always rebuilt, since its value is what changed.
+    if (was === now && key !== centre) continue;
+    if (was !== undefined) removeFromIndex(index, key, was);
+    if (now !== undefined) addToIndex(index, key, now);
+  }
+}
+
+/**
+ * The layers to draw, rebuilding only those an edit has touched since the last
+ * read. Sorted by type so layer order is stable between edits, which keeps
+ * React from tearing down and rebuilding instanced meshes on every block placed.
+ */
+export function layersFromIndex(index: LayerIndex, blocks: Map<BlockKey, number>): RenderLayer[] {
+  return [...index.keysByType.keys()]
     .sort((a, b) => a - b)
     .map((type) => {
-      const positions = positionsByType.get(type)!;
-      const axes = axesByType.get(type)!;
-      const kept = before.get(type);
-      if (kept && sameNumbers(kept.positions, positions) && sameNumbers(kept.axes, axes)) return kept;
-      return {
-        blockId: Math.floor(type / (SHAPE_SLOTS * VARIANT_SLOTS)),
-        shape: Math.floor(type / VARIANT_SLOTS) % SHAPE_SLOTS,
-        variant: type % VARIANT_SLOTS,
-        positions: new Float32Array(positions),
-        axes: Uint8Array.from(axes),
-      };
+      let layer = index.layerByType.get(type);
+      if (!layer) {
+        layer = layerFor(type, index.keysByType.get(type)!, blocks);
+        index.layerByType.set(type, layer);
+      }
+      return layer;
     });
 }
 
-function typeOf(layer: RenderLayer): number {
-  return (layer.blockId * SHAPE_SLOTS + layer.shape) * VARIANT_SLOTS + layer.variant;
-}
-
-function sameNumbers(kept: Float32Array | Uint8Array, fresh: number[]): boolean {
-  if (kept.length !== fresh.length) return false;
-  for (let i = 0; i < fresh.length; i += 1) if (kept[i] !== fresh[i]) return false;
-  return true;
+/** The grouping in one step, for a world that is not going to be edited. */
+export function groupVisible(visible: VisibleBlocks, blocks: Map<BlockKey, number> = visible): RenderLayer[] {
+  return layersFromIndex(createLayerIndex(visible, blocks), blocks);
 }
 
 /** The whole job in one step. Convenient for tests and for the build viewer. */
