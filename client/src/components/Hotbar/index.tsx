@@ -67,7 +67,13 @@ export default function Hotbar() {
             <li key={slot}>
               <button
                 type="button"
-                onClick={() => setSelectedSlot(slot)}
+                // Never a tab stop, and never left holding focus: a slot with
+                // keyboard focus takes the next jump as a click on itself.
+                tabIndex={-1}
+                onClick={(event) => {
+                  setSelectedSlot(slot);
+                  event.currentTarget.blur();
+                }}
                 aria-pressed={selected}
                 aria-label={`${name}, slot ${slot}`}
                 title={`${name} (${slot})`}

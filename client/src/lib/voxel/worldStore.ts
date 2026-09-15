@@ -22,7 +22,16 @@ import { nextBrush, type Cell } from "./brush.ts";
 import { toKey, type BlockKey } from "./coords.ts";
 import { generateTerrain, randomSeed, spawnPointFor, WORLD_SIZE } from "./terrain.ts";
 import { deserializeWorld, serializeWorld } from "./format.ts";
-import { computeVisible, refreshVisibleAround, type VisibleBlocks } from "./render.ts";
+import {
+  computeVisible,
+  createLayerIndex,
+  layersFromIndex,
+  refreshLayersAround,
+  refreshVisibleAround,
+  type LayerIndex,
+  type RenderLayer,
+  type VisibleBlocks,
+} from "./render.ts";
 
 export const HOTBAR_SLOTS = 9;
 
@@ -50,12 +59,24 @@ interface WorldState {
   size: number;
   /** Whether this world was grown with trees. */
   trees: boolean;
+  /**
+   * Every block in the world. Edits change this map in place rather than
+   * copying it: the largest world has a quarter of a million blocks, and
+   * copying that on every click was most of what a click cost. `revision` is
+   * what tells a component the world has changed.
+   */
   blocks: Map<BlockKey, number>;
   /**
    * The subset of `blocks` that is actually drawn, kept up to date as edits
    * happen rather than worked out again from the whole world each time.
    */
   visible: VisibleBlocks;
+  /** The drawn blocks grouped into meshes. A new list on every edit, with untouched layers kept. */
+  layers: RenderLayer[];
+  /** Goes up by one whenever the world changes, including a new or loaded world. */
+  revision: number;
+  /** How `layers` is kept up to date. For the store's own use. */
+  index: LayerIndex;
   /** Hotbar slot, 1 to HOTBAR_SLOTS. */
   selectedSlot: number;
   /**
@@ -154,8 +175,28 @@ function shapeFor(block: BlockType | undefined, shape: number): number {
   return SHAPE_FULL;
 }
 
+/** Everything worked out from a block map, for a world just generated or loaded. */
+function derive(blocks: Map<BlockKey, number>) {
+  const visible = computeVisible(blocks);
+  const index = createLayerIndex(visible, blocks);
+  return { blocks, visible, index, layers: layersFromIndex(index, blocks) };
+}
+
+/** After cells changed: bring what is drawn up to date and tell the components. */
+function commitEdit(cells: Cell[]): void {
+  const { blocks, visible, index } = useWorldStore.getState();
+  for (const [x, y, z] of cells) refreshVisibleAround(blocks, visible, x, y, z);
+  // Only once every cell is in the visible map, since a layer's shape can
+  // depend on whether the cell next to it is drawn.
+  for (const [x, y, z] of cells) refreshLayersAround(index, visible, blocks, x, y, z);
+  useWorldStore.setState((state) => ({
+    layers: layersFromIndex(index, blocks),
+    revision: state.revision + 1,
+    edited: true,
+  }));
+}
+
 const initialSeed = randomSeed();
-const initialBlocks = generateTerrain(initialSeed);
 
 export const useWorldStore = create<WorldState>((set, get) => ({
   source: null,
@@ -163,8 +204,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   seed: initialSeed,
   size: WORLD_SIZE,
   trees: true,
-  blocks: initialBlocks,
-  visible: computeVisible(initialBlocks),
+  ...derive(generateTerrain(initialSeed)),
+  revision: 0,
   selectedSlot: 1,
   hotbar: [...DEFAULT_HOTBAR],
   hotbarShape: Array.from({ length: HOTBAR_SLOTS }, () => SHAPE_FULL),
@@ -173,21 +214,29 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   newWorld: (seed = randomSeed(), options = {}) => {
     const { size = WORLD_SIZE, trees = true } = options;
     const blocks = generateTerrain(seed, size, { trees });
-    set({ source: null, edited: false, seed, size, trees, blocks, visible: computeVisible(blocks) });
+    set((state) => ({
+      source: null,
+      edited: false,
+      seed,
+      size,
+      trees,
+      ...derive(blocks),
+      revision: state.revision + 1,
+    }));
   },
 
   loadBuild: (payload, source = undefined) => {
     const world = deserializeWorld(payload);
     if (!world) return false;
-    set({
+    set((state) => ({
       source: source ?? null,
       edited: false,
       seed: world.seed,
       size: world.size,
       trees: world.trees,
-      blocks: world.blocks,
-      visible: computeVisible(world.blocks),
-    });
+      ...derive(world.blocks),
+      revision: state.revision + 1,
+    }));
     return true;
   },
 
@@ -220,46 +269,29 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       cut === SHAPE_TRAPDOOR
         ? packTrapdoor(blockId, facing, top, false)
         : packBlock(blockId, upright ? AXIS_Y : axis, cut, facing);
-    set((state) => {
-      const empty = cells.filter(([x, y, z]) => !state.blocks.has(toKey(x, y, z)));
-      if (empty.length === 0) return state;
-      // Copying a map of a few thousand entries costs well under a millisecond
-      // and only happens on an edit, never per frame. It keeps the update
-      // obviously correct without a revision counter.
-      const blocks = new Map(state.blocks);
-      const visible = new Map(state.visible);
-      for (const [x, y, z] of empty) {
-        blocks.set(toKey(x, y, z), value);
-        refreshVisibleAround(blocks, visible, x, y, z);
-      }
-      return { blocks, visible, edited: true };
-    });
+    const { blocks } = get();
+    const empty = cells.filter(([x, y, z]) => !blocks.has(toKey(x, y, z)));
+    if (empty.length === 0) return;
+    for (const [x, y, z] of empty) blocks.set(toKey(x, y, z), value);
+    commitEdit(empty);
   },
 
   fillSlab: (x, y, z) => {
+    const { blocks } = get();
     const key = toKey(x, y, z);
-    set((state) => {
-      const existing = state.blocks.get(key);
-      if (existing === undefined || !isSlab(existing)) return state;
-      const blocks = new Map(state.blocks);
-      blocks.set(key, packBlock(blockIdOf(existing)));
-      const visible = new Map(state.visible);
-      refreshVisibleAround(blocks, visible, x, y, z);
-      return { blocks, visible, edited: true };
-    });
+    const existing = blocks.get(key);
+    if (existing === undefined || !isSlab(existing)) return;
+    blocks.set(key, packBlock(blockIdOf(existing)));
+    commitEdit([[x, y, z]]);
   },
 
   toggleTrapdoor: (x, y, z) => {
+    const { blocks } = get();
     const key = toKey(x, y, z);
-    set((state) => {
-      const existing = state.blocks.get(key);
-      if (existing === undefined || !isTrapdoor(existing)) return state;
-      const blocks = new Map(state.blocks);
-      blocks.set(key, toggledTrapdoor(existing));
-      const visible = new Map(state.visible);
-      refreshVisibleAround(blocks, visible, x, y, z);
-      return { blocks, visible, edited: true };
-    });
+    const existing = blocks.get(key);
+    if (existing === undefined || !isTrapdoor(existing)) return;
+    blocks.set(key, toggledTrapdoor(existing));
+    commitEdit([[x, y, z]]);
   },
 
   removeBlock: (x, y, z) => {
@@ -267,17 +299,11 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   },
 
   removeBlocks: (cells) => {
-    set((state) => {
-      const filled = cells.filter(([x, y, z]) => state.blocks.has(toKey(x, y, z)));
-      if (filled.length === 0) return state;
-      const blocks = new Map(state.blocks);
-      const visible = new Map(state.visible);
-      for (const [x, y, z] of filled) {
-        blocks.delete(toKey(x, y, z));
-        refreshVisibleAround(blocks, visible, x, y, z);
-      }
-      return { blocks, visible, edited: true };
-    });
+    const { blocks } = get();
+    const filled = cells.filter(([x, y, z]) => blocks.has(toKey(x, y, z)));
+    if (filled.length === 0) return;
+    for (const [x, y, z] of filled) blocks.delete(toKey(x, y, z));
+    commitEdit(filled);
   },
 
   setSelectedSlot: (slot) => {
