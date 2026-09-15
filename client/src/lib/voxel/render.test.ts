@@ -21,7 +21,15 @@ import {
   trapdoorVariant,
 } from "./blockValue.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
-import { buildRenderLayers, computeVisible, groupVisible, refreshVisibleAround } from "./render.ts";
+import {
+  buildRenderLayers,
+  computeVisible,
+  createLayerIndex,
+  groupVisible,
+  layersFromIndex,
+  refreshLayersAround,
+  refreshVisibleAround,
+} from "./render.ts";
 import { straightQuadrants } from "./stairShape.ts";
 import { generateTerrain } from "./terrain.ts";
 
@@ -351,7 +359,8 @@ test("a glass pane never hides the block beside it, and is drawn by what it join
 test("an edit hands back the layers it did not touch", () => {
   const blocks = generateTerrain(4242, 24);
   const visible = computeVisible(blocks);
-  const first = groupVisible(visible, blocks);
+  const index = createLayerIndex(visible, blocks);
+  const first = layersFromIndex(index, blocks);
 
   // Break one block on the surface.
   let broken: [number, number, number] | null = null;
@@ -362,15 +371,54 @@ test("an edit hands back the layers it did not touch", () => {
   assert.ok(broken);
   blocks.delete(toKey(...broken));
   refreshVisibleAround(blocks, visible, ...broken);
+  refreshLayersAround(index, visible, blocks, ...broken);
 
-  const second = groupVisible(visible, blocks, first);
+  const second = layersFromIndex(index, blocks);
   const kept = second.filter((layer) => first.includes(layer));
   const fresh = second.filter((layer) => !first.includes(layer));
   assert.ok(fresh.length >= 1, "the layer the block came from is rebuilt");
   assert.ok(fresh.length <= 3, `only the layers around the edit change, not ${fresh.length}`);
   assert.equal(kept.length + fresh.length, second.length);
+});
 
-  // Without the previous grouping every layer is new, which is what a viewer gets.
-  const plain = groupVisible(visible, blocks);
-  assert.equal(plain.filter((layer) => second.includes(layer)).length, 0);
+/** A layer's blocks in a fixed order, so two groupings can be compared. */
+function summarise(layers: ReturnType<typeof groupVisible>): string[] {
+  return layers.map((layer) => {
+    const cells: string[] = [];
+    for (let i = 0; i < layer.positions.length; i += 3) {
+      cells.push(
+        `${layer.positions[i]},${layer.positions[i + 1]},${layer.positions[i + 2]}:${layer.axes[i / 3]}`,
+      );
+    }
+    return `${layer.blockId}/${layer.shape}/${layer.variant} ${cells.sort().join(" ")}`;
+  });
+}
+
+test("edits kept up by the index draw the same as grouping from scratch", () => {
+  const blocks = generateTerrain(7, 24);
+  const visible = computeVisible(blocks);
+  const index = createLayerIndex(visible, blocks);
+
+  // Dig a hole, build a stair run with turns in it, wall it, and glaze it,
+  // so that the shapes that depend on their neighbours all come into play.
+  const edits: [number, number, number, number | undefined][] = [];
+  const stairs = (facing: number) => packBlock(BLOCK_IDS.stoneBricks, AXIS_Y, SHAPE_STAIRS_BOTTOM, facing);
+  for (let x = 8; x < 14; x += 1) for (let z = 8; z < 14; z += 1) edits.push([x, 20, z, undefined]);
+  for (let x = 8; x < 14; x += 1) edits.push([x, 21, 8, stairs(FACING_EAST)]);
+  edits.push([14, 21, 8, stairs(FACING_SOUTH)], [14, 21, 9, stairs(FACING_SOUTH)], [14, 21, 10, stairs(FACING_WEST)]);
+  for (let z = 8; z < 14; z += 1) edits.push([7, 21, z, packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL)]);
+  for (let z = 8; z < 14; z += 1) edits.push([6, 21, z, packBlock(BLOCK_IDS.glassPane)]);
+  edits.push([7, 22, 10, packBlock(BLOCK_IDS.cobblestone)]);
+  edits.push([9, 22, 8, packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, false, true)]);
+  // Then take some of it back out again.
+  edits.push([14, 21, 9, undefined], [7, 21, 10, undefined], [10, 21, 8, undefined]);
+
+  for (const [x, y, z, value] of edits) {
+    if (value === undefined) blocks.delete(toKey(x, y, z));
+    else blocks.set(toKey(x, y, z), value);
+    refreshVisibleAround(blocks, visible, x, y, z);
+    refreshLayersAround(index, visible, blocks, x, y, z);
+  }
+
+  assert.deepEqual(summarise(layersFromIndex(index, blocks)), summarise(buildRenderLayers(blocks)));
 });

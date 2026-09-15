@@ -40,7 +40,7 @@ export function useWorldDraft(): void {
     };
 
     const unsubscribe = useWorldStore.subscribe((state, previous) => {
-      if (state.blocks === previous.blocks) return;
+      if (state.revision === previous.revision) return;
       if (!state.edited) {
         // A world that was just generated or loaded is not work in progress.
         window.clearTimeout(timer);
