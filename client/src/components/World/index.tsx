@@ -5,7 +5,7 @@ import * as THREE from "three";
 import BlockLayer from "./BlockLayer.tsx";
 import { getBlock } from "../../lib/voxel/blocks.ts";
 import { toKey, type BlockKey } from "../../lib/voxel/coords.ts";
-import { buildRenderLayers, groupVisible, type RenderLayer } from "../../lib/voxel/render.ts";
+import { buildRenderLayers } from "../../lib/voxel/render.ts";
 import {
   axisForFaceNormal,
   blockIdOf,
@@ -79,7 +79,7 @@ interface Props {
 
 export default function World({ blocks: providedBlocks, playerBody, editable = false }: Props) {
   const storeBlocks = useWorldStore((state) => state.blocks);
-  const storeVisible = useWorldStore((state) => state.visible);
+  const storeLayers = useWorldStore((state) => state.layers);
   const blocks = providedBlocks ?? storeBlocks;
   const placeBlocks = useWorldStore((state) => state.placeBlocks);
   const removeBlocks = useWorldStore((state) => state.removeBlocks);
@@ -110,22 +110,10 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
   // rather than costing the editor its WebGL context.
   const textures = use(loadBlockTextures());
 
-  // Nothing moves except the player, who casts no shadow, so the shadow map
-  // only needs redrawing when the world changes.
-  useEffect(() => {
-    gl.shadowMap.autoUpdate = false;
-    gl.shadowMap.needsUpdate = true;
-  }, [gl, blocks, storeVisible]);
-
-  // The last grouping, so an edit can hand back the layers it did not touch.
-  const lastGrouping = useRef<RenderLayer[]>([]);
   const layers = useMemo(() => {
-    // The editor keeps its visible set up to date as blocks are placed, so only
-    // the grouping is redone. A build viewer's world is worked out in full.
-    const raw = providedBlocks
-      ? buildRenderLayers(providedBlocks)
-      : groupVisible(storeVisible, blocks, lastGrouping.current);
-    lastGrouping.current = raw;
+    // The editor's store keeps its layers up to date as blocks are placed. A
+    // build viewer's world is worked out in full.
+    const raw = providedBlocks ? buildRenderLayers(providedBlocks) : storeLayers;
     // For the tests: a stair's shape comes from its neighbours, so this is the
     // only place that knows what was drawn.
     if (import.meta.env.DEV && editable) window.__layers = raw;
@@ -133,7 +121,14 @@ export default function World({ blocks: providedBlocks, playerBody, editable = f
       const block = getBlock(layer.blockId);
       return block ? [{ block, layer }] : [];
     });
-  }, [providedBlocks, storeVisible, blocks, editable]);
+  }, [providedBlocks, storeLayers, editable]);
+
+  // Nothing moves except the player, who casts no shadow, so the shadow map
+  // only needs redrawing when the world changes.
+  useEffect(() => {
+    gl.shadowMap.autoUpdate = false;
+    gl.shadowMap.needsUpdate = true;
+  }, [gl, layers]);
 
   const raycaster = useMemo(() => {
     const instance = new THREE.Raycaster();
