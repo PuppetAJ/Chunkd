@@ -24,6 +24,7 @@
     "build": "pnpm --recursive build",
     "start": "pnpm --filter server start",
     "seed": "pnpm --filter server seed",
+    "showcase:export": "pnpm --filter server showcase:export",
     "lint": "oxlint",
     "test": "pnpm --recursive test",
     "typecheck": "pnpm --recursive typecheck",
