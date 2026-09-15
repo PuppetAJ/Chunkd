@@ -189,6 +189,10 @@ export default function Editor() {
       // Typing a build name should not also open the inventory.
       if (ui.pendingSave) return;
 
+      // In play there is nothing for focus to move to, and a control that
+      // took it would answer the next Space or Enter as a click.
+      if (event.code === "Tab" && ui.playing && !ui.inventoryOpen) event.preventDefault();
+
       if (event.code === "KeyE") {
         if (ui.inventoryOpen) closeInventory();
         // Only from play. Opened over the pause screen it hid that screen and
