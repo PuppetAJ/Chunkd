@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useQuery } from "@apollo/client/react";
 import { Blocks, Play, Share2, Save } from "lucide-react";
 
-import { QUERY_THOUGHTS } from "../utils/queries.ts";
+import { QUERY_SHOWCASE } from "../utils/queries.ts";
 import { useDemoLogin } from "../lib/useDemoLogin.ts";
 import { DEMO_USERNAME, type Thought } from "../lib/feedTypes.ts";
 import { Button } from "../components/ui/button.tsx";
@@ -12,18 +12,13 @@ import { Skeleton } from "../components/ui/skeleton.tsx";
 // The viewer drags in three.js; loading it separately lets the page paint the thumbnail first.
 const SavedBuild = lazy(() => import("../components/SavedBuild/index.tsx"));
 
-/** How many recent posts to look through for something to show. */
-const LOOK_AT = 12;
-
 /** What a signed-out visitor sees at the root. */
 export default function Landing() {
   const { startDemo, loading: startingDemo, error } = useDemoLogin();
-  const { loading, data } = useQuery(QUERY_THOUGHTS, {
-    variables: { limit: LOOK_AT, offset: 0 },
-  });
+  const { loading, data } = useQuery(QUERY_SHOWCASE);
 
   const thoughts: Thought[] =
-    (data as { thoughts?: Thought[] } | undefined)?.thoughts ?? [];
+    (data as { showcase?: Thought[] } | undefined)?.showcase ?? [];
   // Anyone can post as the demo account, so its posts stay off the front door.
   const withBuilds = thoughts.filter(
     (thought) => thought.build?.thumbnail && thought.username !== DEMO_USERNAME,

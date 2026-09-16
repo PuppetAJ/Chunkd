@@ -10,6 +10,8 @@ export interface BuildDocument {
   data: string;
   // A small JPEG data URL rendered at save time, so galleries need no WebGL.
   thumbnail?: string;
+  // Set by the seeder on the showcase builds, which the landing page shows ahead of newer posts.
+  featured: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +45,11 @@ const buildSchema = new Schema<BuildDocument>(
     },
     thumbnail: {
       type: String,
+    },
+    featured: {
+      type: Boolean,
+      default: false,
+      index: true,
     },
   },
   { timestamps: true },
