@@ -44,25 +44,19 @@ export default function Profile() {
     skip: viewingOwnProfile,
   });
 
-  // Whose list the button depends on: following someone puts them in *yours*,
-  // so whether it says follow or unfollow is a question about you, not about
-  // the profile being looked at. This used to read the profile owner's list,
-  // which answered the opposite question and showed "Add friend" for people you
-  // had already added.
+  // Whether the button says follow or unfollow is a question about your list, not the profile owner's.
   const { data: myData } = useQuery(QUERY_ME_BASIC, { skip: !userParam });
   const iFollow: UserSummary[] =
     (myData as { me?: { following?: UserSummary[] } } | undefined)?.me?.following ?? [];
 
-  // Refetching the viewer's own record is what flips the button afterwards. The
-  // profile itself is refetched too, because its follower count just changed.
+  // Refetching the viewer's own record flips the button; the profile's follower count changed too.
   const followOptions = {
     refetchQueries: [{ query: QUERY_ME_BASIC }, { query: QUERY_USER, variables: { username: userParam } }],
   };
   const [follow, { loading: following }] = useMutation(FOLLOW, followOptions);
   const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW, followOptions);
 
-  // Visiting your own username lands you on your own profile page instead of
-  // the read-only "someone else" view.
+  // Your own username lands on your own profile page, not the read-only view.
   if (viewingOwnProfile) return <Navigate to="/profile" replace />;
 
   if (loading) return <ProfileSkeleton />;
@@ -99,8 +93,7 @@ export default function Profile() {
         toast.success(`Unfollowed ${user.username}`);
       } else {
         await follow({ variables });
-        // Deliberately not "request sent": following is one-way and there is
-        // nothing for them to accept. The message says what actually happened.
+        // Not "request sent": following is one-way.
         toast.success(`You are now following ${user.username}`);
       }
     } catch (error) {
@@ -220,12 +213,7 @@ export default function Profile() {
   );
 }
 
-/**
- * A list of people, used by both the followers and the following tabs.
- *
- * The two differ only in where the list came from, so they share one component
- * rather than two near-identical blocks of markup.
- */
+/** Used by both the followers and the following tabs. */
 function PeopleGrid({ people, empty }: { people: UserSummary[]; empty: string }) {
   if (people.length === 0) {
     return (

@@ -3,15 +3,13 @@ import { GraphQLError } from "graphql";
 import { env } from "../config/env.ts";
 import type { UserDocument } from "../models/index.ts";
 
-// What we put inside the auth token, and therefore what every resolver can
-// rely on knowing about the caller without touching the database.
+// What is signed into the auth token.
 export interface AuthUser {
   _id: string;
   username: string;
   email: string;
 }
 
-// The object handed to every resolver as its third argument.
 export interface GraphQLContext {
   user: AuthUser | null;
   /** Where the request came from, for the per-address attempt limits. */
@@ -25,8 +23,6 @@ export function signToken(user: UserDocument): string {
     email: user.email,
   };
 
-  // The secret used to come from a string literal committed to this file. It now
-  // comes from the environment and the process will not boot without it.
   const options: SignOptions = {
     expiresIn: env.JWT_EXPIRES_IN as SignOptions["expiresIn"],
   };
@@ -34,28 +30,21 @@ export function signToken(user: UserDocument): string {
   return jwt.sign(payload, env.JWT_SECRET, options);
 }
 
-// Pull the caller out of an incoming request, or return null if there is no
-// valid token. An invalid token is treated the same as no token at all.
+// An invalid token is treated the same as no token at all.
 export function getUserFromAuthHeader(header: string | undefined): AuthUser | null {
   if (!header) return null;
 
-  // Accept both "Bearer <token>" and a bare token.
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : header.trim();
   if (!token) return null;
 
   try {
-    // Pinned to the one algorithm we sign with. jsonwebtoken already limits a
-    // string secret to the HMAC family, so this is belt and braces rather than
-    // the fix for a known hole, but it costs nothing and it will still hold if
-    // the signing key ever changes shape.
+    // Pinned to the one algorithm we sign with.
     return jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"] }) as AuthUser;
   } catch {
     return null;
   }
 }
 
-// Resolvers call this instead of repeating the same `if (context.user)` check.
-// It narrows the type too, so after calling it TypeScript knows the user exists.
 export function requireAuth(context: GraphQLContext): AuthUser {
   if (!context.user) {
     throw new GraphQLError("You must be logged in to do that.", {
@@ -85,9 +74,6 @@ export function notFound(message: string): GraphQLError {
 
 /**
  * Turn a Mongoose validation failure into a message worth showing someone.
- * Mongoose reports one error holding an entry per bad field, which otherwise
- * reaches the browser as an internal error and is shown as "Signup failed".
- *
  * Returns null for anything else, so callers can rethrow untouched.
  */
 export function asUserInputError(error: unknown): GraphQLError | null {

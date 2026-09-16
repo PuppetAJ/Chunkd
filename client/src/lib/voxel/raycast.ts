@@ -22,8 +22,7 @@ const shapeMatrix = new THREE.Matrix4();
 const shapeCentre = new THREE.Vector3();
 const shapeScale = new THREE.Vector3(1, 1, 1);
 const shapeHits: THREE.Intersection[] = [];
-// Front faces only, like the block materials: standing inside a block should
-// not target it from the inside.
+// Front faces only, like the block materials, so a block around the camera is not targeted.
 const shapeMesh = new THREE.Mesh(undefined, new THREE.MeshBasicMaterial());
 
 /** A block the walk can answer for on its own, without meeting its geometry. */
@@ -31,11 +30,7 @@ function isWholeCube(value: number): boolean {
   return blockShapeOf(value) === SHAPE_FULL && !isPane(value);
 }
 
-/**
- * Where the ray meets a block that only fills part of its cell. The ray is
- * tested against the same geometry the block is drawn with, so a stair's step
- * and a fence's post are hit where they look.
- */
+/** Where the ray meets a partial block, tested against the geometry it is drawn with. */
 function meetShape(
   blocks: Map<BlockKey, number>,
   raycaster: THREE.Raycaster,
@@ -65,20 +60,12 @@ function meetShape(
   return {
     cell: [x, y, z],
     point: point.copy(closest.point),
-    // The normal comes back in the block's own space, which is the world
-    // normal only for a block that is not turned. A log on its side is.
+    // The face normal is in block space; a turned log needs it in world space.
     normal: normal.copy(closest.face.normal).transformDirection(shapeMatrix),
   };
 }
 
-/**
- * The first block the ray meets, within `reach`.
- *
- * This walks the ray cell by cell rather than asking three to raycast the
- * scene, because that tests every block in the world on every frame: the cost
- * grows with the size of the build, and it is paid in the middle of the frame.
- * A walk costs the same in an empty world and a finished one.
- */
+/** The first block within `reach`. Walks cells rather than raycasting the scene, whose cost grows with the world. */
 export function raycastBlocks(
   blocks: Map<BlockKey, number>,
   raycaster: THREE.Raycaster,
@@ -96,8 +83,7 @@ export function raycastBlocks(
   const stepY = direction.y < 0 ? -1 : 1;
   const stepZ = direction.z < 0 ? -1 : 1;
 
-  // How far along the ray the next crossing of each pair of faces is, and how
-  // far apart the ones after that are. A ray parallel to a pair never crosses.
+  // Distance along the ray to the next face crossing on each axis, and the spacing after that.
   let tMaxX = direction.x === 0 ? Infinity : (x + stepX * 0.5 - origin.x) / direction.x;
   let tMaxY = direction.y === 0 ? Infinity : (y + stepY * 0.5 - origin.y) / direction.y;
   let tMaxZ = direction.z === 0 ? Infinity : (z + stepZ * 0.5 - origin.z) / direction.z;
@@ -106,8 +92,7 @@ export function raycastBlocks(
   const tDeltaZ = Math.abs(1 / direction.z);
 
   let distance = 0;
-  // The face the ray came in through. All zero in the cell it started in,
-  // which has none: a block there surrounds the camera and faces away from it.
+  // The face the ray came in through; none in the starting cell.
   let faceX = 0;
   let faceY = 0;
   let faceZ = 0;

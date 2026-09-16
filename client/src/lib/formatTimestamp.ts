@@ -1,7 +1,3 @@
-// The API used to send pre-formatted date strings, which meant the server chose
-// the format and the viewer's locale and time zone were ignored. It now sends
-// ISO 8601 and this decides how to show it.
-
 const relative = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
 const absolute = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",

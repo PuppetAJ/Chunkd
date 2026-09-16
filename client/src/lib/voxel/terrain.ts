@@ -8,24 +8,16 @@ import { blockIdOf } from "./blockValue.ts";
 /** Width and depth of the world, in blocks. */
 export const WORLD_SIZE = 64;
 
-/**
- * The widths the editor offers. A world is generated whole and held as one map,
- * with no chunking, so the widest is around half a million blocks and takes
- * about a second to build. That is why the dialog shows a loading state.
- */
 export const WORLD_SIZES = [WORLD_SIZE, WORLD_SIZE * 2, WORLD_SIZE * 3] as const;
 
-/** What can be turned off when generating a world. */
 export interface TerrainOptions {
   /** Plant trees. Off gives bare ground to build on. */
   trees?: boolean;
 }
 
 /**
- * The shape of the land: four octaves, each twice the frequency and half the
- * height of the one before, so broad landforms carry small detail. A separate
- * very low frequency sample decides how hilly each region is, which is what
- * leaves some ground flat and some rough.
+ * Four octaves, each twice the frequency and half the height of the one before.
+ * A separate very low frequency sample sets how hilly each region is.
  */
 const OCTAVES = 4;
 const BASE_FREQUENCY = 0.016;
@@ -77,14 +69,12 @@ export function createHeightField(seed: number): HeightField {
   };
 }
 
-/** Which block the very top of a column should be. */
 function surfaceBlock(height: number): number {
   if (height <= SAND_LEVEL) return BLOCK_IDS.sand;
   if (height >= SNOW_LEVEL) return BLOCK_IDS.snowyGrass;
   return BLOCK_IDS.grass;
 }
 
-/** Which block sits just under the surface. */
 function subsoilBlock(height: number): number {
   return height <= SAND_LEVEL ? BLOCK_IDS.sand : BLOCK_IDS.dirt;
 }
@@ -94,11 +84,7 @@ interface TreeKind {
   leaves: number;
 }
 
-/**
- * The trees the generator plants. Spruce is absent on purpose: the conifer grown
- * from it looked wrong beside the rounded ones. Its blocks are still in the
- * inventory to build with.
- */
+/** Spruce is left out: the conifer grown from it looked wrong beside the rounded ones. */
 const TREE_KINDS: TreeKind[] = [
   { log: BLOCK_IDS.oakLog, leaves: BLOCK_IDS.oakLeaves },
   { log: BLOCK_IDS.birchLog, leaves: BLOCK_IDS.birchLeaves },
@@ -121,15 +107,11 @@ function plantTree(
   for (let y = 1; y <= trunk; y += 1) blocks.set(toKey(x, ground + y, z), kind.log);
 
   const top = ground + trunk;
-  // Two wide rings around the upper trunk, then a small cap, which is the
-  // familiar rounded canopy without needing a real sphere.
   for (let dy = -2; dy <= 1; dy += 1) {
     const radius = dy <= -1 ? 2 : 1;
     for (let dx = -radius; dx <= radius; dx += 1) {
       for (let dz = -radius; dz <= radius; dz += 1) {
-        // Clip the corners of the wide rings so the canopy is not a cube, and
-        // the corners of the top ring as well so it finishes in a cross rather
-        // than a flat square, which is the shape Minecraft's oak has.
+        // Corners clipped to round the canopy, and on the top ring so it ends in a cross like Minecraft's oak.
         const isCorner = Math.abs(dx) === radius && Math.abs(dz) === radius;
         if (isCorner && (radius === 2 || dy === 1)) continue;
         const key = toKey(x + dx, top + dy, z + dz);
@@ -139,14 +121,7 @@ function plantTree(
   }
 }
 
-/**
- * Build the starting world for a seed. The same seed always gives the same
- * world, which is what lets a save be a seed plus the blocks the player
- * changed, so trees are placed from the seed too and never from Math.random.
- *
- * Every column is filled to the floor, soil over stone, so digging down does
- * not reveal a shell.
- */
+/** Deterministic for a seed, since a save is the seed plus the changes: nothing here may use Math.random. */
 export function generateTerrain(
   seed: number,
   size: number = WORLD_SIZE,
@@ -156,8 +131,7 @@ export function generateTerrain(
   const heightAt = createHeightField(seed);
   const blocks = new Map<BlockKey, number>();
 
-  // Preallocated deliberately. The grid is filled by index below, and the
-  // size is known, so growing the array element by element is wasted work.
+  // Filled by index below, so preallocated.
   // oxlint-disable-next-line no-new-array
   const heights: number[] = new Array(size * size);
   for (let x = 0; x < size; x += 1) {
@@ -174,8 +148,6 @@ export function generateTerrain(
 
   if (!trees) return blocks;
 
-  // Trees are placed after the ground exists so they can read its height and
-  // its slope, and so a trunk is never buried by the column it stands on.
   const rng = alea(seed, "trees");
   const planted: [number, number][] = [];
 
@@ -186,8 +158,7 @@ export function generateTerrain(
       const ground = heights[x * size + z]!;
       if (ground <= SAND_LEVEL || ground >= SNOW_LEVEL) continue;
 
-      // Nothing grows on a slope steep enough that the trunk would hang in the
-      // air on one side.
+      // Nothing grows on a slope that would leave the trunk hanging in the air.
       const north = heights[x * size + (z - 1)]!;
       const south = heights[x * size + (z + 1)]!;
       const east = heights[(x + 1) * size + z]!;
@@ -237,11 +208,7 @@ function* columnsFromMiddle(size: number): Generator<[number, number]> {
   }
 }
 
-/**
- * A safe place to drop the player: on the ground near the middle, in a column
- * where they fit. Worked out from the finished world rather than from the
- * height field, which does not know about the trees standing on it.
- */
+/** Near the middle, on the ground, from the finished world so trees are accounted for. */
 export function spawnPointFor(
   blocks: Map<BlockKey, number>,
   size: number = WORLD_SIZE,
@@ -251,8 +218,7 @@ export function spawnPointFor(
     for (let y = SEARCH_CEILING; y >= 0; y -= 1) {
       const block = blocks.get(toKey(x, y, z));
       if (block === undefined) continue;
-      // Skip the whole column if its top is a tree, rather than standing the
-      // player on a canopy.
+      // A tree on top means skip the column, not stand on the canopy.
       if (TREE_BLOCK_IDS.has(blockIdOf(block))) break;
       ground = y;
       break;
@@ -264,7 +230,7 @@ export function spawnPointFor(
     if (!collides(blocks, x + 0.5, feet, z + 0.5)) return [x + 0.5, feet, z + 0.5];
   }
 
-  // Nowhere at all was clear, which should not happen; drop in above the middle.
+  // Nothing was clear, which should not happen.
   const middle = Math.floor(size / 2);
   return [middle + 0.5, SEARCH_CEILING, middle + 0.5];
 }

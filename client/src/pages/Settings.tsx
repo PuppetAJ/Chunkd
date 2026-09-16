@@ -26,13 +26,7 @@ interface MeBasic {
   isDemo: boolean;
 }
 
-/**
- * Account settings.
- *
- * The two forms are separate on purpose. Changing a password asks for the
- * current one and should not be bundled into a form someone opened to fix a
- * typo in their email.
- */
+/** The two forms are separate on purpose: changing a password asks for the current one. */
 export default function Settings() {
   const logIn = useAuthStore((state) => state.logIn);
   const apollo = useApolloClient();
@@ -71,14 +65,7 @@ export default function Settings() {
   );
 }
 
-/**
- * What the demo account sees here instead of the two forms.
- *
- * The server refuses to change its username, email or password, because
- * everyone shares the account and a change would lock the next visitor out.
- * Showing forms that cannot work and only saying so on submit is worse than
- * not showing them.
- */
+/** Shown to the demo account instead of the forms, which the server would refuse. */
 function DemoNotice() {
   return (
     <div className="rounded-xl border border-border bg-card p-6">
@@ -132,7 +119,7 @@ function ProfileForm({
         variables: { username: username.trim(), email: email.trim() },
       });
       const result = data as { updateAccount: { token: string } };
-      // The name inside the token is now stale, so the new one replaces it.
+      // The name inside the old token is now stale.
       logIn(result.updateAccount.token);
       // Usernames appear on every post, so everything cached is now suspect.
       await apollo.refetchQueries({ include: "active" });

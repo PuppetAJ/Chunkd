@@ -1,16 +1,9 @@
 import { useEffect } from "react";
 
 /**
- * Stop trackpad and touch gestures zooming the page while the editor is open: a
- * zoomed page aims the crosshair somewhere other than where the player looks.
- *
- * Two routes are refusable. A trackpad pinch arrives as a wheel event with
- * `ctrlKey` set, and the listener must be non-passive to refuse it; Safari has
- * its own gesture events. `touch-action` does not help, because a trackpad
- * reports itself as a mouse.
- *
- * A two-finger double tap on macOS is not refusable: the system decides it is
- * Smart Zoom before the page sees anything.
+ * Stop trackpad and touch gestures zooming the page while the editor is open.
+ * A trackpad pinch is a wheel event with `ctrlKey` set and needs a non-passive
+ * listener; Safari has its own gesture events. `touch-action` does not help, a trackpad reports as a mouse.
  */
 export function useSuppressZoomGestures(active: boolean): void {
   useEffect(() => {

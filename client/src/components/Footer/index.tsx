@@ -9,9 +9,7 @@ export default function Footer() {
           &copy; {new Date().getFullYear()} Adrian Jimenez
         </p>
 
-        {/* CC BY-SA asks for credit and a link to the licence wherever the
-            work is used, and names the original author rather than only the
-            maintainers who carried the pack on. */}
+        {/* CC BY-SA asks for credit and a licence link wherever the work is used. */}
         <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
           Block textures from{" "}
           <a

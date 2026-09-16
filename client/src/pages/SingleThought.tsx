@@ -51,9 +51,6 @@ export default function SingleThought() {
         </Link>
       </Button>
 
-      {/* The world is the reason anyone opened this page, so it gets the room.
-          The feed shows a still image; this is where it becomes something you
-          can turn around. */}
       {thought.build && (
         <div className="h-[min(62vh,34rem)] min-h-72">
           <SavedBuild buildId={thought.build._id} />
@@ -63,8 +60,7 @@ export default function SingleThought() {
       <ThoughtCard
         thought={thought}
         showCommentsLink={false}
-        // The world is already on screen above this, turnable; a still of it
-        // here would just be the same picture twice.
+        // The world is already on screen above.
         showBuild={false}
         onDeleted={() => navigate("/", { replace: true })}
       />
@@ -73,9 +69,8 @@ export default function SingleThought() {
         <h2 className="text-sm font-semibold">
           {reactions.length} {reactions.length === 1 ? "comment" : "comments"}
         </h2>
-        {/* The box to type in comes before what other people wrote. On a post
-            with a long thread, having it at the bottom means scrolling past
-            everything to say anything. */}
+        {/* The box to type in comes first, so a long thread does not mean
+            scrolling past everything to say anything. */}
         {isLoggedIn ? (
           <div className="py-3">
             <ReactionForm thoughtId={thought._id} />

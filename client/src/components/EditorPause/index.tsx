@@ -6,15 +6,6 @@ import SceneSettingsMenu from "../SceneSettingsMenu.tsx";
 import NewWorldDialog from "../NewWorldDialog/index.tsx";
 import { useEditorSettings } from "../../lib/sceneSettings.ts";
 
-/**
- * The screen shown whenever the player is not in the world.
- *
- * It is the editor's front door on arrival and its pause screen afterwards,
- * because both want exactly the same thing on screen: what the controls are and
- * a way back in. It replaces a "Controls" button that used to live in the site
- * header, which the editor no longer renders.
- */
-
 const CONTROLS: [string, string][] = [
   ["Left click / C", "Break a block (hold to keep going)"],
   ["Right click / F", "Place a block (hold to keep going)"],
@@ -52,18 +43,11 @@ export default function EditorPause({ firstVisit, loading = null, onPlay }: Prop
       onClick={loading ? undefined : onPlay}
     >
       <div
-        // Named so a test can find the pause screen without matching on
-        // class names, and without going through the accessibility tree, which
-        // hides everything behind an open menu.
+        // A test finds the pause screen by this.
         data-pause-card
         className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl"
-        // The card is part of the click target for playing, but the two links
-        // inside it are not, so stop those clicks from also locking the mouse.
         onClick={(event) => event.stopPropagation()}
       >
-        {/* Changing how the world is lit needs a cursor, and the only time
-            there is one is while paused. It belongs here rather than as another
-            thing floating over the crosshair. */}
         <div className="absolute top-4 right-4">
           <SceneSettingsMenu settings={settings} onChange={setSettings} />
         </div>
@@ -92,9 +76,6 @@ export default function EditorPause({ firstVisit, loading = null, onPlay }: Prop
           New world
         </Button>
 
-        {/* The way out is a button of its own rather than a footnote. Getting
-            stuck in a pointer-locked full-screen view with no visible exit is
-            the easiest way to lose someone. */}
         <Button asChild variant="outline" size="lg" className="mt-2 w-full">
           <Link to="/">
             <ChevronLeft />
@@ -117,9 +98,7 @@ export default function EditorPause({ firstVisit, loading = null, onPlay }: Prop
           ))}
         </dl>
 
-        {/* The site footer carries this too, but the editor covers the footer,
-            and the licence asks for the credit to be somewhere obvious wherever
-            the work is used. */}
+        {/* The editor covers the footer, and the licence wants the credit visible. */}
         <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
           Block textures from{" "}
           <a
@@ -142,11 +121,9 @@ export default function EditorPause({ firstVisit, loading = null, onPlay }: Prop
           . Not an official Minecraft product.
         </p>
 
-        {/* Inside the card, not beside it. The dialog renders through a portal,
-            so its markup leaves this subtree, but React sends events up the
-            component tree rather than the DOM tree. Outside the card, every
-            click in the dialog would reach the backdrop's onClick, start play,
-            unmount this screen and take the dialog with it. */}
+        {/* Inside the card, not beside it. The dialog portals out of the DOM subtree
+            but React still bubbles its clicks up the component tree, and the
+            backdrop's onClick would start play and unmount the dialog. */}
         <NewWorldDialog open={newWorldOpen} onOpenChange={setNewWorldOpen} />
       </div>
     </div>

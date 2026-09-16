@@ -32,15 +32,9 @@ const TREE_BLOCK_IDS = new Set<number>([
 ]);
 
 /**
- * The generator is part of the save format: a build is its seed plus the blocks
- * the player changed, so different terrain from the same seed means every older
- * build quietly loads as a different world, with no error.
- *
- * These hashes pin it down. A failure is a warning that saved builds have
- * changed meaning: either undo the change, or raise BUILD_FORMAT_VERSION and
- * record the new hashes here. That happened once, at version 4, when canopies
- * lost their top corners; no old generator was kept because the change only
- * removes leaves, which the test below holds in place.
+ * Different terrain from the same seed makes every older build load as a
+ * different world. If a change is intended, raise BUILD_FORMAT_VERSION and
+ * record the new hashes here.
  */
 const TERRAIN_HASHES: Record<number, string> = {
   1: "4cc5becfc119f0b5",
@@ -49,8 +43,7 @@ const TERRAIN_HASHES: Record<number, string> = {
   99999: "d6a2dbc4ed8953b7",
 };
 
-/** A short, stable fingerprint of a world. Keys are sorted so it does not
- * depend on the order the generator happened to insert them in. */
+/** A stable fingerprint of a world; keys are sorted so insertion order does not matter. */
 function fingerprint(blocks: Map<BlockKey, number>): string {
   const hash = createHash("sha256");
   for (const key of [...blocks.keys()].sort()) hash.update(`${key}=${blocks.get(key)};`);
@@ -58,8 +51,6 @@ function fingerprint(blocks: Map<BlockKey, number>): string {
 }
 
 test("the world size has not changed", () => {
-  // The size is baked into every saved build's coordinates as much as the seed
-  // is, so it belongs under the same guard.
   assert.equal(WORLD_SIZE, 64);
 });
 
@@ -84,9 +75,7 @@ test("a world grown without trees has no vegetation and no trunks", () => {
 });
 
 test("turning trees off leaves the ground exactly as it was", () => {
-  // Trees draw from their own random stream, so skipping them must not shift
-  // the landscape underneath. Every block of the bare world should appear
-  // unchanged in the treed one.
+  // Trees draw from their own random stream, so skipping them must not shift the ground.
   const bare = generateTerrain(1337, WORLD_SIZE, { trees: false });
   const treed = generateTerrain(1337);
 
@@ -105,9 +94,7 @@ test("a bare world round-trips as bare", () => {
 });
 
 test("a larger world round-trips at its own size", () => {
-  // The size is an input to the generator, so a build saved at one size and
-  // reloaded at the default would rebuild against a different landscape. This
-  // is the case that used to load wrong, silently.
+  // Reloading at the default size would rebuild against a different landscape.
   const size = WORLD_SIZE * 2;
   const blocks = generateTerrain(7, size);
   const loaded = deserializeWorld(serializeWorld(7, blocks, size));
@@ -118,9 +105,7 @@ test("a larger world round-trips at its own size", () => {
 });
 
 test("a build saved before the canopy changed loses only leaves", () => {
-  // Version 4 clipped the corners off the top of every canopy. Older builds are
-  // still read with the current generator rather than a preserved old one, so
-  // what they lose has to be exactly those leaves and nothing else.
+  // Version 4 clipped canopy corners; old builds use the current generator, so only leaves may go.
   const seed = 1337;
   const blocks = generateTerrain(seed);
   const stone = toKey(10, 40, 10);
@@ -160,8 +145,6 @@ test("an edited world round-trips exactly", () => {
   const blocks = generateTerrain(seed);
   const edited = new Map(blocks);
 
-  // Take some terrain away and put some blocks somewhere the generator would
-  // never place any, which exercises both halves of the diff.
   let removed = 0;
   for (const key of blocks.keys()) {
     if (removed >= 250) break;
@@ -180,8 +163,7 @@ test("an edited world round-trips exactly", () => {
 });
 
 test("a saved build is small", () => {
-  // The whole point of the format. Version 1 wrote every block out and ran to
-  // hundreds of kilobytes; the server now refuses anything over 512 KB.
+  // The server refuses anything over 512 KB.
   const blocks = generateTerrain(7);
   const edited = new Map(blocks);
   for (let i = 0; i < 1000; i += 1) edited.set(toKey(i % 40, 45 + Math.floor(i / 40), i % 31), 3);
@@ -202,17 +184,13 @@ test("builds from an unreadable format are refused rather than misread", () => {
     added: [],
   });
 
-  // Returning null is what shows the "saved in an older format" message.
-  // Guessing at the payload instead would load a world that is not the one
-  // that was saved.
+  // Null is what shows the "older format" message.
   assert.equal(deserializeWorld(ancient), null);
   assert.equal(deserializeWorld(future), null);
 });
 
 test("builds saved before slabs existed still load", () => {
-  // Version 2 is exactly readable: it has no shape bits, and no shape bits
-  // means a full cube, which is what every block in a version 2 build is.
-  // Refusing them would have thrown away every build already saved.
+  // Version 2 has no shape bits, and no shape bits is a full cube.
   const seed = 42;
   const version2 = JSON.stringify({
     v: 2,
@@ -243,8 +221,6 @@ test("slabs survive a save and a load", () => {
   assert.ok(loaded, "should have loaded");
   assert.equal(loaded.blocks.get(toKey(4, 45, 4)), bottom);
   assert.equal(loaded.blocks.get(toKey(5, 45, 4)), top);
-  // The id has to come back out of the packed value unharmed, or a saved slab
-  // would load as some other block entirely.
   assert.equal(blockIdOf(loaded.blocks.get(toKey(5, 45, 4)) ?? 0), BLOCK_IDS.stone);
 });
 

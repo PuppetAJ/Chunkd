@@ -64,22 +64,18 @@ test("a lone block is drawn", () => {
 });
 
 test("a block behind glass is still drawn", () => {
-  // The centre block is buried, but one of the six neighbours is glass, so it
-  // is visible through it and has to be drawn.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), BLOCK_IDS.glass);
   assert.equal(drawnPositions(blocks).has("0,0,0"), true);
 });
 
 test("a block behind leaves is still drawn", () => {
-  // The pack's leaves have gaps in them, so they do not hide what is behind.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), BLOCK_IDS.oakLeaves);
   assert.equal(drawnPositions(blocks).has("0,0,0"), true);
 });
 
 test("glass buried in solid blocks is not drawn", () => {
-  // Being see-through says nothing about whether you can see the block itself.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 0, 0), BLOCK_IDS.glass);
   assert.equal(drawnPositions(blocks).has("0,0,0"), false);
@@ -96,13 +92,9 @@ test("layers come back sorted by block id", () => {
 });
 
 test("updating around a change matches working the whole world out again", () => {
-  // The visible set is now maintained as edits happen instead of being rebuilt,
-  // which is only safe while the cheap path and the thorough one agree. This
-  // plays out a long run of edits and checks they never diverge.
   const blocks = generateTerrain(4242, 24);
   const visible = computeVisible(blocks);
 
-  // A tiny deterministic generator, so a failure is always reproducible.
   let state = 12345;
   const random = (limit: number) => {
     state = (state * 1103515245 + 12345) & 0x7fffffff;
@@ -142,9 +134,7 @@ test("updating around a change matches working the whole world out again", () =>
 });
 
 test("a slab does not hide the block underneath it", () => {
-  // The reason face culling had to learn about shapes at all. A slab covers
-  // half of each side face, and half covered is not covered, so treating it as
-  // an occluder left see-through holes wherever a slab floor met the terrain.
+  // Half covered is not covered.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_TOP));
   const drawn = drawnPositions(blocks);
@@ -152,25 +142,19 @@ test("a slab does not hide the block underneath it", () => {
 });
 
 test("a slab flush against a face still hides what is behind that face", () => {
-  // The other half of the rule. A bottom slab fills its cell's underside
-  // exactly, so the block below it is covered and there is no reason to draw
-  // it. Getting this wrong would cost the saving that culling exists for.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
   assert.equal(drawnPositions(blocks).has("0,0,0"), false);
 });
 
 test("a slab is always drawn, however buried", () => {
-  // A bottom slab's top surface is inside its own cell, so no neighbour can
-  // cover it and it can never be culled.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM));
   assert.equal(drawnPositions(blocks).has("0,0,0"), true);
 });
 
 test("cubes and slabs of one block are drawn as separate layers", () => {
-  // Every instance in a mesh shares one geometry, so a cube and a slab of the
-  // same stone cannot be in the same layer.
+  // Every instance in a mesh shares one geometry.
   const blocks = new Map<BlockKey, number>([
     [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone)],
     [toKey(2, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM)],
@@ -184,8 +168,6 @@ test("cubes and slabs of one block are drawn as separate layers", () => {
 });
 
 test("updating around a slab matches working the whole world out again", () => {
-  // The incremental path and the from-scratch path have to agree, and the
-  // shape rules are new enough to be worth checking on both.
   const blocks = solidCube(BLOCK_IDS.dirt);
   const visible = computeVisible(blocks);
 
@@ -196,27 +178,19 @@ test("updating around a slab matches working the whole world out again", () => {
 });
 
 test("a stair hides the block its flat half sits on", () => {
-  // A bottom stair's underside is a whole face, like a bottom slab's.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH));
   assert.equal(drawnPositions(blocks).has("0,0,0"), false);
 });
 
 test("a stair does not hide the block its step half is missing from", () => {
-  // An upside-down stair's underside is notched, so the block below shows
-  // through the gap and still has to be drawn.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_TOP, FACING_NORTH));
   assert.equal(drawnPositions(blocks).has("0,0,0"), true);
 });
 
 test("a stair does not hide what is beside it, even where it is solid", () => {
-  // Deliberately conservative. How much of a stair's tall half is filled
-  // depends on that stair's own neighbours, because a run of them turns
-  // corners, so a side rule would make one block's visibility depend on cells
-  // two away. The update after an edit only looks one cell out. Missing a
-  // chance to cull costs a drawn block nobody sees; culling something that
-  // should be drawn leaves a hole in the world.
+  // Deliberately conservative: a stair's side fill depends on cells two away, which an edit's refresh does not visit.
   for (const facing of [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST]) {
     for (const at of [
       [0, 0, -1],
@@ -245,9 +219,7 @@ test("a stair is always drawn, however buried", () => {
 });
 
 test("stairs of one block facing different ways are separate layers", () => {
-  // A stair's shape is baked into its geometry rather than rotated per
-  // instance, so each distinct one is its own mesh. Spaced out so none of them
-  // is a neighbour of another and they all stay straight.
+  // Spaced so none is a neighbour of another and they all stay straight.
   const blocks = new Map<BlockKey, number>([
     [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH)],
     [toKey(4, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_EAST)],
@@ -261,8 +233,6 @@ test("stairs of one block facing different ways are separate layers", () => {
 });
 
 test("two stairs meeting at right angles are drawn as corners", () => {
-  // The whole point of deriving the shape from the neighbours: a straight run
-  // and a turn cannot be the same mesh, and neither is the straight shape.
   const straight = new Map<BlockKey, number>([
     [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH)],
   ]);
@@ -281,9 +251,6 @@ test("two stairs meeting at right angles are drawn as corners", () => {
 });
 
 test("a fence, a wall or a trapdoor never hides the block beside it", () => {
-  // None fills a whole face of its cell, and the one a shut trapdoor fills is
-  // full of holes. Counting any of them as covering would cut a hole in the
-  // world where the block behind should be.
   const shapes: [string, number][] = [
     ["fence", packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE)],
     ["wall", packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL)],
@@ -362,7 +329,6 @@ test("an edit hands back the layers it did not touch", () => {
   const index = createLayerIndex(visible, blocks);
   const first = layersFromIndex(index, blocks);
 
-  // Break one block on the surface.
   let broken: [number, number, number] | null = null;
   for (const key of visible.keys()) {
     const [x, y, z] = fromKey(key);
@@ -399,8 +365,6 @@ test("edits kept up by the index draw the same as grouping from scratch", () => 
   const visible = computeVisible(blocks);
   const index = createLayerIndex(visible, blocks);
 
-  // Dig a hole, build a stair run with turns in it, wall it, and glaze it,
-  // so that the shapes that depend on their neighbours all come into play.
   const edits: [number, number, number, number | undefined][] = [];
   const stairs = (facing: number) => packBlock(BLOCK_IDS.stoneBricks, AXIS_Y, SHAPE_STAIRS_BOTTOM, facing);
   for (let x = 8; x < 14; x += 1) for (let z = 8; z < 14; z += 1) edits.push([x, 20, z, undefined]);
@@ -410,7 +374,6 @@ test("edits kept up by the index draw the same as grouping from scratch", () => 
   for (let z = 8; z < 14; z += 1) edits.push([6, 21, z, packBlock(BLOCK_IDS.glassPane)]);
   edits.push([7, 22, 10, packBlock(BLOCK_IDS.cobblestone)]);
   edits.push([9, 22, 8, packTrapdoor(BLOCK_IDS.oakPlanks, FACING_NORTH, false, true)]);
-  // Then take some of it back out again.
   edits.push([14, 21, 9, undefined], [7, 21, 10, undefined], [10, 21, 8, undefined]);
 
   for (const [x, y, z, value] of edits) {

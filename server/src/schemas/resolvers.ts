@@ -23,14 +23,10 @@ import {
   type GraphQLContext,
 } from "../utils/auth.ts";
 
-// A save is the seed plus the differences, so a few kilobytes usually, but a
-// 3x3 world cleared of vegetation records every removed leaf and reaches about
-// 164 KB before a block is placed. A safety net, not a design limit.
+// A save is a few kilobytes, a few hundred at most. A safety net, not a design limit.
 const MAX_BUILD_BYTES = 2 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 256 * 1024;
 
-// How many posts one request may ask for. The default is a screenful or two;
-// the ceiling stops a client asking for the entire collection in one go.
 const DEFAULT_FEED_LIMIT = 10;
 const MAX_FEED_LIMIT = 50;
 
@@ -40,19 +36,16 @@ function feedWindow(args: { limit?: number | null; offset?: number | null }) {
   return { limit, offset };
 }
 
-// Per-address limits on the three ways to obtain a token. Generous for a
-// person, tight for a script. The general limiter in server.ts still applies
-// on top.
+// Per-address limits on the ways to obtain a token, on top of the general limiter in server.ts.
 const limitLogin = attemptLimiter("sign-in", 20, 15 * 60_000);
 const limitSignup = attemptLimiter("sign-up", 60, 60 * 60_000);
 const limitDemo = attemptLimiter("demo sign-in", 30, 60 * 60_000);
 
-// Compared against when the email is unknown, so both answers cost the same
-// and timing the endpoint does not reveal which addresses are registered.
+// Compared against when the email is unknown, so timing does not reveal which
+// addresses are registered.
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 
-// How many builds one account can hold. A world is a few kilobytes, so this is
-// not about disk. It stops one script filling the database between resets.
+// Stops one script filling the database between resets.
 const MAX_BUILDS_PER_USER = 50;
 
 interface BuildPayload {
@@ -69,29 +62,19 @@ function checkBuildPayload(args: BuildPayload): void {
   if (args.thumbnail && Buffer.byteLength(args.thumbnail, "utf8") > MAX_THUMBNAIL_BYTES) {
     throw badRequest("That build's preview image is too large.");
   }
-  // The client renders this straight into an <img>. Anything but an inline
-  // image is refused here rather than left for the content security policy
-  // to catch, since that policy is only on in production.
+  // Rendered straight into an <img>, and the content security policy is only on in production.
   if (args.thumbnail && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(args.thumbnail)) {
     throw badRequest("That build's preview is not an image.");
   }
 }
 
-// How many of a user's follows, followers, posts or builds one query returns.
-// The counts stay exact; only the lists are capped. Along with the depth limit
-// this is what bounds how much work one query can ask for.
+// Lists are capped; the counts stay exact.
 const MAX_LIST = 100;
 
-// The shared account behind the demo button. It is only ever reached through
-// the demoLogin mutation, so nobody types these and the password is thrown away
-// as soon as it is hashed.
 const DEMO_IS_READ_ONLY =
   "The demo account's sign-in details cannot be changed, because everyone shares it. Sign up for an account of your own to change these.";
 
-/**
- * The demo account, made on first use. HydratedDocument is a user that came back
- * from the database, so it carries .save() and the rest.
- */
+/** The demo account, made on first use. */
 async function demoAccount(): Promise<HydratedDocument<UserDocument>> {
   const existing = await User.findOne({ username: DEMO_USERNAME }).exec();
   if (existing) {
@@ -111,9 +94,7 @@ async function demoAccount(): Promise<HydratedDocument<UserDocument>> {
       isDemo: true,
     });
   } catch (error) {
-    // Two visitors can press the button at the same moment and both find it
-    // missing. The unique index decides which one creates it, and the other
-    // reads back what was just made instead of failing.
+    // Two visitors can press the button at once; the unique index decides who creates it.
     if (isDuplicateKeyError(error)) {
       const created = await User.findOne({ username: DEMO_USERNAME }).exec();
       if (created) return created;
@@ -154,8 +135,6 @@ export const resolvers = {
     ) => {
       const { limit, offset } = feedWindow(args);
 
-      // Filtering by username means one extra lookup, because thoughts store the
-      // author's id rather than a copy of their name.
       if (args.username) {
         const author = await User.findOne({ username: args.username }).select("_id");
         if (!author) return [];
@@ -175,17 +154,13 @@ export const resolvers = {
   },
 
   // ---- Field resolvers -------------------------------------------------
-  // These run only when a query actually asks for the field, so listing the
-  // feed does not drag down every friend and build of every author.
 
   User: {
     followingCount: (parent: UserDocument) => parent.following.length,
 
-    // Followers are not stored: they are everyone whose `following` holds this
-    // user, which the index on that field is for. `.exec()` matters, or GraphQL
-    // gets a thenable Query and a Query refuses to run twice.
-    // Coerced rather than read straight through: accounts created before this
-    // field existed have no value stored, and the schema promises a boolean.
+    // Followers are everyone whose `following` holds this user. `.exec()` matters,
+    // or GraphQL gets a thenable Query and a Query refuses to run twice.
+    // isDemo is coerced: accounts from before the field existed have nothing stored.
     isDemo: (parent: UserDocument) => Boolean(parent.isDemo),
     followerCount: async (parent: UserDocument) =>
       User.countDocuments({ following: parent._id }).exec(),
@@ -205,7 +180,7 @@ export const resolvers = {
         .sort({ createdAt: -1 })
         .limit(MAX_LIST),
 
-    // An email address is not public. Return it only to its owner.
+    // Only the owner sees their email address.
     email: (parent: UserDocument, _args: unknown, context: GraphQLContext) =>
       context.user && context.user._id === parent._id.toString() ? parent.email : null,
 
@@ -261,17 +236,12 @@ export const resolvers = {
       context: GraphQLContext,
     ) => {
       limitSignup(context.ip);
-      // The demo account is created on first use, and demoAccount() adopts an
-      // existing user of that name. Without this, whoever registered "demo"
-      // first would have had their account quietly turned into the shared
-      // public one, password locked and all.
+      // demoAccount() adopts an existing user of this name, so nobody may register it.
       if (args.username.trim().toLowerCase() === DEMO_USERNAME) {
         throw badRequest("That username is reserved.");
       }
       try {
-        // Named one by one rather than passing `args` through. Today the two
-        // are the same, but the day a field is added to the mutation for some
-        // other reason it must not land in the document by accident.
+        // Named one by one, so a field added to the mutation later cannot land in the document.
         const user = await User.create({
           username: args.username,
           email: args.email,
@@ -279,12 +249,9 @@ export const resolvers = {
         });
         return { token: signToken(user), user };
       } catch (error) {
-        // Without this the client saw a raw driver error naming the index.
         if (isDuplicateKeyError(error)) {
           throw badRequest("That username or email address is already taken.");
         }
-        // A password that is too short, or a username that is, is the person's
-        // to fix. Report it as such rather than as a server fault.
         const invalid = asUserInputError(error);
         if (invalid) throw invalid;
         throw error;
@@ -299,9 +266,8 @@ export const resolvers = {
       limitLogin(context.ip);
       const user = await User.findOne({ email: args.email.toLowerCase() });
 
-      // Deliberately the same message for "no such user" and "wrong password",
-      // so the endpoint cannot be used to discover which emails are registered.
-      // And the same amount of work: see DUMMY_HASH.
+      // The same message and the same amount of work (see DUMMY_HASH) for an unknown
+      // email and a wrong password, so the endpoint cannot reveal which emails exist.
       const failure = badRequest("Incorrect email address or password.");
       if (!user) {
         await bcrypt.compare(args.password, DUMMY_HASH);
@@ -312,9 +278,7 @@ export const resolvers = {
       return { token: signToken(user), user };
     },
     demoLogin: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
-      // The tokens are for a shared public account and not worth much, but
-      // without this a script could mint them faster than the site resets and
-      // use them to post.
+      // Without this a script could mint tokens faster than the site resets.
       limitDemo(context.ip);
       const user = await demoAccount();
       return { token: signToken(user), user };
@@ -322,8 +286,7 @@ export const resolvers = {
 
     renewToken: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       const auth = requireAuth(context);
-      // Read the account back rather than re-signing what the old token said,
-      // so a deleted account cannot keep extending its own session.
+      // Read the account back, so a deleted account cannot keep extending its session.
       const user = await User.findById(auth._id);
       if (!user) throw notFound("That account no longer exists.");
       return { token: signToken(user), user };
@@ -382,7 +345,6 @@ export const resolvers = {
         throw forbidden("You can only delete your own posts.");
       }
 
-      // `document.delete()` was removed from Mongoose years ago.
       await thought.deleteOne();
       return args.thoughtId;
     },
@@ -422,7 +384,6 @@ export const resolvers = {
       const reaction = thought.reactions.id(args.reactionId);
       if (!reaction) throw notFound("That comment no longer exists.");
 
-      // Either the comment's author or the owner of the post can remove it.
       const isCommentAuthor = reaction.author.toString() === auth._id;
       const isThreadOwner = thought.author.toString() === auth._id;
       if (!isCommentAuthor && !isThreadOwner) {
@@ -450,8 +411,7 @@ export const resolvers = {
       try {
         await user.save();
       } catch (error) {
-        // A duplicate username or email arrives as a Mongo key error rather
-        // than a validation error, so it needs saying in plain words.
+        // A duplicate username or email arrives as a key error, not a validation error.
         if (isDuplicateKeyError(error)) {
           throw badRequest("That username or email is already taken.");
         }
@@ -472,8 +432,7 @@ export const resolvers = {
       if (!user) throw notFound("Your account no longer exists.");
       if (user.isDemo) throw forbidden(DEMO_IS_READ_ONLY);
 
-      // Knowing the current password is what stops a stolen token being enough
-      // to take an account over permanently.
+      // Stops a stolen token being enough to take an account over permanently.
       if (!(await user.isCorrectPassword(args.currentPassword))) {
         throw badRequest("That is not your current password.");
       }
@@ -503,8 +462,6 @@ export const resolvers = {
       const exists = await User.exists({ _id: userId });
       if (!exists) throw notFound("That user no longer exists.");
 
-      // $addToSet rather than $push, so following twice is not an error and
-      // does not put them in the list twice.
       const user = await User.findByIdAndUpdate(
         auth._id,
         { $addToSet: { following: userId } },
@@ -514,7 +471,6 @@ export const resolvers = {
       return user;
     },
 
-    // This existed only as a commented-out block in the original resolvers.
     unfollow: async (_parent: unknown, args: { userId: string }, context: GraphQLContext) => {
       const auth = requireAuth(context);
       const user = await User.findByIdAndUpdate(
@@ -544,8 +500,7 @@ export const resolvers = {
       return Build.create({
         owner: new Types.ObjectId(auth._id),
         name: args.name?.trim() || "Untitled build",
-        // The encoding lives in the client, so it reports its own version
-        // rather than the server keeping a second constant in step.
+        // The client owns the encoding, so it reports its own version.
         format: args.format ?? CURRENT_BUILD_FORMAT,
         data: args.data,
         thumbnail: args.thumbnail ?? undefined,

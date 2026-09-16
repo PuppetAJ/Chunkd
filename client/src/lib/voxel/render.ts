@@ -21,11 +21,7 @@ export interface RenderLayer {
   blockId: number;
   /** Whole block, slab or stairs. One mesh is one id, shape and facing. */
   shape: number;
-  /**
-   * The part of the shape that is not in the shape number: for stairs the
-   * quarters the tall half fills, for fences and walls the sides they join,
-   * for a trapdoor its facing, half and whether it is open.
-   */
+  /** What the shape number leaves out: stair quarters, joined sides, or trapdoor facing, half and open. */
   variant: number;
   /** Flat x, y, z triples. */
   positions: Float32Array;
@@ -33,22 +29,12 @@ export interface RenderLayer {
   axes: Uint8Array;
 }
 
-/**
- * The blocks that actually need drawing: a block boxed in on all six sides
- * cannot be seen, and on a solid landscape that is most of the world.
- *
- * Kept as its own map and updated around each edit rather than worked out on
- * demand, which costs six questions about every block in the world.
- */
+/** The blocks not boxed in on all six sides. Kept up to date around each edit rather than recomputed. */
 export type VisibleBlocks = Map<BlockKey, number>;
 
 /**
- * Does the block in this cell cover the whole of the face it shares with the
- * neighbour that is asking? `dy` is the vertical step from that neighbour, so
- * for +1 this block is above and the shared face is its underside.
- *
- * Glass never counts, and a cut block covers only one of its six faces. Half
- * covered is not covered: treating it as whole leaves holes in the world.
+ * Does the block here cover the whole face it shares with the neighbour asking?
+ * `dy` is the step from that neighbour: +1 means this block is above it.
  */
 function coversFace(
   blocks: Map<BlockKey, number>,
@@ -66,24 +52,19 @@ function coversFace(
   if (shape === SHAPE_SLAB_BOTTOM) return dy === 1;
   if (shape === SHAPE_SLAB_TOP) return dy === -1;
 
-  // A stair's flat half fills the footprint, so its outer face is whole. Its
-  // sides are never counted, even where they are solid: how much of the tall
-  // half is filled depends on that stair's own neighbours, so the answer would
-  // depend on cells two away, which the update after an edit does not visit.
+  // A stair's sides are never counted: their fill depends on cells two away,
+  // which the refresh after an edit does not visit.
   if (shape === SHAPE_STAIRS_BOTTOM) return dy === 1;
   if (shape === SHAPE_STAIRS_TOP) return dy === -1;
 
-  // None of these hides a neighbour. Fences and walls fill no face of their
-  // cell, and the one a shut trapdoor fills is full of holes you can see
-  // through. Left to the line below, each would have cut a hole in the world.
+  // Fences and walls fill no face, and a shut trapdoor's is full of holes.
   if (shape === SHAPE_FENCE || shape === SHAPE_WALL || shape === SHAPE_TRAPDOOR) return false;
 
   return true;
 }
 
 function isHidden(blocks: Map<BlockKey, number>, x: number, y: number, z: number): boolean {
-  // A slab's exposed surface is inside its own cell, where no neighbour can
-  // reach it, so a slab is never hidden.
+  // A cut block's exposed surface is inside its own cell, so it is never hidden.
   const self = blocks.get(toKey(x, y, z));
   if (self !== undefined && blockShapeOf(self) !== SHAPE_FULL) return false;
 
@@ -107,12 +88,7 @@ export function computeVisible(blocks: Map<BlockKey, number>): VisibleBlocks {
   return visible;
 }
 
-/**
- * Bring the visible set up to date after one cell changed.
- *
- * The cell itself and its six neighbours are the only blocks whose visibility
- * the change can affect, so those are the only ones re-examined.
- */
+/** After one cell changed, only it and its six neighbours can change visibility. */
 export function refreshVisibleAround(
   blocks: Map<BlockKey, number>,
   visible: VisibleBlocks,
@@ -188,13 +164,8 @@ function layerFor(type: number, keys: Iterable<BlockKey>, blocks: Map<BlockKey, 
 }
 
 /**
- * Which layer every drawn block is in, kept between edits.
- *
- * Grouping the whole world again on each edit costs as much as the world is
- * big, and the largest world has tens of thousands of visible blocks. With this
- * an edit re-examines the cells around it and rebuilds only the layers those
- * cells moved between. Every other layer is handed back as the same object, so
- * React and the GPU leave it alone.
+ * Which layer each drawn block is in, so an edit rebuilds only the layers it
+ * touched and every other layer is handed back as the same object.
  */
 export interface LayerIndex {
   /** The layer type of every visible block. */
@@ -206,11 +177,9 @@ export interface LayerIndex {
 }
 
 /**
- * Group the visible blocks by id, shape and variant, one instanced mesh each.
- * A stair's shape is baked into its geometry rather than rotated per instance,
- * so its faces keep the brightness and texture of the way they point.
- *
- * `blocks` is the whole world because a stair's shape depends on its neighbours.
+ * One layer per id, shape and variant. Shapes are baked into geometry rather than
+ * rotated per instance, so faces keep the shading of the way they point.
+ * `blocks` is the whole world because a shape depends on its neighbours.
  */
 export function createLayerIndex(visible: VisibleBlocks, blocks: Map<BlockKey, number> = visible): LayerIndex {
   const index: LayerIndex = { typeByKey: new Map(), keysByType: new Map(), layerByType: new Map() };
@@ -241,12 +210,7 @@ function removeFromIndex(index: LayerIndex, key: BlockKey, type: number): void {
   index.layerByType.delete(type);
 }
 
-/**
- * Bring the index up to date after one cell changed. The cell and its six
- * neighbours are the only blocks whose layer the change can affect: a stair,
- * fence, wall or pane takes its shape from the cells next to it, and nothing
- * looks further than that.
- */
+/** After one cell changed, only it and its six neighbours can change layer. */
 export function refreshLayersAround(
   index: LayerIndex,
   visible: VisibleBlocks,
@@ -271,20 +235,14 @@ export function refreshLayersAround(
     const value = visible.get(key);
     const was = index.typeByKey.get(key);
     const now = value === undefined ? undefined : layerTypeFor(blocks, value, cx, cy, cz);
-    // A neighbour whose layer has not changed has not changed at all: an edit
-    // never alters a neighbour's value, only its shape or whether it is seen.
-    // The edited cell itself is always rebuilt, since its value is what changed.
+    // A neighbour whose layer is unchanged is untouched; the edited cell is always rebuilt.
     if (was === now && key !== centre) continue;
     if (was !== undefined) removeFromIndex(index, key, was);
     if (now !== undefined) addToIndex(index, key, now);
   }
 }
 
-/**
- * The layers to draw, rebuilding only those an edit has touched since the last
- * read. Sorted by type so layer order is stable between edits, which keeps
- * React from tearing down and rebuilding instanced meshes on every block placed.
- */
+/** Sorted by type so layer order is stable, or React rebuilds the meshes on every edit. */
 export function layersFromIndex(index: LayerIndex, blocks: Map<BlockKey, number>): RenderLayer[] {
   return [...index.keysByType.keys()]
     .sort((a, b) => a - b)

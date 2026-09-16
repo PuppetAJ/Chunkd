@@ -6,13 +6,7 @@ import { DEMO_LOGIN } from "../utils/mutations.ts";
 import { useAuthStore } from "./auth.ts";
 import { requestErrorMessage } from "./credentials.ts";
 
-/**
- * Sign in as the shared demo account.
- *
- * The auth pages and the landing page both offer this, and they present it
- * quite differently, so the behaviour lives here and each one supplies its own
- * button.
- */
+/** Sign in as the shared demo account. The auth pages and the landing page each supply their own button. */
 export function useDemoLogin() {
   const logIn = useAuthStore((state) => state.logIn);
   const navigate = useNavigate();
@@ -26,8 +20,7 @@ export function useDemoLogin() {
     try {
       const { data } = await demoLogin();
       logIn((data as { demoLogin: { token: string } }).demoLogin.token);
-      // Drop anything cached for the logged-out visitor, the same as a normal
-      // sign-in does.
+      // Drop anything cached for the logged-out visitor.
       await apollo.resetStore();
       navigate("/", { replace: true });
     } catch (requestError) {

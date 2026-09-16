@@ -11,9 +11,6 @@ import { blockIdOf } from "./blockValue.ts";
 const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1);
 
 test("the player never spawns inside a block", () => {
-  // Trees made this fail on about one seed in five. Spawning inside a block
-  // meant collision was skipped, so the player fell through the world, and the
-  // respawn put them back in the same place.
   for (const seed of SEEDS) {
     const blocks = generateTerrain(seed);
     const [x, y, z] = spawnPointFor(blocks);
@@ -35,7 +32,6 @@ test("a player standing at the spawn point stays there", () => {
 test("a player buried in blocks rises out instead of sinking through the world", () => {
   const blocks = generateTerrain(8);
   const [x, y, z] = spawnPointFor(blocks);
-  // Bury them where they stand.
   for (let dy = 0; dy <= 2; dy += 1) {
     blocks.set(toKey(Math.round(x - 0.5), Math.round(y + 0.5) + dy, Math.round(z - 0.5)), 18);
   }
@@ -65,8 +61,7 @@ const LEAVES = new Set<number>([
 const LOGS = new Set<number>([BLOCK_IDS.oakLog, BLOCK_IDS.birchLog, BLOCK_IDS.cherryLog]);
 
 test("a canopy finishes in a cross rather than a flat square", () => {
-  // Minecraft's oak clips the four corners off the top layer of leaves. Find
-  // the top of a trunk and check the layer above it has edges but no corners.
+  // Minecraft's oak clips the four corners off the top layer of leaves.
   const blocks = generateTerrain(1337);
 
   let checked = 0;
@@ -77,7 +72,6 @@ test("a canopy finishes in a cross rather than a flat square", () => {
     if (LOGS.has(blockIdOf(blocks.get(toKey(x, y + 1, z)) ?? 0))) continue;
 
     const top = y + 1;
-    // The ring one above the trunk top: edges present, corners absent.
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
       assert.ok(
         LEAVES.has(blockIdOf(blocks.get(toKey(x + dx, top, z + dz)) ?? 0)),

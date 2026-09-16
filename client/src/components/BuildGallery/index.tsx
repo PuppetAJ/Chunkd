@@ -29,11 +29,8 @@ interface Props {
 }
 
 /**
- * A profile's saved worlds.
- *
- * A build is only rendered in 3D once someone opens it. Each world is a real
- * WebGL scene, and drawing a grid of them at once would cost more contexts than
- * a browser will hand out.
+ * A build is only rendered in 3D once opened: a grid of WebGL contexts is more
+ * than a browser will hand out.
  */
 export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
   const [openBuild, setOpenBuild] = useState<BuildSummary | null>(null);
@@ -58,8 +55,6 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
       <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {builds.map((build) => (
           <li key={build._id} className="overflow-hidden rounded-xl border border-border bg-card">
-            {/* The picture was taken from wherever the player was standing when
-                they saved, so it is the fastest way to tell two worlds apart. */}
             {build.thumbnail ? (
               <img
                 src={build.thumbnail}
@@ -117,8 +112,6 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
             <DialogTitle>{openBuild?.name}</DialogTitle>
           </DialogHeader>
           <div className="h-[60vh] min-h-64">
-            {/* The dialog header already names the build, so the viewer does
-                not repeat it. */}
             {openBuild && <SavedBuild buildId={openBuild._id} showName={false} />}
           </div>
         </DialogContent>
