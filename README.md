@@ -424,6 +424,15 @@ Every colour, radius and font on the site comes from tokens at the top of
 `client/src/index.css`. Change a hex value in the `:root` block and the whole
 site follows.
 
+## Planned features
+
+**Per-face meshing.** Blocks are drawn as instanced cubes, one mesh per block
+type and shape, so a face pressed against a neighbour is still sent to the GPU
+and discarded there, and a world takes a couple of hundred draw calls. Building
+a mesh of only the exposed faces, with the textures in one atlas, would draw a
+world in a handful of calls and halve the vertex work. It is a rewrite of the
+render path, so it waits until the draw count is a problem again.
+
 ## Credits
 
 Built and maintained by Adrian Jimenez. The 2026 rebuild is his work: the voxel

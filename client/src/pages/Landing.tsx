@@ -93,17 +93,9 @@ export default function Landing() {
           </span>
         </p>
 
-        {/* Stacked, the viewer sets its own height from its width. Side by
-            side it drops the ratio and takes both rows of the right hand
-            column, so it is exactly as tall as everything stacked up on the
-            left, disclaimer included.
-
-            min-h-0 and the absolute layer below are what stop a canvas that has
-            not been resized yet from feeding its old height back into the rows
-            it spans. Without them, dragging the window wider makes the text
-            reflow shorter while the canvas is still tall, the grid grows the
-            rows to fit it, the renderer then measures that taller box, and the
-            gap it opens under the buttons stays until the page is reloaded. */}
+        {/* min-h-0 and the absolute layer stop the canvas feeding its old
+            height back into the rows it spans; without them a widened window
+            leaves a gap under the buttons. */}
         <div className="relative aspect-4/3 w-full overflow-hidden rounded-xl border border-border bg-card lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:aspect-auto lg:min-h-0">
           <div className="absolute inset-0">
             {loading && !hero && <Skeleton className="h-full w-full" />}
