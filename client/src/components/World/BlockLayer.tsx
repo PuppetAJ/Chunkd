@@ -65,11 +65,8 @@ function BlockLayer({ block, layer, textures }: Props) {
     const uniform = block.top === block.side && block.side === block.bottom;
     if (uniform) return build(block.top);
 
-    const top = build(block.top);
-    const side = build(block.side);
-    const bottom = build(block.bottom);
-    // BoxGeometry's face order: +X, -X, +Y, -Y, +Z, -Z.
-    return [side, side, top, bottom, side, side];
+    // In the order blockGeometry.ts groups the faces: sides, top, bottom.
+    return [build(block.side), build(block.top), build(block.bottom)];
   }, [block, shape, textures]);
 
   // Nearest filtering and the sRGB tag are set when the texture loads, but

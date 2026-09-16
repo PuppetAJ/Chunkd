@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { Grid, OrbitControls, Preload, Sky } from "@react-three/drei";
 import { useQuery } from "@apollo/client/react";
 
@@ -282,9 +282,36 @@ function BuildScene({
       )}
 
       <BuildControls bounds={bounds} autoRotate={autoRotate} />
+      {autoRotate && <PreviewFrameRate />}
       <World blocks={world} />
     </>
   );
+}
+
+/**
+ * How often a turning preview is drawn. Its slow turn needs nothing like the
+ * screen's refresh rate, and every frame it skips is one the page around it
+ * gets back, which matters in Firefox where each draw call costs more.
+ */
+const PREVIEW_FRAMES_PER_SECOND = 30;
+
+/**
+ * A useFrame with a priority above zero takes over drawing from
+ * react-three-fiber, which then draws nothing on its own. The controls still
+ * update every frame, so the turn stays smooth in time; only the drawing is
+ * held back.
+ */
+function PreviewFrameRate() {
+  const lastDrawn = useRef(0);
+  useFrame(({ gl, scene, camera }) => {
+    const now = performance.now();
+    // A little under the interval, so a refresh that lands slightly early
+    // still counts rather than waiting for the one after.
+    if (now - lastDrawn.current < 1000 / PREVIEW_FRAMES_PER_SECOND - 2) return;
+    lastDrawn.current = now;
+    gl.render(scene, camera);
+  }, 1);
+  return null;
 }
 
 /**

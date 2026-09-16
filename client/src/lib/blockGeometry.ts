@@ -66,7 +66,7 @@ function boxPart(
   min: [number, number, number],
   max: [number, number, number],
   turnEdges = false,
-): THREE.BoxGeometry {
+): THREE.BufferGeometry {
   const geometry = new THREE.BoxGeometry(max[0] - min[0], max[1] - min[1], max[2] - min[2]);
   geometry.translate((min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2);
 
@@ -112,18 +112,56 @@ function boxPart(
 
   uv.needsUpdate = true;
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+  // BoxGeometry's face order is +X, -X, +Y, -Y, +Z, -Z.
+  for (const group of geometry.groups) {
+    group.materialIndex =
+      group.materialIndex === 2 ? MATERIAL_TOP : group.materialIndex === 3 ? MATERIAL_BOTTOM : MATERIAL_SIDE;
+  }
+  return oneGroupPerMaterial(geometry);
+}
+
+/**
+ * Which material each face of a block takes, for a block whose faces differ.
+ * BlockLayer builds its material list in this order.
+ */
+export const MATERIAL_SIDE = 0;
+export const MATERIAL_TOP = 1;
+export const MATERIAL_BOTTOM = 2;
+const MATERIAL_COUNT = 3;
+
+/**
+ * Reorder the faces so each material is one run, and one group. The renderer
+ * issues a draw call per group, so a block with a top texture was six calls
+ * per part of its shape, and a stair with a top was eighteen. Now it is three.
+ */
+function oneGroupPerMaterial(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
+  const index = geometry.index;
+  if (!index) throw new Error("A block geometry must be indexed");
+
+  const sorted: number[] = [];
+  const runs: { start: number; count: number; material: number }[] = [];
+  for (let material = 0; material < MATERIAL_COUNT; material += 1) {
+    const start = sorted.length;
+    for (const group of geometry.groups) {
+      if (group.materialIndex !== material) continue;
+      for (let i = group.start; i < group.start + group.count; i += 1) sorted.push(index.getX(i));
+    }
+    if (sorted.length > start) runs.push({ start, count: sorted.length - start, material });
+  }
+
+  geometry.setIndex(sorted);
+  geometry.clearGroups();
+  for (const run of runs) geometry.addGroup(run.start, run.count, run.material);
   return geometry;
 }
 
 /**
- * Join parts into one geometry, keeping each part's own face groups, so
- * BlockLayer's six-entry material array still lines up: index 2 is the top
- * texture, 3 the bottom, the rest the sides.
- *
- * The groups are rebuilt here because mergeGeometries makes one group per part
- * rather than per face, which would draw a whole part with the top texture.
+ * Join parts into one geometry, keeping the faces grouped by material, so
+ * BlockLayer's material list still lines up. mergeGeometries would otherwise
+ * make one group per part, and draw a whole part with the top texture.
  */
-function fuse(parts: THREE.BoxGeometry[]): THREE.BufferGeometry {
+function fuse(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const merged = mergeGeometries(parts);
   if (!merged) throw new Error("Could not build a block geometry");
   let offset = 0;
@@ -133,7 +171,7 @@ function fuse(parts: THREE.BoxGeometry[]): THREE.BufferGeometry {
     }
     offset += part.index?.count ?? part.attributes["position"]!.count;
   }
-  return merged;
+  return oneGroupPerMaterial(merged);
 }
 
 /** Shared by every block layer; the per-block difference is only the material. */
