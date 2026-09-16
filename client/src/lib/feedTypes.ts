@@ -1,9 +1,6 @@
 /**
- * The shapes the feed components expect. Apollo hands back untyped results, so
- * these describe what the queries in utils/queries.ts ask for, hand-written
- * because there is no code generation step to keep in sync.
- *
- * Optional fields are the ones a given query may leave out.
+ * Hand-written shapes for what utils/queries.ts asks for; there is no codegen.
+ * Optional fields are the ones some queries leave out.
  */
 
 /** Enough of a user to link to them and draw their avatar. */
@@ -38,19 +35,8 @@ export interface Thought {
   reactions?: Reaction[];
 }
 
-/**
- * How many posts the feed asks for at a time.
- *
- * Lives here rather than in the page, because the dialog that creates a post
- * has to refetch the same first page and the two must agree on its size.
- */
+/** Shared with the new-post dialog, which refetches the same first page. */
 export const FEED_PAGE_SIZE = 10;
 
-/**
- * The username of the shared demo account. It has to match
- * server/src/config/demo.ts. The landing page keeps this account's posts off
- * the front door, because that page is the one a visitor sees without signing
- * in and it should show curated builds rather than whatever the last stranger
- * typed.
- */
+/** Must match server/src/config/demo.ts. */
 export const DEMO_USERNAME = "demo";

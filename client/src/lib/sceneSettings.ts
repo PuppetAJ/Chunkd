@@ -1,16 +1,9 @@
 import { create } from "zustand";
 
-/**
- * How a voxel scene is lit and what it sits in. The viewer and the editor share
- * the vocabulary but keep separate preferences.
- *
- * The editor needs them because a build's thumbnail is a capture of its own
- * render at the moment you press P.
- */
+/** How a voxel scene is lit and what it sits in. The viewer and the editor keep separate preferences. */
 export type SceneEnvironment = "studio" | "daylight";
 
-/** Three steps rather than a slider: enough to fix a scene that reads too dark
- * or too washed out, without asking anyone to tune lighting by hand. */
+/** Three steps rather than a slider: enough to fix a scene that reads too dark or washed out. */
 export type SceneLight = "dim" | "even" | "bright";
 
 export interface SceneSettings {
@@ -24,13 +17,7 @@ interface SceneSettingsStore {
   setSettings: (settings: SceneSettings) => void;
 }
 
-/**
- * Read a saved preference.
- *
- * Anything unrecognised falls back to the default rather than being trusted:
- * this comes from storage that an older version of the app wrote, and a browser
- * can refuse to hand it over at all.
- */
+/** Anything unrecognised falls back to the default: an older version of the app may have written it. */
 function load(storageKey: string, fallback: SceneSettings): SceneSettings {
   try {
     const raw = localStorage.getItem(storageKey);
@@ -58,7 +45,7 @@ function makeStore(storageKey: string, fallback: SceneSettings) {
       try {
         localStorage.setItem(storageKey, JSON.stringify(settings));
       } catch {
-        // Not being able to remember the choice is survivable.
+        // Forgetting the choice is survivable.
       }
     },
   }));
@@ -79,12 +66,8 @@ export const useEditorSettings = makeStore("editor-settings", {
 });
 
 /**
- * The lighting each preset uses.
- *
- * The studio numbers are far lower than the daylight ones on purpose. Lighting
- * a model as though the sun were up while it floats in a black room is what
- * made the first dark scene look wrong: bright objects, dark nothing. Here the
- * key light does the work and the ambient only lifts the shadows off the floor.
+ * The studio numbers are far lower on purpose: a model lit as though the sun
+ * were up, floating in a black room, looks wrong.
  */
 export const LIGHTING: Record<SceneEnvironment, { ambient: number; key: number; fill: number }> = {
   studio: { ambient: 0.55, key: 1.5, fill: 0.45 },

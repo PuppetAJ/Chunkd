@@ -10,13 +10,6 @@ interface Props {
   people: UserSummary[];
 }
 
-/**
- * The sidebar list of people someone follows.
- *
- * Following is one-way: adding someone puts them in your list and asks nothing
- * of them. This replaces a "friends" list that behaved that way already but was
- * named as though both sides had agreed to it.
- */
 export default function FollowList({ username, count, people }: Props) {
   return (
     <section className="rounded-xl border border-border bg-card p-4">

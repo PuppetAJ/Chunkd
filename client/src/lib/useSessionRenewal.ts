@@ -7,20 +7,10 @@ import { useAuthStore } from "./auth.ts";
 /** How long before a token runs out to trade it for a fresh one. */
 const RENEW_BEFORE_MS = 10 * 60 * 1000;
 
-/**
- * The least time between renewals. Without it, a deployment configured with a
- * session shorter than the window above would renew in a tight loop, since
- * every fresh token would already be inside it.
- */
+/** Without this, a session shorter than RENEW_BEFORE_MS would renew in a tight loop. */
 const MIN_GAP_MS = 30 * 1000;
 
-/**
- * Keep the session alive for as long as the tab is open.
- *
- * A token lasts a fixed two hours, which is shorter than an afternoon spent
- * building, and the editor holds a world that exists nowhere but in memory. A
- * session that ends on the clock therefore used to end with unsaved work.
- */
+/** Keep the session alive while the tab is open, so a token does not expire mid-build. */
 export function useSessionRenewal(): void {
   const token = useAuthStore((state) => state.token);
   const expiresAt = useAuthStore((state) => state.user?.exp ?? null);
@@ -35,11 +25,10 @@ export function useSessionRenewal(): void {
       try {
         const { data } = await renewToken();
         const fresh = (data as { renewToken?: { token?: string } } | null)?.renewToken?.token;
-        // Storing it schedules the next renewal, since this reads the new token.
+        // Storing it schedules the next renewal.
         if (fresh) logIn(fresh);
       } catch {
-        // The session ends when it ends. The editor asks for a password rather
-        // than throwing the world away, so there is nothing to recover here.
+        // The editor asks for a password rather than throwing the world away.
       }
     }, due);
 

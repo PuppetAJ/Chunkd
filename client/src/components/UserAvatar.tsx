@@ -1,15 +1,10 @@
 import { cn } from "cn";
 
 /**
- * A stand-in avatar built from the username.
- *
- * Nobody uploads a picture, so the alternative is the same grey circle for
- * everyone. Hashing the name into a hue gives each person a consistent colour
- * across the feed, their profile and the follow lists without storing anything.
+ * A stand-in avatar: the username hashed to a hue, so each person has a
+ * consistent colour without storing anything.
  */
 
-// "sm" | "md" | "lg" rather than a number, so every avatar on the site is one
-// of three sizes and they line up with each other.
 type AvatarSize = "sm" | "md" | "lg";
 
 interface Props {
@@ -42,8 +37,7 @@ export default function UserAvatar({ username, size = "md", className }: Props) 
         SIZE_CLASSES[size],
         className,
       )}
-      // Saturation and lightness are fixed so the near-black initial always has
-      // enough contrast, whatever hue the name lands on.
+      // Fixed saturation and lightness keep the dark initial readable on any hue.
       style={{ backgroundColor: `hsl(${hueFor(name)} 45% 68%)` }}
     >
       {name.charAt(0).toUpperCase()}

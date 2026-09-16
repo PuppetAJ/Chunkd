@@ -1,17 +1,4 @@
-/**
- * Shared parts of the end-to-end suites, so a throwaway script can reuse the
- * setup instead of copying it:
- *
- *   import { launch, helpers, reporter, newUser, signUp, openEditor } from "./lib.mjs";
- *   const { page, pageErrors, close } = await launch();
- *   const wait = helpers(page);
- *   const { check, report } = reporter();
- *   await signUp(page, newUser());
- *   await openEditor(page, wait);
- *   check("the thing I am building works", ...);
- *   await close();
- *   process.exit(report(pageErrors));
- */
+/** Shared setup for the end-to-end suites and throwaway scripts. */
 import { chromium } from "playwright";
 
 export const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000";
@@ -39,11 +26,7 @@ export async function launch({ width = 1280, height = 800 } = {}) {
   return { browser, page, pageErrors, close: () => browser.close() };
 }
 
-/**
- * Ways of waiting for a condition rather than for a duration. None of them
- * throw on a timeout, so the check that follows is what fails, with its own
- * message, rather than an exception ending the run.
- */
+/** Waits that never throw on a timeout: the check that follows is what fails. */
 export function helpers(page) {
   const until = async (probe, arg = null, timeout = 15000) => {
     try {
@@ -86,7 +69,6 @@ export function helpers(page) {
     return false;
   };
 
-  /** The renderer is up to date when it draws an instance for every visible block. */
   const rendererSettled = () =>
     until(() => {
       const world = window.__world?.getState();
@@ -120,8 +102,7 @@ export function reporter() {
     const failed = results.filter((r) => !r.ok);
     console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
 
-    // E2E_TIMING=1 lists the slowest steps. Each figure is the time from the
-    // previous check, so it covers the work between them, not the assertion.
+    // Each figure is the time since the previous check, so it covers the work between them.
     if (process.env.E2E_TIMING) {
       const slowest = [...results].sort((a, b) => b.ms - a.ms).slice(0, 20);
       const total = results.reduce((sum, r) => sum + r.ms, 0);
@@ -162,18 +143,13 @@ export async function signUp(page, user) {
   return user;
 }
 
-/** Faster than signing up, for scripts that only need to be logged in. */
 export async function signInAsDemo(page) {
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: /demo/i }).first().click();
   await page.waitForURL(`${BASE}/`, { timeout: 20000 });
 }
 
-/**
- * Open the editor, wait for a world to be drawn, and start play. Pass a seed
- * to pin the world: a fresh editor seeds itself at random, so where the player
- * lands, and what a fixed camera angle is aimed at, changes between runs.
- */
+/** Pass a seed to pin the world: a fresh editor seeds itself at random. */
 export async function openEditor(page, wait, seed) {
   await page.goto(`${BASE}/editor`, { waitUntil: "domcontentloaded" });
   const ready = await wait.rendererSettled();

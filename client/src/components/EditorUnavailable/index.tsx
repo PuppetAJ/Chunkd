@@ -3,15 +3,8 @@ import { ChevronLeft, Keyboard } from "lucide-react";
 import { Button } from "../ui/button.tsx";
 
 /**
- * Shown instead of the editor on a device with no mouse or trackpad.
- *
- * Without this the editor loaded on a phone and then trapped whoever opened it.
- * Play started, the pointer lock was refused, and nothing on screen responded
- * to touch. There was no way back either, because the pause screen only appears
- * when play stops and the only thing that stops play is the Escape key.
- *
- * The route deliberately sits outside the site shell, like the editor itself,
- * so this carries its own way out rather than relying on a header.
+ * Shown instead of the editor on a device with no mouse or trackpad. It sits
+ * outside the site shell, so it carries its own way out.
  */
 export default function EditorUnavailable() {
   return (

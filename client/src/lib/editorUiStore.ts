@@ -4,7 +4,7 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 /** A world captured and waiting for the player to name it. */
 export interface PendingSave {
-  /** The encoded world, taken at the moment the player asked to save. */
+  /** The encoded world. */
   data: string;
   /** A JPEG data URL of the view at that moment, or undefined if it failed. */
   thumbnail: string | undefined;
@@ -21,9 +21,8 @@ interface EditorUiState {
   setFlying: (flying: boolean) => void;
 
   /**
-   * Whether the player is in the world rather than on the pause screen. Not
-   * read from document.pointerLockElement: a browser can refuse the lock, and
-   * the pause screen would then never go away.
+   * In the world rather than on the pause screen. Not read from
+   * document.pointerLockElement: a browser can refuse the lock.
    */
   playing: boolean;
   setPlaying: (playing: boolean) => void;
@@ -32,32 +31,24 @@ interface EditorUiState {
   inventoryOpen: boolean;
   setInventoryOpen: (open: boolean) => void;
 
-  /**
-   * Set when the world has been captured and the naming dialog should open.
-   * Capturing has to happen inside the canvas, but naming happens outside it,
-   * so the two halves meet here.
-   */
+  /** Set when the world has been captured inside the canvas and the naming dialog outside it should open. */
   pendingSave: PendingSave | null;
   setPendingSave: (pending: PendingSave | null) => void;
 }
 
 /**
- * Whether the world should stand still. A plain function, not a hook: the frame
- * loop and the input handlers read it. The naming dialog counts as well, or
- * typing "w" into a build name walks the player off the ledge.
+ * A plain function, not a hook: the frame loop reads it. The naming dialog
+ * counts, or typing "w" into a build name walks the player off a ledge.
  */
 export function isEditorPaused(): boolean {
   const state = useEditorUiStore.getState();
   return !state.playing || state.pendingSave !== null || state.inventoryOpen;
 }
 
-/**
- * When the held tool last swung. Outside the store: it is read every frame, and
- * as state it would re-render the editor on every hit.
- */
+/** When the tool last swung. Outside the store because it is read every frame. */
 let swungAt = 0;
 
-/** Start a swing. Called wherever a block is actually broken or placed. */
+/** Start a swing. */
 export function swingTool(): void {
   swungAt = performance.now();
 }

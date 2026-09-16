@@ -5,15 +5,14 @@ import { buildSchema, parse, validate } from "graphql";
 import { typeDefs } from "../schemas/typeDefs.ts";
 import { queryLimits } from "./queryLimits.ts";
 
-// The real schema, so the tests break if a field these queries rely on is
-// renamed. typeDefs is imported directly rather than through schemas/index,
-// which would drag in the resolvers and with them a database connection.
+// typeDefs is imported directly rather than through schemas/index, which would
+// drag in the resolvers and with them a database connection.
 const schema = buildSchema(typeDefs);
 
 const errorsFor = (query: string, limits?: { maxDepth: number; maxFields: number }) =>
   validate(schema, parse(query), [queryLimits(limits)]).map((error) => error.message);
 
-/** Build the query that crashed the server: following and followers nested n deep. */
+/** following and followers nested n deep. */
 function nested(levels: number): string {
   let inner = "username";
   for (let i = 0; i < levels; i += 1) {
@@ -23,7 +22,7 @@ function nested(levels: number): string {
 }
 
 test("the queries the client actually sends are allowed", () => {
-  // The deepest query in client/src/utils/queries.ts: me → thoughts → reactions → username.
+  // The deepest query in client/src/utils/queries.ts.
   const me = `{
     me { _id username email followerCount
       builds { _id name thumbnail createdAt }
@@ -39,22 +38,19 @@ test("the queries the client actually sends are allowed", () => {
 });
 
 test("the query that crashed the process is refused", () => {
-  // Depth 7 exhausted the heap. It must not reach a resolver.
   const errors = errorsFor(nested(5));
   assert.equal(errors.length, 1, errors.join("\n"));
   assert.match(errors[0] ?? "", /nested \d+ levels deep/);
 });
 
 test("the limit is on depth, not on how many blocks the world has", () => {
-  // nested(4) is 6 levels: users, following ×4, username. It is allowed, and
-  // one more level is not. The boundary is what makes the number meaningful.
+  // nested(4) is 6 levels, the limit; one more is refused.
   assert.deepEqual(errorsFor(nested(4)), []);
   assert.equal(errorsFor(nested(5)).length, 1);
 });
 
 test("nesting cannot be hidden inside fragments", () => {
-  // Each fragment only adds one level, but the spreads chain. Counted flat,
-  // the query looks shallow; followed, it is as deep as the crash query.
+  // Counted flat the query looks shallow; followed, the spreads chain.
   const query = `
     { users { ...a } }
     fragment a on User { following { ...b } }
@@ -69,9 +65,7 @@ test("nesting cannot be hidden inside fragments", () => {
 });
 
 test("a wide query of aliases is refused even when each copy is shallow", () => {
-  // A hundred shallow copies run in parallel and cost a hundred times as much
-  // as one. Depth alone would let this through. This is the smallest useful
-  // copy, two fields each, so it is the one an attacker would send.
+  // Depth alone would let this through.
   const aliases = Array.from({ length: 100 }, (_, i) => `a${i}: users { username }`).join(" ");
   const errors = errorsFor(`{ ${aliases} }`);
   assert.equal(errors.length, 1, errors.join("\n"));
@@ -79,9 +73,6 @@ test("a wide query of aliases is refused even when each copy is shallow", () => 
 });
 
 test("the width limit is exact at the boundary", () => {
-  // One field short of the limit passes and one over fails. A live check
-  // once found a query of exactly the limit slipping through, because the
-  // comparison and the test disagreed about the edge.
   const copies = (n: number) => `{ ${Array.from({ length: n }, (_, i) => `a${i}: users { username }`).join(" ")} }`;
   assert.deepEqual(errorsFor(copies(75)), []); // 150 fields
   assert.equal(errorsFor(copies(76)).length, 1); // 152 fields

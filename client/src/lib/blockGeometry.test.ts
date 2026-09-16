@@ -30,8 +30,7 @@ const volume = (part: { min: [number, number, number]; max: [number, number, num
   (part.max[0] - part.min[0]) * (part.max[1] - part.min[1]) * (part.max[2] - part.min[2]);
 
 test("a stair's flat part fills the cell's footprint", () => {
-  // This is what makes a stair's outer face whole, which face culling relies
-  // on to hide the block beneath it.
+  // Face culling relies on the outer face being whole.
   for (const upsideDown of [false, true]) {
     const [flat] = stairParts(straightQuadrants(FACING_NORTH), upsideDown);
     assert.deepEqual([flat!.min[0], flat!.max[0]], [-0.5, 0.5]);
@@ -71,7 +70,6 @@ test("upside down puts the flat part on top and the quarters below it", () => {
 });
 
 test("turning a stair upside down does not turn it round", () => {
-  // The quarters are horizontal, so they have to survive the flip untouched.
   for (const facing of [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST]) {
     const mask = straightQuadrants(facing);
     const up = stairParts(mask, false).slice(1);
@@ -134,9 +132,7 @@ test("a shut trapdoor is a thin panel across its half of the cell", () => {
 });
 
 test("an open trapdoor stands against the side it faces away from", () => {
-  // That side is its hinge: facing north, it opens against the south edge. The
-  // middle value is which corner coordinate to read, 0 for x or 2 for z, typed
-  // as exactly those two so reading it is known to stay inside the three.
+  // The middle value is which corner coordinate to read: 0 for x, 2 for z.
   const cases: [number, 0 | 2, number][] = [
     [FACING_NORTH, 2, 0.5],
     [FACING_SOUTH, 2, -0.5],
@@ -160,8 +156,7 @@ test("a lone glass pane is a post two sixteenths across and a block tall", () =>
 
 test("a glass pane turns the edge texture on the arms that reach east and west", () => {
   // The edge texture is a stripe down the middle of an otherwise empty image,
-  // which lines up only with a pane running north to south. Untuned, the arms
-  // the other way sampled the empty part and a run lost its top edge.
+  // which only lines up with a pane running north to south.
   const parts = paneParts(SIDE_NORTH | SIDE_EAST | SIDE_SOUTH | SIDE_WEST);
   const acrossX = parts.filter((part) => part.min[0] === -0.5 || part.max[0] === 0.5);
   const rest = parts.filter((part) => !acrossX.includes(part));
@@ -178,11 +173,8 @@ test("a glass pane reaches the edge of its cell on each side it joins", () => {
 });
 
 /**
- * BlockLayer gives a block with different textures per face three materials,
- * for the sides, the top and the bottom, and picks between them by the group
- * each face is in. A shape built from several boxes used to be grouped by box
- * instead, so its third box was drawn entirely with the top texture and its
- * fourth with the bottom.
+ * BlockLayer picks a face's material by its group, so every face in a group
+ * must point the way that material expects.
  */
 function facesMatchTheirMaterial(geometry: {
   groups: { start: number; count: number; materialIndex?: number }[];

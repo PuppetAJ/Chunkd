@@ -42,13 +42,6 @@ interface Props {
   onDeleted?: () => void;
 }
 
-/**
- * One post in the feed.
- *
- * The author gets an edit and a delete action here. Editing happens in place
- * rather than in a dialog: the post is already the right size and shape to type
- * into, and a dialog would hide the thing being edited.
- */
 export default function ThoughtCard({
   thought,
   showAuthor = true,
@@ -66,8 +59,6 @@ export default function ThoughtCard({
 
   const [updateThought, { loading: saving }] = useMutation(UPDATE_THOUGHT);
   const [deleteThought, { loading: deleting }] = useMutation(DELETE_THOUGHT, {
-    // The post disappears from both lists it can appear in, so the simplest
-    // correct thing is to refetch them rather than surgically edit the cache.
     refetchQueries: [{ query: QUERY_THOUGHTS }, { query: QUERY_ME }],
   });
 
@@ -84,17 +75,12 @@ export default function ThoughtCard({
 
   return (
     <article className="relative rounded-xl border border-border bg-card transition-colors hover:border-border/80">
-      {/* The whole card opens the post. It is a link stretched over the card
-          rather than a wrapper, because the card already contains links and one
-          cannot be nested inside another. Everything else here is given its own
-          stacking position so it stays clickable on top of this. */}
+      {/* Stretched over the card rather than wrapping it, since links cannot nest.
+          Interactive children get a position of their own so they sit above it. */}
       {showCommentsLink && !editing && (
         <Link
           to={`/thought/${thought._id}`}
           className="absolute inset-0 rounded-xl focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-          // Only the genuinely interactive children are given a position of
-          // their own, so they sit above this. The post text is not one of
-          // them: clicking it should open the post like the rest of the card.
         >
           <span className="sr-only">Open this post</span>
         </Link>

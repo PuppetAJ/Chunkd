@@ -23,14 +23,12 @@ export default function Home() {
   const { loading, data, fetchMore } = useQuery(QUERY_THOUGHTS, {
     variables: { limit: FEED_PAGE_SIZE, offset: 0 },
   });
-  // Asking who "me" is only makes sense with a token to ask on behalf of.
   const { data: userData } = useQuery(QUERY_ME_BASIC, { skip: !loggedIn });
 
   const thoughts: Thought[] = (data as { thoughts?: Thought[] } | undefined)?.thoughts ?? [];
   const me = (userData as { me?: MeBasic } | undefined)?.me ?? null;
 
-  // A short page that comes back means there is nothing after it, so the feed
-  // stops asking. Without this the sentinel would fire forever at the bottom.
+  // A short page means nothing after it; without this the sentinel would fire forever.
   const [reachedEnd, setReachedEnd] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
@@ -59,9 +57,7 @@ export default function Home() {
     return () => observer.disconnect();
   }, [fetchMore, loading, loadingMore, reachedEnd, thoughts.length]);
 
-  // Same reasoning as the landing page: until lg the sidebar sits underneath
-  // rather than beside, and a feed stretched the full width of a tablet is one
-  // very wide column. Cap it and let the spare width fall on both sides.
+  // Until lg the sidebar sits underneath, and a full-width feed on a tablet is one very wide column.
   return (
     <div className="mx-auto grid max-w-2xl gap-8 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div className="min-w-0">
@@ -91,8 +87,8 @@ export default function Home() {
           }
         />
 
-        {/* Watched by the observer above: scrolling it into view loads the next
-            page. It keeps a little height so it can be intersected at all. */}
+        {/* Scrolling this into view loads the next page. It keeps some height
+            so it can be intersected at all. */}
         {thoughts.length > 0 && !reachedEnd && (
           <div ref={sentinel} className="flex justify-center py-8">
             {loadingMore && <Loader2 className="size-5 animate-spin text-muted-foreground" />}
@@ -106,8 +102,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* The sidebar is only useful signed in, and on a narrow screen it drops
-          below the feed rather than squeezing it. */}
       {loggedIn && me && (
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <FollowList

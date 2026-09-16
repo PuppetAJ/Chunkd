@@ -42,8 +42,7 @@ export default function Login() {
     event.preventDefault();
     setSubmitError("");
 
-    // Logging in does not re-check the password rules: an account made before
-    // they changed still has to be able to get in.
+    // Not the password rules: an account made before they changed still has to get in.
     const problems: FieldErrors = {
       email: emailError(formState.email),
       password: formState.password ? null : "Enter your password.",
@@ -57,8 +56,7 @@ export default function Login() {
       });
 
       logIn((data as { login: { token: string } }).login.token);
-      // Drop anything cached for the logged-out visitor before showing the
-      // signed-in view. The old code reloaded the whole page to achieve this.
+      // Drop anything cached for the logged-out visitor.
       await apollo.resetStore();
       const from = (location.state as { from?: string } | null)?.from ?? "/";
       navigate(from, { replace: true });
@@ -139,13 +137,7 @@ export default function Login() {
   );
 }
 
-/**
- * The card both auth pages sit in.
- *
- * Defined here and imported by Signup rather than given its own file: it is
- * layout for exactly two pages, and splitting it further would mean opening
- * three files to understand one screen.
- */
+/** The card both auth pages sit in. */
 export function AuthShell({
   title,
   subtitle,

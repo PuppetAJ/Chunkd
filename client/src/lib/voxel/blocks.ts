@@ -107,15 +107,7 @@ import stoneBricksUrl from "../../assets/textures/stone_bricks.png";
 import stoneUrl from "../../assets/textures/stone.png";
 import tuffUrl from "../../assets/textures/tuff.png";
 
-/**
- * How a block's texture is drawn.
- *
- * - `solid` is every ordinary block: every pixel is opaque.
- * - `cutout` is glass. Its texture is a frame around a hole, and every pixel is
- *   either fully opaque or fully invisible. Drawing it as a cutout throws the
- *   hole away outright, so the frame keeps its full colour and there is no draw
- *   order to get wrong.
- */
+/** `cutout` drops transparent pixels outright, so glass needs no draw ordering. */
 export type BlockDraw = "solid" | "cutout";
 
 /** Which drawer of the inventory a block appears in. */
@@ -126,32 +118,18 @@ export interface BlockType {
   readonly id: number;
   readonly name: string;
   readonly label: string;
-  /**
-   * One texture per face group. Most blocks repeat the same image on all six
-   * sides; grass, logs and hay do not, which is the whole reason this is three
-   * fields rather than one.
-   */
   readonly top: string;
   readonly side: string;
   readonly bottom: string;
   readonly draw: BlockDraw;
-  /**
-   * True for blocks with a grain. Placing one against the side of something
-   * lays it down along the direction you built from, rather than leaving it
-   * standing upright.
-   */
+  /** True for blocks with a grain, which lie along the face they are placed against. */
   readonly directional: boolean;
-  /** Whether this block can be laid as a slab, and as stairs. See blockIds.ts. */
+  /** Which shapes a block gets is decided in blockIds.ts. */
   readonly slab: boolean;
   readonly stairs: boolean;
-  /** Whether this block can be a fence, and a wall. See blockIds.ts. */
   readonly fence: boolean;
   readonly wall: boolean;
-  /**
-   * This block's trapdoor texture, or null if it has no trapdoor. A trapdoor is
-   * not the block's own texture cut thin: Minecraft draws it separately, with
-   * its hinges and its holes.
-   */
+  /** Its trapdoor texture, or null. Minecraft draws a trapdoor as its own texture, not the block cut thin. */
   readonly trapdoor: string | null;
   readonly group: BlockGroup;
 }
@@ -191,13 +169,7 @@ function define(input: BlockInput): BlockType {
   };
 }
 
-/**
- * One entry per placeable block.
- *
- * This is the single source of truth. The hotbar, the inventory, the renderer
- * and the save format all read from it, so adding a block means adding one row
- * here rather than editing the same list in several files.
- */
+/** One entry per placeable block. Everything else reads from here. */
 export const BLOCKS: readonly BlockType[] = [
   // Ground
   define({ id: BLOCK_IDS.grass, name: "grass", label: "Grass", group: "Ground", top: grassBlockTopUrl, side: grassBlockSideUrl, bottom: dirtUrl }),

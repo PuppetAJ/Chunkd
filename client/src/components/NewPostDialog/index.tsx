@@ -27,25 +27,17 @@ interface Props {
 }
 
 /**
- * The "share a build" dialog.
- *
- * The build picker stays a plain <select>. It is a short list of the user's own
- * builds, the native control is already keyboard and screen-reader correct on
- * every platform, and on a phone it opens the system picker.
+ * The build picker is a plain <select> on purpose: a short list, correct on
+ * every platform, and it opens the system picker on a phone.
  */
 export default function NewPostDialog({ open, onOpenChange }: Props) {
   const [thoughtText, setThoughtText] = useState("");
   const [selectedBuildId, setSelectedBuildId] = useState(NO_BUILD);
   const [submitError, setSubmitError] = useState("");
 
-  // Only the poster's own builds can be attached, so this always asks about the
-  // signed-in user rather than whichever profile is being viewed.
   const { loading, data } = useQuery(QUERY_ME);
   const builds: BuildSummary[] = (data as { me?: { builds?: BuildSummary[] } })?.me?.builds ?? [];
 
-  // The feed is paged and the profile's list is nested inside another query,
-  // so a new post is easier to get right by asking for both again than by
-  // splicing it into two different cache shapes by hand.
   const [addThought, { loading: submitting }] = useMutation(ADD_THOUGHT, {
     refetchQueries: [
       { query: QUERY_THOUGHTS, variables: { limit: FEED_PAGE_SIZE, offset: 0 } },
@@ -73,8 +65,6 @@ export default function NewPostDialog({ open, onOpenChange }: Props) {
       await addThought({
         variables: {
           thoughtText: thoughtText.trim(),
-          // The old code sent the whole world as a JSON string on every post.
-          // It now sends the id of a saved build, or nothing at all.
           buildId: selectedBuildId || null,
         },
       });

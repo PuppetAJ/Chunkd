@@ -16,14 +16,7 @@ import {
 import { Input } from "../ui/input.tsx";
 import { Label } from "../ui/label.tsx";
 
-/**
- * Sign back in without leaving the editor.
- *
- * A token lasts a fixed two hours and a world exists nowhere but in this page,
- * so being sent to the login page when one runs out threw away however long
- * someone had spent building. This asks in place instead, and the world behind
- * it is never unmounted.
- */
+/** Sign back in without leaving the editor, so the world behind the dialog is never unmounted. */
 export default function SessionExpired() {
   const logIn = useAuthStore((state) => state.logIn);
   const lastEmail = useAuthStore((state) => state.lastEmail);
@@ -40,7 +33,6 @@ export default function SessionExpired() {
     try {
       const { data } = await login({ variables: { email: email.trim(), password } });
       logIn((data as { login: { token: string } }).login.token);
-      // Anything cached under the old session belongs to the old session.
       await apollo.resetStore();
     } catch (requestError) {
       setError(requestErrorMessage(requestError));
@@ -48,8 +40,7 @@ export default function SessionExpired() {
   };
 
   return (
-    // Nothing dismisses this: every way out of it other than signing in leads
-    // to a world that cannot be saved.
+    // Nothing dismisses this on purpose.
     <Dialog open>
       <DialogContent
         showCloseButton={false}

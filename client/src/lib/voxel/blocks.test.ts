@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-// blocks.ts imports textures, which Node cannot load, so the eligibility sets
-// live in blockIds.ts and this tests them there.
+// blocks.ts imports textures, which Node cannot load, so the sets live in blockIds.ts.
 import { existsSync } from "node:fs";
 import {
   BLOCK_IDS,
@@ -31,23 +30,19 @@ test("the blocks that can be slabs are the ones Minecraft gives slabs to", () =>
 });
 
 test("cut sandstone has a slab but no stairs", () => {
-  // The one block where the two sets differ, which is why there are two.
   assert.equal(SLAB_BLOCK_IDS.has(BLOCK_IDS.cutSandstone), true);
   assert.equal(STAIR_BLOCK_IDS.has(BLOCK_IDS.cutSandstone), false);
 });
 
 test("anything that can be stairs can also be a slab", () => {
-  // True in Minecraft, and the shape picker assumes it: it steps from whole
-  // block to slab to stairs.
+  // The shape picker steps from block to slab to stairs and assumes this.
   for (const id of STAIR_BLOCK_IDS) {
     assert.equal(SLAB_BLOCK_IDS.has(id), true, `${nameOf(id)} has stairs but no slab`);
   }
 });
 
 test("blocks the game does not cut are excluded", () => {
-  // Logs, leaves, glass and the loose ground blocks have no slab in Minecraft.
-  // Plain deepslate and basalt have none either: only their cobbled, polished
-  // and brick variants do, and of those we carry only deepslate tiles.
+  // Plain deepslate and basalt have none either: only their worked variants are cut.
   const excluded = [
     BLOCK_IDS.oakLog, BLOCK_IDS.spruceLog, BLOCK_IDS.birchLog, BLOCK_IDS.cherryLog,
     BLOCK_IDS.hayBale, BLOCK_IDS.grass, BLOCK_IDS.dirt, BLOCK_IDS.sand,
@@ -63,8 +58,7 @@ test("blocks the game does not cut are excluded", () => {
 });
 
 test("every eligible id is a real block", () => {
-  // Annotated as numbers: BLOCK_IDS is a const object, so Object.values gives
-  // a union of the literal ids and the set would only accept those.
+  // BLOCK_IDS is const, so without the annotation the set would only accept its literal ids.
   const ids: Set<number> = new Set(Object.values(BLOCK_IDS));
   for (const id of SLAB_BLOCK_IDS) assert.equal(ids.has(id), true, `unknown id ${id}`);
 });
@@ -94,9 +88,6 @@ test("the blocks that can be trapdoors are the ones Minecraft gives trapdoors to
 });
 
 test("the blocks that can be walls are the ones Minecraft gives walls to", () => {
-  // From the wiki's list. There is no wall of plain stone, cut or chiseled
-  // sandstone, or polished granite, diorite or andesite, and Minecraft's
-  // deepslate wall is of cobbled deepslate, which is not in our table.
   const expected = [
     "cobblestone", "mossyCobblestone", "stoneBricks", "granite", "diorite", "andesite",
     "tuff", "blackstone", "deepslateTiles", "bricks", "mudBricks", "sandstone",

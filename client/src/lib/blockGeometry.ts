@@ -27,40 +27,22 @@ import {
 import { QUADRANT_COUNT, quadrantSides } from "./voxel/stairShape.ts";
 
 /**
- * The unit cube every block is drawn from, with its face shading baked in.
- *
- * A shadow map cannot do this shading: every surface is axis aligned, so a low
- * sun makes flat ground stripe itself, and the usual bias leaks light through
- * the seams. A fixed brightness per face, as the games this borrows from use,
- * is crisp at any distance. The sun is layered on top for cast shadows.
- */
-/**
- * Face brightness, in the linear space vertex colours are multiplied in. The
- * familiar 1, 0.8, 0.6 and 0.5 describe the result on screen, so these are
- * raised towards 2.2, and pulled up again because the sun shades on top.
+ * Face brightness, baked in as vertex colours because a shadow map stripes
+ * axis-aligned ground under a low sun. Linear space: the familiar 1, 0.8, 0.6
+ * and 0.5 are on-screen values, so these are raised for gamma and for the sun shading on top.
  */
 const FACE_BRIGHTNESS = {
   top: 1,
   bottom: 0.42,
-  /** North and south, the faces along Z. */
   northSouth: 0.74,
-  /** East and west, the faces along X. Darker, so adjacent sides differ. */
+  /** Darker than northSouth so adjacent sides differ. */
   eastWest: 0.55,
 };
 
 /**
- * One axis-aligned part of a block, textured as though the texture were
- * projected through the cell: each face takes the slice its own position
- * covers. That is why a cut sandstone block needs no special handling.
- *
- * `min` and `max` are corners of the cell, which runs -0.5 to 0.5 on each axis.
- * The offset is baked into the geometry rather than the instance, so every
- * instance sits at the centre of its cell and rounding its position gives the
- * cell back.
- *
- * `turnEdges` turns the top and bottom texture a quarter, for a glass pane's
- * arm running east to west: its edge texture is a stripe down the middle of an
- * otherwise empty image, and unturned the arm samples the empty part.
+ * One box of a block, textured as though the texture were projected through the
+ * cell. The offset is baked into the geometry so every instance sits at the
+ * centre of its cell. `turnEdges` turns the top and bottom texture a quarter, for a pane's east-west arm.
  */
 function boxPart(
   min: [number, number, number],
@@ -83,8 +65,7 @@ function boxPart(
     const ny = normal.getY(i);
     const nz = normal.getZ(i);
 
-    // The signs match what BoxGeometry produces for a whole cube, so a whole
-    // cube comes out of here looking exactly as it did before.
+    // The signs match BoxGeometry's own uv layout for a whole cube.
     let u: number;
     let v: number;
     let brightness: number;
@@ -121,20 +102,13 @@ function boxPart(
   return oneGroupPerMaterial(geometry);
 }
 
-/**
- * Which material each face of a block takes, for a block whose faces differ.
- * BlockLayer builds its material list in this order.
- */
+/** BlockLayer builds its material list in this order. */
 export const MATERIAL_SIDE = 0;
 export const MATERIAL_TOP = 1;
 export const MATERIAL_BOTTOM = 2;
 const MATERIAL_COUNT = 3;
 
-/**
- * Reorder the faces so each material is one run, and one group. The renderer
- * issues a draw call per group, so a block with a top texture was six calls
- * per part of its shape, and a stair with a top was eighteen. Now it is three.
- */
+/** Reorder the faces so each material is one group, and so one draw call. */
 function oneGroupPerMaterial(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   const index = geometry.index;
   if (!index) throw new Error("A block geometry must be indexed");
@@ -156,11 +130,7 @@ function oneGroupPerMaterial(geometry: THREE.BufferGeometry): THREE.BufferGeomet
   return geometry;
 }
 
-/**
- * Join parts into one geometry, keeping the faces grouped by material, so
- * BlockLayer's material list still lines up. mergeGeometries would otherwise
- * make one group per part, and draw a whole part with the top texture.
- */
+/** Join parts keeping faces grouped by material; mergeGeometries alone makes one group per part. */
 function fuse(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const merged = mergeGeometries(parts);
   if (!merged) throw new Error("Could not build a block geometry");
@@ -180,12 +150,7 @@ export const BLOCK_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]);
 const SLAB_BOTTOM_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0, 0.5]);
 const SLAB_TOP_GEOMETRY = boxPart([-0.5, 0, -0.5], [0.5, 0.5, 0.5]);
 
-/**
- * The boxes a stair is built from: the half-height part spanning the cell, and
- * one per filled quarter of the other half. Which quarters comes from
- * stairShape.ts. The faces where boxes meet are left in; they sit inside the
- * solid and nothing can see them.
- */
+/** The half-height part spanning the cell, then one box per filled quarter of the other half. */
 export function stairParts(
   quadrants: number,
   upsideDown: boolean,
@@ -222,10 +187,7 @@ function px(sixteenths: number): number {
   return sixteenths / 16 - 0.5;
 }
 
-/**
- * A fence: a post, and two rails out to each side it joins. The sizes are
- * Minecraft's model, in sixteenths.
- */
+/** A fence: a post and two rails to each side it joins. Sizes are Minecraft's, in sixteenths. */
 export function fenceParts(mask: number): Box[] {
   const parts: Box[] = [{ min: [px(6), -0.5, px(6)], max: [px(10), 0.5, px(10)] }];
   for (const [low, high] of [
@@ -240,11 +202,7 @@ export function fenceParts(mask: number): Box[] {
   return parts;
 }
 
-/**
- * A wall: its post if it has one, and a side to each neighbour it joins. Each
- * side runs from the middle of the cell to its edge, so a straight run without
- * a post reads as one continuous wall.
- */
+/** A wall: its post if it has one, and a side from the middle of the cell to each neighbour it joins. */
 export function wallParts(variant: number): Box[] {
   const parts: Box[] = [];
   if (variant & WALL_POST_BIT) {
@@ -275,10 +233,7 @@ export function trapdoorParts(variant: number): Box[] {
   return [{ min: [-0.5, -0.5, -0.5], max: [-0.5 + thick, 0.5, 0.5] }];
 }
 
-/**
- * A glass pane: its post and arms, standing a block tall. An arm reaching east
- * or west is the wider way round, so it takes its edge texture turned.
- */
+/** A glass pane: its post and arms. An arm reaching east or west takes its edge texture turned. */
 export function paneParts(mask: number): Box[] {
   return paneRects(mask).map(([minX, maxX, minZ, maxZ]) => ({
     min: [minX, -0.5, minZ],
@@ -287,10 +242,6 @@ export function paneParts(mask: number): Box[] {
   }));
 }
 
-/**
- * Built when first asked for and kept. Each shape has a few dozen variants at
- * most, and a build uses a handful of them.
- */
 const partsCache = new Map<string, THREE.BufferGeometry>();
 
 function cachedParts(key: string, parts: () => Box[]): THREE.BufferGeometry {
@@ -301,11 +252,7 @@ function cachedParts(key: string, parts: () => Box[]): THREE.BufferGeometry {
   return built;
 }
 
-/**
- * The geometry one render layer is drawn with. `variant` is whatever is not in
- * the shape number: a stair's filled quarters, the sides a fence or wall joins,
- * a trapdoor's facing and half. Other shapes ignore it.
- */
+/** `variant` is the shape's extra bits: stair quarters, fence or wall sides, trapdoor facing and half. */
 export function geometryForShape(shape: number, variant = 0): THREE.BufferGeometry {
   if (shape === SHAPE_SLAB_BOTTOM) return SLAB_BOTTOM_GEOMETRY;
   if (shape === SHAPE_SLAB_TOP) return SLAB_TOP_GEOMETRY;
@@ -321,17 +268,13 @@ export function geometryForShape(shape: number, variant = 0): THREE.BufferGeomet
   return BLOCK_GEOMETRY;
 }
 
-/**
- * The geometry for a render layer, allowing for blocks with a shape of their
- * own. A glass pane is a whole block by its shape number, so only its id says
- * to draw it as a pane.
- */
+/** A glass pane is a whole block by shape number; only its id says to draw it as a pane. */
 export function geometryForBlock(blockId: number, shape: number, variant = 0): THREE.BufferGeometry {
   if (PANE_BLOCK_IDS.has(blockId)) return cachedParts(`pane-${variant}`, () => paneParts(variant));
   return geometryForShape(shape, variant);
 }
 
-/** Which way a block is turned. A log on its side is the same cube rotated. */
+/** A log on its side is the same cube rotated. */
 const UPRIGHT = new THREE.Quaternion();
 const LYING_EAST_WEST = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2));
 const LYING_NORTH_SOUTH = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));

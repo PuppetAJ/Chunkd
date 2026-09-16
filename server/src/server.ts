@@ -18,9 +18,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const clientBuildDir = path.resolve(here, "../../client/dist");
 
 async function start(): Promise<void> {
-  // Connect first. The old server registered routes and only then waited for a
-  // `db.once("open")` event, so a database that never connected left the process
-  // running and silently answering nothing.
+  // Connect first, so a database that never connects fails the boot instead of answering nothing.
   await connectToDatabase();
 
   const apollo = new ApolloServer<GraphQLContext>({
@@ -28,35 +26,26 @@ async function start(): Promise<void> {
     resolvers,
     // Stack traces leak file paths and package versions. Keep them in dev only.
     includeStacktraceInErrorResponses: !isProduction,
-    // Refuse queries deep or wide enough to exhaust the process. See the rule
-    // for the measurements that made this necessary.
+    // Refuse queries deep or wide enough to exhaust the process.
     validationRules: [queryLimits()],
   });
   await apollo.start();
 
   const app = express();
 
-  // Sit behind one proxy (Render, Fly, Heroku-style hosts) so that rate limiting
-  // and secure cookies see the real client IP.
+  // Behind one proxy, so rate limiting sees the real client IP.
   app.set("trust proxy", 1);
 
   app.use(
     helmet({
-      // The GraphQL explorer loads from a CDN and needs to frame itself, so the
-      // policy is only applied to real deployments.
+      // The GraphQL explorer loads from a CDN and frames itself, so production only.
       contentSecurityPolicy: isProduction
         ? {
             useDefaults: true,
             directives: {
-              // three's GLTFLoader unpacks the textures embedded in the axe
-              // model into blob: URLs and then fetches them back. Helmet's
-              // default `default-src 'self'` blocks that, which left the model
-              // untextured and threw inside the canvas.
+              // three's GLTFLoader unpacks embedded textures into blob: URLs and fetches them back.
               "img-src": ["'self'", "data:", "blob:"],
               "connect-src": ["'self'", "blob:"],
-              // Everything else stays at helmet's defaults, which is where the
-              // useful part of the policy lives: no inline scripts, no plugins,
-              // no framing by other sites.
             },
           }
         : false,
@@ -67,24 +56,19 @@ async function start(): Promise<void> {
   // line up with Express 5's app.use even though the middleware itself is fine.
   app.use(compression() as unknown as express.RequestHandler);
 
-  // In development the Vite dev server proxies /graphql, so requests are
-  // same-origin and CORS never applies. In production only the deployed client
-  // is allowed to call the API from a browser.
+  // In development Vite proxies /graphql, so CORS never applies.
   app.use(cors({ origin: isProduction ? env.CLIENT_ORIGIN : true, credentials: true }));
 
-  // Down from the old 50 MB, when builds were whole-world JSON dumps. It has to
-  // clear MAX_BUILD_BYTES plus a thumbnail plus the JSON around them, or the
-  // larger build ceiling would never be reachable: the body is rejected here,
-  // before any resolver sees it.
+  // Must clear MAX_BUILD_BYTES plus a thumbnail plus the JSON around them, or
+  // the build ceiling would never be reachable.
   app.use(express.json({ limit: "4mb" }));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
   });
 
-  // Signing up and logging in are the two endpoints worth brute-forcing, but
-  // GraphQL puts everything on one URL, so the limit is applied per request and
-  // sized to be invisible during normal use.
+  // GraphQL puts everything on one URL, so the limit is per request and sized
+  // to be invisible in normal use.
   const graphqlLimiter = rateLimit({
     windowMs: 60_000,
     limit: 120,
@@ -104,8 +88,6 @@ async function start(): Promise<void> {
     }),
   );
 
-  // Serve the built client only in production. In development Vite serves it,
-  // and the old code's unconditional static handler shadowed the dev server.
   if (isProduction) {
     app.use(
       express.static(clientBuildDir, {

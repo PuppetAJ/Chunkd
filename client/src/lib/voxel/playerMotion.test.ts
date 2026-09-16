@@ -109,13 +109,11 @@ test("releasing and pressing jump again does jump again", () => {
   const motion = createMotionState();
   const blocks = ground();
 
-  // First jump, then land while holding.
   for (let i = 0; i < 60; i += 1) {
     stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
   }
   assert.equal(body.onGround, true, "should be back on the ground");
 
-  // Release, then press again.
   stepPlayer(blocks, body, motion, STILL, 1 / 60);
   stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
   assert.equal(body.onGround, false, "a fresh press should leave the ground");
@@ -125,7 +123,6 @@ test("the player can jump up onto a one-block step while walking at it", () => {
   const blocks = withStep();
   const body = standing();
   const motion = createMotionState();
-  // Walking straight along +z, which is where the step is.
   const input: MoveInput = {
     forward: 1,
     strafe: 0,
@@ -231,8 +228,7 @@ test("flying holds height with no keys, and rises and falls with them", () => {
   for (let i = 0; i < 60; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
   assert.equal(body.y, startY, "should hover rather than fall");
 
-  // The first frame of a held jump is a fresh press, which would toggle flight
-  // off if it were within the double-tap window, so wait it out first.
+  // A held jump's first frame is a fresh press, which inside the double-tap window would toggle flight off.
   for (let i = 0; i < 30; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
   for (let i = 0; i < 30; i += 1) {
     stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);

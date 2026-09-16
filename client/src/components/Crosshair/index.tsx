@@ -1,4 +1,3 @@
-/** Marks the point the player is aiming at, which is where blocks are edited. */
 export default function Crosshair() {
   return (
     <div

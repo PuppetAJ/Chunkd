@@ -2,14 +2,7 @@ import { BLOCKS, type BlockGroup, type BlockType } from "../../lib/voxel/blocks.
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
 import BlockIcon from "../BlockIcon/index.tsx";
 
-/**
- * Every block, grouped, for putting one into the selected hotbar slot.
- *
- * The hotbar holds nine blocks and there are far more than nine, so something
- * has to choose which nine. Picking a block here writes it into whichever slot
- * is currently selected, which is the same thing scrolling the hotbar and then
- * clicking a block does in the games this borrows from.
- */
+/** Every block, grouped. Picking one writes it into the selected hotbar slot. */
 const GROUP_ORDER: BlockGroup[] = ["Ground", "Stone", "Worked stone", "Wood", "Other"];
 
 function groupsOf(blocks: readonly BlockType[]): [BlockGroup, BlockType[]][] {
@@ -32,7 +25,6 @@ export default function Inventory({ onClose }: Props) {
     >
       <div
         className="max-h-full w-full max-w-3xl overflow-y-auto rounded-xl border-2 border-zinc-700 bg-zinc-900/95 p-6 shadow-2xl"
-        // Clicking a block should not also count as clicking the backdrop.
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-baseline justify-between">

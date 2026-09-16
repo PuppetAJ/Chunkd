@@ -1,10 +1,6 @@
 /**
- * The numeric identity of every block type. Kept apart from blocks.ts and its
- * texture imports, which is what lets the generator, the save format and the
- * culling be tested outside a browser.
- *
- * These numbers appear in saved builds and must never be reused or renumbered,
- * which is why the list is not in a tidy order.
+ * Kept apart from blocks.ts and its texture imports so this loads in Node.
+ * These ids appear in saved builds and must never be reused or renumbered.
  */
 export const BLOCK_IDS = {
   // The original nine.
@@ -78,8 +74,7 @@ export const BLOCK_IDS = {
   lightGrayConcrete: 54,
   grayConcrete: 55,
   redConcrete: 56,
-  // "Wood" is a log with bark on all six faces, which is what a tree's
-  // branches are built from.
+  // "Wood" is a log with bark on all six faces.
   oakWood: 57,
   strippedSpruceWood: 58,
   strippedDarkOakWood: 59,
@@ -106,16 +101,8 @@ export const BLOCK_IDS = {
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
 
 /**
- * Blocks you can see through. The culling pass skips a block whose six
- * neighbours are all present, and only an opaque neighbour hides a face: a dirt
- * block under a glass floor still has to be drawn.
- */
-/**
- * The blocks that can be laid as slabs, and as stairs. Taken from the game
- * rather than worked out from our own textures: plain deepslate is out because
- * only its cobbled, polished, brick and tile variants are cut in Minecraft.
- *
- * Two sets, because cut sandstone has a slab and no stairs.
+ * The blocks Minecraft cuts into slabs. Plain deepslate is out: only its
+ * cobbled, polished, brick and tile variants are cut.
  */
 export const SLAB_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.stone,
@@ -156,13 +143,9 @@ export const STAIR_BLOCK_IDS: ReadonlySet<number> = new Set(
 );
 
 /**
- * The blocks Minecraft gives a fence, a wall and a trapdoor, checked against
- * the game's own lists rather than inferred from ours.
- *
- * Fences and trapdoors exist for every wood, which of ours is the seven planks.
- * Walls are the uneven set: there is no wall of plain stone, of cut or chiseled
- * sandstone, or of polished granite, diorite or andesite, and the deepslate
- * wall is of cobbled deepslate, which we do not carry.
+ * Fences and trapdoors exist for every wood. Walls are Minecraft's uneven set:
+ * none of plain stone, cut or chiseled sandstone, or polished granite, diorite
+ * or andesite, and its deepslate wall is cobbled deepslate, which we lack.
  */
 export const FENCE_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.oakPlanks,
@@ -211,10 +194,5 @@ export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.cherryLeaves,
 ]);
 
-/**
- * Blocks drawn as a pane that joins its neighbours rather than as a cube.
- *
- * A glass pane is its own item in Minecraft, not a shape of glass, which is
- * also why it needs no room in the full shape field. It is known by its id.
- */
+/** A pane is its own block in Minecraft, not a shape of glass, so it is known by id. */
 export const PANE_BLOCK_IDS: ReadonlySet<number> = new Set([BLOCK_IDS.glassPane]);

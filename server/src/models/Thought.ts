@@ -1,7 +1,5 @@
 import { Schema, model, type Types, type Model } from "mongoose";
 
-// A reaction lives inside its parent thought rather than in its own collection,
-// which is how the original app modelled it.
 export interface ReactionSubdocument {
   _id: Types.ObjectId;
   author: Types.ObjectId;
@@ -12,9 +10,6 @@ export interface ReactionSubdocument {
 
 export interface ThoughtDocument {
   _id: Types.ObjectId;
-  // The old schema stored the username as a plain string on every thought and
-  // reaction. That copy went stale the moment anything changed. Storing the id
-  // and reading the name through it keeps one source of truth.
   author: Types.ObjectId;
   thoughtText: string;
   build?: Types.ObjectId;
@@ -56,8 +51,6 @@ const thoughtSchema = new Schema<ThoughtDocument>(
       minlength: 1,
       maxlength: [280, "A post must be 280 characters or fewer"],
     },
-    // Previously a giant JSON string of the whole world. Now a reference to a
-    // row in the builds collection, fetched only when someone opens it.
     build: {
       type: Schema.Types.ObjectId,
       ref: "Build",
@@ -67,7 +60,6 @@ const thoughtSchema = new Schema<ThoughtDocument>(
   { timestamps: true },
 );
 
-// The feed is always sorted newest-first, so index that directly.
 thoughtSchema.index({ createdAt: -1 });
 
 export const Thought: Model<ThoughtDocument> = model<ThoughtDocument>(

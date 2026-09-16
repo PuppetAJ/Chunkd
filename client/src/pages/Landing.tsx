@@ -9,21 +9,13 @@ import { DEMO_USERNAME, type Thought } from "../lib/feedTypes.ts";
 import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 
-// The viewer drags in three.js, which is larger than the rest of the page put
-// together. Loading it separately means the landing page paints, and shows the
-// build's own thumbnail, before any of that arrives.
+// The viewer drags in three.js; loading it separately lets the page paint the thumbnail first.
 const SavedBuild = lazy(() => import("../components/SavedBuild/index.tsx"));
 
 /** How many recent posts to look through for something to show. */
 const LOOK_AT = 12;
 
-/**
- * What a signed-out visitor sees at the root.
- *
- * The feed used to be the front door, which is the wrong way round for
- * something nobody has an account for yet. A feed is also the one page that
- * cannot look finished until other people have filled it, whereas this can.
- */
+/** What a signed-out visitor sees at the root. */
 export default function Landing() {
   const { startDemo, loading: startingDemo, error } = useDemoLogin();
   const { loading, data } = useQuery(QUERY_THOUGHTS, {
@@ -32,29 +24,20 @@ export default function Landing() {
 
   const thoughts: Thought[] =
     (data as { thoughts?: Thought[] } | undefined)?.thoughts ?? [];
-  // Anyone can post as the demo account, and this page carries the site's
-  // name. Only builds from real (seeded or signed-up) accounts appear here;
-  // demo posts still show in the feed, behind a sign-in, where they are
-  // clearly a sandbox.
+  // Anyone can post as the demo account, so its posts stay off the front door.
   const withBuilds = thoughts.filter(
     (thought) => thought.build?.thumbnail && thought.username !== DEMO_USERNAME,
   );
   const hero = withBuilds[0] ?? null;
   const gallery = withBuilds.slice(1, 7);
 
-  // The hero splits in two at lg rather than md. Measured, a half column below
-  // 1024 is under 360px, which is not enough for the two buttons to sit side by
-  // side or for a sentence of the small print to stay on one line, so the split
-  // there costs more than it gains. Below it the page narrows to a reading
-  // column instead, and the spare width sits evenly on both sides.
+  // The hero splits at lg rather than md: a half column below that is too
+  // narrow for the two buttons to sit side by side.
   return (
     <div className="mx-auto max-w-2xl space-y-16 pb-8 lg:max-w-none">
       <section className="grid items-start gap-x-8 gap-y-6 lg:grid-cols-2 lg:items-stretch lg:gap-x-14">
         <div>
-          {/* The lines are split by hand because the wordmark font reads
-              better broken at the phrase. Below sm there is not enough width to
-              honour that, so the spans go back to being inline and the text
-              wraps wherever it fits. */}
+          {/* Broken by hand at the phrase; below sm the spans go inline and wrap wherever they fit. */}
           <h1 className="font-display text-4xl leading-tight sm:text-5xl md:text-6xl lg:text-5xl">
             <span className="sm:block">Build a world</span>{" "}
             <span className="sm:block">in your browser</span>
@@ -94,8 +77,7 @@ export default function Landing() {
         </p>
 
         {/* min-h-0 and the absolute layer stop the canvas feeding its old
-            height back into the rows it spans; without them a widened window
-            leaves a gap under the buttons. */}
+            height back into the rows it spans. */}
         <div className="relative aspect-4/3 w-full overflow-hidden rounded-xl border border-border bg-card lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:aspect-auto lg:min-h-0">
           <div className="absolute inset-0">
             {loading && !hero && <Skeleton className="h-full w-full" />}

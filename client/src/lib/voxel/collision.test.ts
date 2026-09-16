@@ -50,7 +50,6 @@ test("falling lands on the surface of the block underfoot", () => {
 
 test("a very fast fall cannot pass through the floor", () => {
   const body: Body = { x: 0, y: 6, z: 0, onGround: false };
-  // Far more than one block in a single call.
   moveBody(floor(), body, 0, -9, 0);
   assert.equal(body.y, 0.5);
   assert.equal(body.onGround, true);
@@ -59,8 +58,7 @@ test("a very fast fall cannot pass through the floor", () => {
 test("walking into a wall stops on x but keeps sliding on z", () => {
   const blocks = withWall(floor());
   const body = standing(0, 0);
-  // Twenty steps keeps the walk within the wall's length; the earlier version
-  // of this test walked clean past its end, which is sliding working correctly.
+  // Twenty steps stays within the wall's length.
   for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.2, 0, 0.2);
   // Wall face is at x = 1.5; the player's half width is 0.3.
   assert.ok(body.x < 1.5 - 0.3 + 1e-9, `x ${body.x} should be short of the wall`);
@@ -71,10 +69,8 @@ test("walking into a wall stops on x but keeps sliding on z", () => {
 test("after touching a wall the player is not stuck", () => {
   const blocks = withWall(floor());
   const body = standing(0, 0);
-  // Push into the wall until stopped.
   for (let i = 0; i < 20; i += 1) moveBody(blocks, body, 0.3, 0, 0);
   const atWall = body.x;
-  // Now move purely along the wall and purely away from it.
   moveBody(blocks, body, 0, 0, 0.5);
   assert.equal(body.z, 0.5, "should slide along the wall freely");
   moveBody(blocks, body, -0.5, 0, 0);
@@ -89,34 +85,27 @@ test("standing still on the ground is still on the ground", () => {
 
 test("jumping into a ceiling stops below it without tunnelling", () => {
   const blocks = floor();
-  // A ceiling three blocks up, centred on y = 3, so its underside is at 2.5.
+  // Ceiling centred on y = 3, so its underside is at 2.5.
   for (let x = -5; x <= 5; x += 1) for (let z = -5; z <= 5; z += 1) blocks.set(toKey(x, 3, z), 1);
   const body = standing(0, 0);
   for (let i = 0; i < 10; i += 1) moveBody(blocks, body, 0, 0.3, 0);
-  // Head is feet + 1.8, so feet must stay at or below 2.5 - 1.8.
   assert.ok(body.y + 1.8 <= 2.5, `head ${body.y + 1.8} should be under the ceiling`);
   assert.ok(body.y > 0.5, "should have risen off the floor");
 });
 
 test("a player stands on the surface of a slab, not on top of its cell", () => {
-  // The whole reason collision had to learn about shapes. A bottom slab's
-  // surface is halfway up its cell, and landing on the cell's top instead left
-  // the player standing a quarter of a block in the air above every slab floor.
   const blocks = floor();
   blocks.set(toKey(0, 1, 0), packBlock(1, AXIS_Y, SHAPE_SLAB_BOTTOM));
 
   const body: Body = { x: 0, y: 4, z: 0, onGround: false };
   for (let i = 0; i < 30; i += 1) moveBody(blocks, body, 0, -0.3, 0);
 
-  // The slab occupies 0.5 to 1.0, so its surface is at y = 1.
   assert.equal(body.y, 1);
   assert.equal(body.onGround, true);
 });
 
 test("standing on a slab is standing inside its cell, and that is allowed", () => {
-  // Feet at y = 1 are inside cell 1, which the old test would have called
-  // being stuck inside a block. That branch shoves the player upwards, so
-  // without this every slab floor would have launched whoever stood on it.
+  // Feet at y = 1 are inside cell 1, which must not count as stuck and be shoved up.
   const blocks = floor();
   blocks.set(toKey(0, 1, 0), packBlock(1, AXIS_Y, SHAPE_SLAB_BOTTOM));
 
@@ -129,8 +118,7 @@ test("standing on a slab is standing inside its cell, and that is allowed", () =
 
 test("a top slab is a ceiling to stop your head on", () => {
   const blocks = floor();
-  // Its underside is at y = 3, which is 2.5 above the floor the player stands
-  // on, so a player 1.8 tall fits underneath it and cannot rise past it.
+  // Underside at y = 3, so a player 1.8 tall fits under it.
   blocks.set(toKey(0, 3, 0), packBlock(1, AXIS_Y, SHAPE_SLAB_TOP));
 
   const body: Body = { x: 0, y: 0.5, z: 0, onGround: true };
@@ -141,9 +129,6 @@ test("a top slab is a ceiling to stop your head on", () => {
 });
 
 test("a world of full cubes behaves exactly as it did before shapes existed", () => {
-  // Slabs were added by making the height come from the block rather than from
-  // the cell. For a full cube those are the same thing, and this is the check
-  // that says so: ordinary walls, floors and ceilings are untouched.
   const blocks = withWall(floor());
   const body = standing(0, 0);
 
@@ -154,10 +139,7 @@ test("a world of full cubes behaves exactly as it did before shapes existed", ()
 });
 
 test("a player walks up onto a slab instead of stopping against it", () => {
-  // Step assist. Without it every slab floor, terrace and doorstep would need
-  // a jump to get onto, which is what makes building with slabs unpleasant.
-  // A raised half step covering the far side of the floor, so the player is
-  // still standing on something once they are up.
+  // Slabs cover the far side, so the player stands on something once up.
   const blocks = floor();
   for (let x = 2; x <= 5; x += 1) {
     for (let z = -5; z <= 5; z += 1) {
@@ -174,8 +156,7 @@ test("a player walks up onto a slab instead of stopping against it", () => {
 });
 
 test("a whole block is still a wall, not a step", () => {
-  // The step height sits between half a block and a whole one on purpose. If
-  // it did not, a wall could be climbed by walking into it.
+  // Step height sits between half a block and a whole one on purpose.
   const blocks = withWall(floor());
   const body = standing(0, 0);
 
@@ -186,7 +167,6 @@ test("a whole block is still a wall, not a step", () => {
 });
 
 test("a single full block is not walked up either", () => {
-  // One block on the floor is a whole block's rise, which is a jump.
   const blocks = floor();
   for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 1, z), 1);
 
@@ -211,9 +191,7 @@ test("step assist works along z as well as x", () => {
 });
 
 test("a step with no headroom is refused rather than lifting the player into it", () => {
-  // A slab to step onto with a solid block right above it. Lifting the player
-  // regardless would put them inside that block, and the push-out branch would
-  // then shove them up through it.
+  // A solid block above the slab: lifting anyway would put the player inside it.
   const blocks = floor();
   for (let z = -5; z <= 5; z += 1) {
     blocks.set(toKey(2, 1, z), packBlock(1, AXIS_Y, SHAPE_SLAB_BOTTOM));
@@ -228,16 +206,12 @@ test("a step with no headroom is refused rather than lifting the player into it"
 });
 
 test("a player in mid-air is not lifted onto a ledge by step assist", () => {
-  // Stepping up is only for someone standing on something. Without that gate,
-  // drifting into a ledge while airborne would pull the player onto it, and
-  // jumping at a wall would climb it half a block per hop.
+  // Without the ground gate, jumping at a wall climbs it half a block per hop.
   const blocks = new Map<BlockKey, number>();
-  // A ledge whose top is 3.5, which is half a block above the player's feet
-  // and so within step height. Nothing underneath them at all.
+  // Ledge top at 3.5, half a block above the feet, with nothing underneath.
   for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 3, z), 1);
 
-  // Just short of overlapping the ledge, so the player is genuinely
-  // unsupported rather than resting on its edge.
+  // Just short of overlapping the ledge.
   const body: Body = { x: 1.19, y: 3, z: 0, onGround: false };
   moveBody(blocks, body, 0.2, 0, 0);
 
@@ -247,17 +221,13 @@ test("a player in mid-air is not lifted onto a ledge by step assist", () => {
 });
 
 test("a stair is a step, not a wall", () => {
-  // Stairs used to collide as whole cubes, which made walking onto one a full
-  // block rise and therefore a jump. The low half is what the player meets
-  // first, and that is half a block.
   const blocks = floor();
   for (let z = -5; z <= 5; z += 1) {
     // Facing west means the low step faces the player walking east.
     blocks.set(toKey(2, 1, z), packBlock(1, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_WEST));
   }
 
-  // Far enough to climb the stair, not so far as to walk off the far side of
-  // it: the row is one cell deep and there is nothing beyond it.
+  // Not so far as to walk off the far side of the one-cell row.
   const body = standing(0, 0);
   for (let i = 0; i < 12; i += 1) moveBody(blocks, body, 0.2, 0, 0);
 
@@ -267,8 +237,6 @@ test("a stair is a step, not a wall", () => {
 });
 
 test("a staircase can be walked all the way up", () => {
-  // Four stairs, each one cell further along and one higher, which is what a
-  // staircase actually is. Every step has to be walkable or the climb stops.
   const blocks = floor();
   for (let step = 0; step < 4; step += 1) {
     for (let z = -5; z <= 5; z += 1) {
@@ -297,9 +265,7 @@ test("a fence cannot be walked onto", () => {
 });
 
 test("fences and walls cannot be jumped over, but a whole block can", () => {
-  // A jump peaks about 1.35 above the ground. Fences and walls collide a block
-  // and a half high, so a player at the top of a jump still meets them, while a
-  // whole block, one high, passes under their feet.
+  // A jump peaks about 1.35 up; fences and walls collide a block and a half high.
   const peak = 0.5 + 1.35;
   const cases: [string, number, boolean][] = [
     ["fence", packBlock(1, AXIS_Y, SHAPE_FENCE), true],
@@ -316,8 +282,6 @@ test("fences and walls cannot be jumped over, but a whole block can", () => {
 });
 
 test("a player can stand on top of a fence", () => {
-  // Its collision top is a block above its base, and that is where a player
-  // dropping onto it comes to rest.
   const blocks = floor();
   blocks.set(toKey(0, 1, 0), packBlock(1, AXIS_Y, SHAPE_FENCE));
 
@@ -342,8 +306,6 @@ test("a shut trapdoor on the ground is walked onto like a step", () => {
 });
 
 test("a whole block stops the player flush against it", () => {
-  // Blocked movement now finds the real point of contact rather than snapping
-  // to the edge of the cell. For a whole block the two are the same place.
   const blocks = floor();
   for (let z = -5; z <= 5; z += 1) blocks.set(toKey(2, 1, z), 1);
 
@@ -355,9 +317,7 @@ test("a whole block stops the player flush against it", () => {
 });
 
 test("an open trapdoor is a panel the player walks up against", () => {
-  // Facing west it stands against the east edge of its cell, the far side for a
-  // player walking east. They get into the cell and stop at the panel, rather
-  // than at the cell's near edge.
+  // Facing west it stands against the east edge, the far side for a player walking east.
   const blocks = floor();
   for (let z = -5; z <= 5; z += 1) {
     blocks.set(toKey(2, 1, z), packTrapdoor(1, FACING_WEST, false, true));
@@ -385,8 +345,7 @@ test("an open trapdoor on the near side stops the player at its edge", () => {
 });
 
 test("open trapdoors can be walked past alongside", () => {
-  // Facing north each stands across the south edge of its cell, so a player
-  // walking east runs between them without touching either.
+  // Facing north each stands across the south edge, so walking east passes between them.
   const blocks = floor();
   for (let z = -5; z <= 5; z += 1) {
     blocks.set(toKey(2, 1, z), packTrapdoor(1, FACING_NORTH, false, true));

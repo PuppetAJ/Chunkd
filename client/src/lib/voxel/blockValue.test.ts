@@ -48,8 +48,7 @@ import {
 } from "./blockValue.ts";
 
 test("an upright block stores exactly its id", () => {
-  // This is what keeps builds saved before orientation existed loading
-  // unchanged: their stored values are plain ids.
+  // Older saves store bare ids.
   assert.equal(packBlock(BLOCK_IDS.oakLog, AXIS_Y), BLOCK_IDS.oakLog);
   assert.equal(packBlock(BLOCK_IDS.grass), BLOCK_IDS.grass);
 });
@@ -83,17 +82,12 @@ test("building against a side lays the block along that direction", () => {
 });
 
 test("a slightly off normal still picks the axis it points most along", () => {
-  // Normals come from a raycast and are transformed by an instance matrix, so
-  // they are not exactly axis aligned by the time they get here.
   assert.equal(axisForFaceNormal(0.02, 0.999, -0.01), AXIS_Y);
   assert.equal(axisForFaceNormal(-0.998, 0.03, 0.05), AXIS_X);
   assert.equal(axisForFaceNormal(0.04, -0.02, 0.997), AXIS_Z);
 });
 
 test("a full cube still stores exactly its id once shapes exist", () => {
-  // Same guarantee as orientation: the default shape is zero, so adding shapes
-  // did not change what an ordinary block is stored as, and no saved build
-  // means anything different than it did before.
   assert.equal(packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_FULL), BLOCK_IDS.stone);
   assert.equal(packBlock(BLOCK_IDS.stone), BLOCK_IDS.stone);
 });
@@ -113,8 +107,6 @@ test("id, axis and shape survive a round trip together", () => {
 });
 
 test("the shape bits sit above the axis bits and do not disturb them", () => {
-  // The three fields share one number, so the thing worth checking is that
-  // setting the highest one cannot change the lower two.
   const log = packBlock(BLOCK_IDS.oakLog, AXIS_X);
   const logSlab = packBlock(BLOCK_IDS.oakLog, AXIS_X, SHAPE_SLAB_TOP);
   assert.equal(blockIdOf(logSlab), blockIdOf(log));
@@ -135,18 +127,15 @@ test("isSlab is true for both halves and false for a cube", () => {
 });
 
 test("building on a top face lays the slab on it, and under a bottom face hangs it", () => {
-  // The height passed in is ignored for these two, because a top face is
-  // entirely at the top of its block and there is no half to choose.
+  // The height is ignored on a top or bottom face.
   assert.equal(slabShapeForPlacement(1, 0.5), SHAPE_SLAB_BOTTOM);
   assert.equal(slabShapeForPlacement(-1, -0.5), SHAPE_SLAB_TOP);
 });
 
 test("building against a side splits the face down the middle", () => {
-  // This is the half of the rule that makes a slab wall possible: aim at the
-  // upper half of a face and the slab goes high, aim low and it goes low.
   assert.equal(slabShapeForPlacement(0, 0.3), SHAPE_SLAB_TOP);
   assert.equal(slabShapeForPlacement(0, -0.3), SHAPE_SLAB_BOTTOM);
-  // Exactly halfway has to land somewhere rather than be undefined.
+  // Exactly halfway has to land somewhere.
   assert.equal(slabShapeForPlacement(0, 0), SHAPE_SLAB_TOP);
 });
 
@@ -167,18 +156,14 @@ test("a plain cube is still stored as its bare id with a facing of zero", () => 
 });
 
 test("a stair's own extent is the whole cube it could fill", () => {
-  // On its own a stair says it fills its cell top to bottom, because from the
-  // value alone that is the most that can be said: which quarters its tall half
-  // covers depends on its neighbours. Collision narrows this per quarter, which
-  // is what makes a stair walkable; see extentAt in collision.ts.
+  // From the value alone this is the most that can be said; collision narrows it per quarter.
   for (const shape of [SHAPE_STAIRS_BOTTOM, SHAPE_STAIRS_TOP]) {
     assert.deepEqual(verticalExtent(packBlock(BLOCK_IDS.stone, AXIS_Y, shape), 10), [9.5, 10.5]);
   }
 });
 
 test("a stair's low step faces the player who placed it", () => {
-  // So that walking forwards goes up it. The camera looks along -Z at yaw 0,
-  // which puts the player to the south of what they are looking at.
+  // At yaw 0 the camera looks along -Z, so the player is to the south.
   assert.equal(facingForYaw(0), FACING_SOUTH);
   assert.equal(facingForYaw(Math.PI / 2), FACING_EAST);
   assert.equal(facingForYaw(Math.PI), FACING_NORTH);
@@ -186,12 +171,10 @@ test("a stair's low step faces the player who placed it", () => {
 });
 
 test("a yaw between two directions picks the nearer one", () => {
-  // Yaw comes from mouse-look, so it is never exactly on a quarter turn.
   assert.equal(facingForYaw(0.2), FACING_SOUTH);
   assert.equal(facingForYaw(-0.2), FACING_SOUTH);
   assert.equal(facingForYaw(Math.PI / 2 - 0.2), FACING_EAST);
   assert.equal(facingForYaw(Math.PI + 0.3), FACING_NORTH);
-  // Wrapping past a full turn has to behave the same as not wrapping.
   assert.equal(facingForYaw(2 * Math.PI), FACING_SOUTH);
   assert.equal(facingForYaw(-2 * Math.PI + Math.PI / 2), FACING_EAST);
 });
@@ -237,8 +220,7 @@ test("a trapdoor's facing, half and open state survive a round trip", () => {
 });
 
 test("the trapdoor bits are clear on every other shape", () => {
-  // No value saved before trapdoors existed ever set these bits, which is what
-  // lets every older build read exactly as it did.
+  // No value saved before trapdoors existed sets these bits.
   for (const shape of [
     SHAPE_FULL,
     SHAPE_SLAB_BOTTOM,
@@ -280,8 +262,7 @@ test("a shut trapdoor is three sixteenths thick, in its own half", () => {
 });
 
 test("fences, walls and open trapdoors outline their whole cell", () => {
-  // The outline is what is drawn. Collision is what makes fences and walls
-  // taller and open trapdoors passable.
+  // Collision, not this, makes fences taller and open trapdoors passable.
   for (const value of [
     packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE),
     packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL),
@@ -300,7 +281,6 @@ test("a trapdoor's render variant carries its facing, half and open state", () =
 });
 
 test("a trapdoor built against a side faces out from it", () => {
-  // Its hinge is on the block it was built against, so it opens flat against it.
   assert.equal(trapdoorFacingForPlacement(1, 0, 0), FACING_EAST);
   assert.equal(trapdoorFacingForPlacement(-1, 0, 0), FACING_WEST);
   assert.equal(trapdoorFacingForPlacement(0, 1, 0), FACING_SOUTH);

@@ -15,22 +15,12 @@ import {
 interface Props {
   settings: SceneSettings;
   onChange: (settings: SceneSettings) => void;
-  /**
-   * True when the menu sits over the daylight sky, which is nearly white. The
-   * button has to switch to dark-on-light there or it disappears.
-   */
+  /** True over the daylight sky, where the button has to switch to dark-on-light. */
   onLightSky?: boolean;
-  /** Where the button sits, so the editor and the viewer can differ. */
   className?: string;
 }
 
-/**
- * How a scene is lit and what it sits in.
- *
- * One menu for the build viewer and the editor. It takes the current settings
- * and hands back a whole new set rather than reaching into a store itself,
- * which is what lets the two of them keep separate preferences.
- */
+/** Takes and returns settings rather than using a store, so the viewer and the editor keep separate preferences. */
 export default function SceneSettingsMenu({
   settings,
   onChange,
@@ -63,8 +53,7 @@ export default function SceneSettingsMenu({
         </DropdownMenuRadioGroup>
 
         <DropdownMenuSeparator />
-        {/* The grid belongs to the studio. There is ground in daylight already,
-            and a grid floating in the sky reads as a bug. */}
+        {/* A grid floating in the daylight sky reads as a bug. */}
         <DropdownMenuCheckboxItem
           checked={settings.grid}
           disabled={settings.environment !== "studio"}

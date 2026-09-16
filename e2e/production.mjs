@@ -1,15 +1,12 @@
 /**
- * Critical-path check against a production build, where the
- * Content-Security-Policy applies, Express serves the built bundle, and the
- * editor's test handles are stripped. Fails on any console or page error.
+ * Critical-path check against a production build, where the CSP applies and
+ * the editor's test handles are stripped. Fails on any console or page error.
  *
  *   pnpm build
  *   NODE_ENV=production PORT=4000 CLIENT_ORIGIN=http://localhost:4000 pnpm start
  *   pnpm test:prod
  *
- * Check the port is free first: a server left over from an earlier session keeps
- * it and the suite then tests whatever was built days ago. BASE points this at a
- * real deployment.
+ * Check the port is free first, or a leftover server gets tested instead.
  */
 import { chromium } from "playwright";
 const BASE = process.env.BASE ?? "http://localhost:4000";

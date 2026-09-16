@@ -1,10 +1,9 @@
 /**
- * One-off migration: rename the `friends` array to `following`. The field was
- * always a one-way list, so only the name changes.
+ * One-off migration: rename the `friends` array to `following`.
  *
  *   pnpm --filter server migrate:following
  *
- * Safe to run twice: a renamed document has no `friends` field to match.
+ * Safe to run twice.
  */
 import mongoose from "mongoose";
 import { connectToDatabase, disconnectFromDatabase } from "../config/db.ts";

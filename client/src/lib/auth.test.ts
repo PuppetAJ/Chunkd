@@ -21,9 +21,6 @@ test("other failures are not mistaken for an expired session", () => {
   assert.equal(isUnauthenticated(null), false);
 });
 
-// The check used to read `graphQLErrors`, which is where Apollo 3 kept them.
-// Nothing matched, so an expired token was never noticed and the only sign of
-// it was a save that failed with no way forward.
 test("the version 3 error shape is not what is looked for", () => {
   const version3 = Object.assign(new Error("No."), {
     graphQLErrors: [{ message: "No.", extensions: { code: "UNAUTHENTICATED" } }],

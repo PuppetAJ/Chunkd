@@ -1,5 +1,4 @@
-/* Tailwind v4 is configured here in CSS rather than in a tailwind.config.js.
-   It also finds template files on its own, so there is no content array. */
+/* Tailwind v4 is configured here rather than in a tailwind.config.js. */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -7,28 +6,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ---------------------------------------------------------------------------
-   Design tokens
-   ---------------------------------------------------------------------------
-   Two layers, and the split matters:
-
-   `:root` below holds raw colour values as plain hex, one per role. `@theme
-   inline` then gives each role a Tailwind name, so `--card` becomes the
-   `bg-card` / `text-card` utilities. shadcn/ui's components are written
-   against those role names, which is why a component dropped in from the
-   registry picks up this palette without being edited.
-
-   To restyle the site, change a hex value in `:root`. Nothing else needs to
-   move.
-   ------------------------------------------------------------------------- */
+/* Design tokens. `:root` holds the hex values; `@theme inline` maps each one to
+   a Tailwind name that shadcn's components are written against. To restyle,
+   change the hex values in `:root`. */
 
 @theme inline {
-  /* Body text. Geist is a workhorse sans that stays readable at 13-14px. */
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
-  /* The pixel font, kept for the wordmark and page titles only. It is charming
-     in short bursts and unreadable in paragraphs, so it is a separate token
-     rather than the heading font. */
+  /* The pixel font is a separate token because it is unreadable in paragraphs. */
   --font-display: Minecraft, var(--font-sans);
 
   --color-sidebar-ring: var(--sidebar-ring);
@@ -58,8 +43,7 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
 
-  /* One colour that is ours rather than shadcn's: the grass green used for
-     "this worked" states. */
+  /* Not a shadcn token: the green used for success states. */
   --color-grass: var(--grass);
 
   --radius-sm: calc(var(--radius) * 0.6);
@@ -71,20 +55,13 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* The site is dark only. A voxel editor is looked at for long stretches and the
-   3D view is lit for a dark surround, so a light theme would be a second design
-   to maintain for no one. The values therefore live directly in `:root`, and
-   `.dark` repeats them because shadcn's components carry `dark:` variants that
-   only fire inside an element with that class. `<html>` has it in index.html.
-
-   Every text colour here was checked against the surface it sits on and clears
-   WCAG AA (4.5:1). The dimmest, --muted-foreground on --card, is 6.8:1. */
+/* The site is dark only. `.dark` repeats `:root` because shadcn's components
+   carry `dark:` variants that only fire inside an element with that class. */
 :root,
 .dark {
   color-scheme: dark;
 
-  /* Surfaces, darkest first. Stone greys with a trace of violet in them so the
-     accent does not look bolted on. */
+  /* Surfaces, darkest first. */
   --background: #17161a;
   --card: #1f1e24;
   --popover: #24232a;
@@ -94,7 +71,6 @@
   --border: #34333d;
   --input: #34333d;
 
-  /* Text. */
   --foreground: #ecebef;
   --card-foreground: #ecebef;
   --popover-foreground: #ecebef;
@@ -102,9 +78,7 @@
   --accent-foreground: #ecebef;
   --secondary-foreground: #ecebef;
 
-  /* The accent. #736bdd is the colour this project has used since 2022; it is
-     lightened here because the original is too dark to carry text on top and
-     too close to the background to read as a highlight. */
+  /* The project's #736bdd accent, lightened so text reads on top of it. */
   --primary: #8f83f5;
   --primary-foreground: #16141f;
   --ring: #8f83f5;
@@ -126,9 +100,7 @@
 
 @font-face {
   font-family: Minecraft;
-  /* The old rule pointed at "/src//assets/mc-font.otf", an absolute path that
-     only ever resolved while the dev server was running. A relative URL is
-     rewritten by the bundler and works in the build too. */
+  /* Relative so the bundler rewrites it; an absolute /src path only works in dev. */
   src: url("./assets/mc-font.otf") format("opentype");
   font-display: swap;
 }
@@ -150,10 +122,7 @@
 
   html {
     @apply font-sans;
-    /* Double tapping anywhere used to zoom the page, which is easy to trigger
-       by accident while building and leaves the view at the wrong scale with no
-       obvious way back. "manipulation" keeps ordinary panning and pinch to zoom
-       but drops the double-tap gesture. */
+    /* Drops double-tap zoom, which is easy to trigger while building. */
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
   }
@@ -175,16 +144,13 @@
     text-decoration: none;
   }
 
-  /* Inside the editor the canvas handles its own input, so no browser gesture
-     should reach it, and text selection from a stray drag is never wanted. */
+  /* The editor canvas handles its own input; no browser gesture should reach it. */
   canvas {
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
   }
 
-  /* Anyone who has asked their system to calm animation down gets the whole
-     site with motion switched off, rather than each component remembering. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -197,9 +163,7 @@
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Editor and saved-build canvases
-   ------------------------------------------------------------------------- */
+/* Editor and saved-build canvases */
 
 #editor {
   width: 100%;
@@ -222,14 +186,7 @@
   z-index: 50;
 }
 
-/* ---------------------------------------------------------------------------
-   Page gutter
-   ---------------------------------------------------------------------------
-   The header, the main content and the footer all sit in a max-w-6xl column,
-   so they have to agree about their side padding or their edges stop lining
-   up. One utility keeps them together. It widens on bigger screens: on a phone
-   the content needs the width more than the margin, on a desktop the reverse.
-   ------------------------------------------------------------------------- */
+/* Page gutter. Header, main and footer share it so their edges line up. */
 
 @utility page-gutter {
   padding-inline: 1rem;

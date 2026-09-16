@@ -10,15 +10,6 @@ import { getBlock } from "../../lib/voxel/blocks.ts";
 import { HOTBAR_SLOTS, useWorldStore } from "../../lib/voxel/worldStore.ts";
 import BlockIcon from "../BlockIcon/index.tsx";
 
-/**
- * The nine block slots.
- *
- * Previously this was a single line of text reading "Selected: Dirt", derived
- * from a chain of if/else branches that duplicated the block list. It also
- * showed one fixed block per slot; there are far more blocks than slots now, so
- * it shows whatever the inventory has put in each one.
- */
-/** What to add to a block's name for the shape the slot is set to. */
 function shapeSuffix(shape: number): string {
   if (shape === SHAPE_SLAB_BOTTOM) return " Slab";
   if (shape === SHAPE_STAIRS_BOTTOM) return " Stairs";
@@ -47,8 +38,6 @@ export default function Hotbar() {
             {shapeSuffix(selectedShape)}
           </p>
         )}
-        {/* Only while it is doing something. At one cell the brush is the
-            ordinary way of building and needs no label. */}
         {brush > 1 && (
           <p className="rounded bg-black/60 px-3 py-1 text-sm text-white tabular-nums">
             {brush} &times; {brush}
@@ -67,8 +56,7 @@ export default function Hotbar() {
             <li key={slot}>
               <button
                 type="button"
-                // Never a tab stop, and never left holding focus: a slot with
-                // keyboard focus takes the next jump as a click on itself.
+                // Never a tab stop and never left focused: a focused slot takes the next jump as a click.
                 tabIndex={-1}
                 onClick={(event) => {
                   setSelectedSlot(slot);

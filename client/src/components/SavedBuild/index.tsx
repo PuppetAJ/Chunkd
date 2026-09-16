@@ -14,15 +14,9 @@ import SceneSettingsMenu from "../SceneSettingsMenu.tsx";
 
 interface Props {
   buildId: string;
-  /**
-   * Show the build's name in the corner of the viewer. Off where the name is
-   * already on screen, such as a dialog that has it in its header.
-   */
+  /** Off where the name is already on screen, such as a dialog header. */
   showName?: boolean;
-  /**
-   * Turn the build slowly on its own. Used by the landing page, where the
-   * viewer is something to look at rather than something to operate.
-   */
+  /** Turn the build slowly on its own, for the landing page. */
   autoRotate?: boolean;
 }
 
@@ -35,10 +29,7 @@ interface Bounds {
   minY: number;
 }
 
-/**
- * Measure the world so the camera can be framed around it, and so zoom can stop
- * outside the blocks: inside them every face points away and is discarded.
- */
+/** Frames the camera, and keeps zoom outside the blocks, where every face is culled. */
 function measure(blocks: Map<BlockKey, number>): Bounds {
   let minX = Infinity;
   let minY = Infinity;
@@ -62,8 +53,7 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
     return { centre: [half, half, half], radius: half, minY: 0 };
   }
 
-  // Blocks are placed by their centre and are one unit across, so the solid
-  // extends half a unit past the outermost block centre on each side.
+  // Blocks are placed by their centre, so the solid extends half a unit past the outermost.
   const half: [number, number, number] = [
     (maxX - minX) / 2 + 0.5,
     (maxY - minY) / 2 + 0.5,
@@ -77,13 +67,9 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
   };
 }
 
-/**
- * Read-only view of one saved world, through the same World component as the
- * editor. It fetches its own block data, so listing builds costs nothing.
- */
+/** Read-only view of one saved world. It fetches its own block data. */
 export default function SavedBuild({ buildId, autoRotate = false, showName = true }: Props) {
-  // The chrome sits on the canvas, so its colours have to follow whatever the
-  // canvas is showing. Light text vanished against the daylight sky.
+  // The chrome sits on the canvas, so its colours follow the sky.
   const settings = useViewerSettings((state) => state.settings);
   const setSettings = useViewerSettings((state) => state.setSettings);
   const onLightSky = settings.environment === "daylight";
@@ -110,9 +96,7 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
   }
 
   if (error || !payload) {
-    // Usually means the build was deleted. On this site it more often means the
-    // page is holding an id from before the scheduled reset, and reloading is
-    // what fixes that, so say so rather than leaving a dead end.
+    // Often an id from before the scheduled reset, which a reload fixes.
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-4 text-center text-sm text-muted-foreground">
         <p>This build is no longer available.</p>
@@ -132,20 +116,13 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
   const [cx, cy, cz] = bounds.centre;
   const start = bounds.radius * 1.9;
 
-  // The component fills whatever box it is given. It used to carry its own
-  // fixed 50%-of-the-page sizing, which was wrong everywhere it was reused.
   return (
-    // @container makes the chrome below respond to the width of the viewer
-    // rather than the width of the window. The same viewer appears in a landing
-    // page column, a dialog and a full-width page, so the window says nothing
-    // useful about how much room the overlay actually has.
+    // @container: the chrome responds to the viewer's width, not the window's.
     <div className="@container relative h-full w-full overflow-hidden rounded-lg border border-border bg-[#0d0c10]">
       <Canvas
         shadows
         dpr={[1, 2]}
-        // The same curve and exposure the editor renders with, so a build
-        // looks the same here as it did while it was being built. See
-        // Editor.tsx.
+        // Same tone mapping as Editor.tsx, so a build looks the same here as it did there.
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -157,19 +134,14 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
           position: [cx + start, cy + start * 0.55, cz + start],
         }}
       >
-        {/* Block textures suspend while loading. Without a boundary here the
-            suspension unmounts the Canvas and the viewer stays blank. */}
+        {/* Without a boundary inside the Canvas, suspending textures unmount it. */}
         <Suspense fallback={null}>
           <BuildScene world={world.blocks} bounds={bounds} autoRotate={autoRotate} />
         </Suspense>
       </Canvas>
 
-      {/* Chrome drawn over the canvas rather than under it, so the viewer reads
-          as a piece of the page instead of an embedded object. It never takes
-          the pointer, because every gesture here belongs to the controls. */}
       <div
-        // Named so the thumbnail generator can hide it, and so a test can find
-        // it without matching on class names.
+        // The thumbnail generator hides this, and a test finds it.
         data-viewer-chrome
         className="pointer-events-none absolute inset-0 p-3 @sm:p-4"
       >
@@ -181,9 +153,6 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
             <p className={`mt-0.5 font-display text-lg ${titleClass}`}>{build.name}</p>
           </div>
         )}
-        {/* Each clause needs room to sit on one line, so they are added back
-            as the viewer gets wider. The first one alone is the gesture nobody
-            can guess. */}
         <p
           className={`absolute inset-x-3 bottom-3 text-right font-mono text-[0.625rem] tracking-[0.15em] uppercase @sm:inset-x-4 @sm:bottom-4 ${labelClass}`}
         >
@@ -192,7 +161,6 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
           <span className="hidden @md:inline"> &middot; scroll to zoom</span>
         </p>
 
-        {/* The only thing in the overlay that takes a click. */}
         <div className="pointer-events-auto absolute top-3 right-3 @sm:top-4 @sm:right-4">
           <SceneSettingsMenu settings={settings} onChange={setSettings} onLightSky={onLightSky} />
         </div>
@@ -226,14 +194,9 @@ function BuildScene({
 
       {studio ? (
         <>
-          {/* A dark room rather than a sky. The bright sky was the one element
-              on the page fighting the rest of the interface, and a build reads
-              better as an object on a floor than as landscape in daylight. */}
           <color attach="background" args={["#0d0c10"]} />
           {showGrid && (
             <Grid
-              // Just under the lowest block, so a build stands on the floor
-              // rather than hovering over it or sinking into it.
               position={[cx, bounds.minY, cz]}
               infiniteGrid
               cellSize={1}
@@ -251,10 +214,7 @@ function BuildScene({
         <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
       )}
 
-      {/* Blocks carry their own face shading in the cube's vertex colours. The
-          key light is layered on top of that for cast shadows, and in the
-          studio a dim fill from the opposite side keeps the unlit faces from
-          going flat black. */}
+      {/* Face shading is in the vertex colours; the lights add cast shadows and a fill. */}
       <ambientLight intensity={ambient * scale} />
       <primitive object={lightTarget} position={[cx, cy, cz]} />
       <directionalLight
@@ -274,8 +234,6 @@ function BuildScene({
         <directionalLight
           target={lightTarget}
           intensity={fill * scale}
-          // Cool, and from behind and below, which is what a dark room does to
-          // the side of an object the key light never reaches.
           color="#9fb6ff"
           position={[cx - extent * 1.2, cy - extent * 0.2, cz - extent]}
         />
@@ -288,25 +246,18 @@ function BuildScene({
   );
 }
 
-/**
- * How often a turning preview is drawn. Its slow turn needs nothing like the
- * screen's refresh rate, and every frame it skips is one the page around it
- * gets back, which matters in Firefox where each draw call costs more.
- */
+/** A slow turn needs nothing like the refresh rate, and Firefox pays for every frame. */
 const PREVIEW_FRAMES_PER_SECOND = 30;
 
 /**
- * A useFrame with a priority above zero takes over drawing from
- * react-three-fiber, which then draws nothing on its own. The controls still
- * update every frame, so the turn stays smooth in time; only the drawing is
- * held back.
+ * A useFrame priority above zero takes over drawing from react-three-fiber,
+ * which then draws nothing on its own. The controls still update every frame.
  */
 function PreviewFrameRate() {
   const lastDrawn = useRef(0);
   useFrame(({ gl, scene, camera }) => {
     const now = performance.now();
-    // A little under the interval, so a refresh that lands slightly early
-    // still counts rather than waiting for the one after.
+    // A little under the interval, so a slightly early refresh still counts.
     if (now - lastDrawn.current < 1000 / PREVIEW_FRAMES_PER_SECOND - 2) return;
     lastDrawn.current = now;
     gl.render(scene, camera);
@@ -315,20 +266,16 @@ function PreviewFrameRate() {
 }
 
 /**
- * Orbit, zoom and pan, with the camera kept outside the build. `minDistance` is
- * the sphere containing every block.
- *
- * Panning needs no code: OrbitControls inverts whatever the button is bound to
- * while a modifier is down, so rebinding it for shift cancels itself out.
+ * Orbit, zoom and pan, with the camera kept outside the build. Panning needs no
+ * code: OrbitControls inverts the bound button while a modifier is down, so
+ * rebinding it for shift cancels itself out.
  */
 function BuildControls({ bounds, autoRotate }: { bounds: Bounds; autoRotate: boolean }) {
-  // ComponentRef asks React what this component's ref holds, which avoids
-  // naming three's OrbitControls class here; it lives in a package this app
-  // does not depend on directly.
+  // ComponentRef avoids importing three's OrbitControls class, which lives in a
+  // package this app does not depend on directly.
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
 
-  // The controls are otherwise unreachable from outside the canvas, and a test
-  // needs them to tell a pan from a rotate.
+  // A test needs the controls to tell a pan from a rotate.
   useEffect(() => {
     if (import.meta.env.DEV) window.__viewer = controls.current ?? undefined;
   }, []);
@@ -341,8 +288,6 @@ function BuildControls({ bounds, autoRotate }: { bounds: Bounds; autoRotate: boo
       // Slow enough to read as a presentation rather than a spin.
       autoRotateSpeed={0.4}
       enablePan
-      // Panning moves the target across the screen rather than along the ground
-      // plane, which is what someone dragging a model expects.
       screenSpacePanning
       minDistance={bounds.radius * 1.08}
       maxDistance={bounds.radius * 4}

@@ -1,6 +1,5 @@
 import { useEditorUiStore } from "../../lib/editorUiStore.ts";
 
-/** Shown while creative flight is on, so the current mode is never a guess. */
 export default function FlightIndicator() {
   const flying = useEditorUiStore((state) => state.flying);
   if (!flying) return null;

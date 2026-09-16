@@ -2,22 +2,14 @@ import { DataTexture, NearestFilter, SRGBColorSpace, TextureLoader, type Texture
 import { TEXTURE_URLS } from "./voxel/blocks.ts";
 
 /**
- * Loading the block textures once, in a way that cannot take the editor down.
- * A throw inside the Canvas reaches the page error boundary, which unmounts it
- * and destroys the WebGL context along with whatever was being built, so a
- * missing image retries and then falls back to a blank texture.
+ * Loads the block textures without ever throwing: a throw inside the Canvas
+ * unmounts the editor and loses the world, so a missing image retries and then falls back to a blank texture.
  */
 
-/** A failed image is usually a hiccup, so ask again before giving up. */
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 250;
 
-/**
- * Every texture file, as a path to its built URL. This exists alongside the
- * block table's own imports because it is the only way back from a production
- * build's fingerprinted URL to the original file name, which the pack override
- * needs.
- */
+/** The only way back from a build's fingerprinted URL to the file name, which the pack override needs. */
 const SOURCE_FILES = import.meta.glob("../assets/textures/*.png", {
   eager: true,
   query: "?url",
@@ -31,11 +23,7 @@ const NAME_BY_URL = new Map(
   ]),
 );
 
-/**
- * Where to look for replacement textures, if anywhere. Set VITE_TEXTURE_PACK to
- * a folder and each block prefers the pack's image, falling back to the bundled
- * one. Packs whose licences forbid redistribution can be used this way.
- */
+/** Set VITE_TEXTURE_PACK to a folder to prefer its images over the bundled ones. */
 const PACK_BASE: string = import.meta.env["VITE_TEXTURE_PACK"] ?? "";
 
 function overrideUrlFor(url: string): string | null {
@@ -45,12 +33,8 @@ function overrideUrlFor(url: string): string | null {
 }
 
 /**
- * sRGB because these are ordinary colour images: three reads them into linear
- * space to shade with and converts back, so they come out as drawn.
- *
- * NearestFilter on both magnification and minification keeps pixel art looking
- * like pixel art. Mipmaps would average a block's edge pixels into its
- * neighbours, which is worst on glass, a frame around nothing.
+ * sRGB because these are colour images. NearestFilter and no mipmaps keep
+ * pixel art crisp; mipmaps bleed a block's edge pixels into its neighbours.
  */
 export function applyBlockTextureSettings(textures: Texture[]): void {
   for (const texture of textures) {
@@ -81,8 +65,7 @@ function loadOnce(url: string): Promise<Texture | null> {
 }
 
 async function loadTexture(url: string): Promise<Texture> {
-  // A pack only has to supply the textures it wants to replace, so a miss here
-  // is ordinary and falls through to the bundled image without complaint.
+  // A pack only has to supply the textures it replaces, so a miss is ordinary.
   const override = overrideUrlFor(url);
   if (override) {
     const replaced = await loadOnce(override);
@@ -106,11 +89,7 @@ export type BlockTextures = Map<string, Texture>;
 
 let pending: Promise<BlockTextures> | null = null;
 
-/**
- * The same promise every time, so the editor and the build viewer share one
- * fetch. It never rejects: `use()` on a rejected promise throws into the
- * nearest error boundary, which is the crash this file exists to avoid.
- */
+/** One shared promise. It never rejects: `use()` on a rejected promise throws into the error boundary. */
 export function loadBlockTextures(): Promise<BlockTextures> {
   pending ??= Promise.all(TEXTURE_URLS.map((url) => loadTexture(url))).then((loaded) => {
     applyBlockTextureSettings(loaded);

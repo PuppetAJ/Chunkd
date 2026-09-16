@@ -2,13 +2,9 @@ import { blockFacingOf, facingOffset, isStairs, isUpsideDown } from "./blockValu
 import { toKey, type BlockKey } from "./coords.ts";
 
 /**
- * How much of a stair's tall half is filled, worked out from its neighbours so
- * that two meeting at right angles form a corner. Derived rather than stored, so
- * a staircase tidies itself up as you build and a save needs no room for it.
- *
- * The answer is a set of quarters of the cell, which is what the geometry and
- * the face culling both want: two along one edge for a straight stair, one for
- * an outer corner, three for an inner one.
+ * How much of a stair's tall half is filled, derived from its neighbours so two
+ * meeting at right angles form a corner: two quarters straight, one for an
+ * outer corner, three for an inner one.
  */
 
 /** One quarter of the cell, by which side of the middle it sits on. */
@@ -36,11 +32,7 @@ export function straightQuadrants(facing: number): number {
   return quadrantBit(-1, tz) | quadrantBit(1, tz);
 }
 
-/**
- * The stair in a neighbouring cell, if it is one that this one can turn with:
- * a stair in the same half of its cell, lying across this one rather than
- * along it. A stair in line with this one continues it instead.
- */
+/** A neighbouring stair in the same half, lying across this one. One in line continues it instead. */
 function turningNeighbour(
   blocks: Map<BlockKey, number>,
   x: number,
@@ -75,15 +67,14 @@ export function stairQuadrants(
   const [fx, fz] = facingOffset(facing);
   const straight = straightQuadrants(facing);
 
-  // A turning stair against the tall side cuts this one back to a single
-  // quarter, on the outside of the turn.
+  // A turn against the tall side leaves one quarter, on the outside.
   const behind = turningNeighbour(blocks, x + tx, y, z + tz, upsideDown, facing);
   if (behind) {
     const [nx, nz] = behind;
     return tx !== 0 ? quadrantBit(tx, nz) : quadrantBit(nx, tz);
   }
 
-  // One against the low side fills in a third quarter instead, on the inside.
+  // One against the low side adds a third quarter, on the inside.
   const infront = turningNeighbour(blocks, x + fx, y, z + fz, upsideDown, facing);
   if (infront) {
     const [nx, nz] = infront;

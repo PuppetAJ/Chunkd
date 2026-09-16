@@ -40,7 +40,6 @@ export default function ThoughtList({
   );
 }
 
-/** Three post-shaped placeholders, so the page does not jump when data lands. */
 function ThoughtListSkeleton() {
   return (
     <div className="space-y-3">

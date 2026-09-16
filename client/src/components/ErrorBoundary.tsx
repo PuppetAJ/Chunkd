@@ -10,9 +10,7 @@ interface State {
   error: Error | null;
 }
 
-// React has no hook for catching render errors, so this has to be a class.
-// Without it, one component throwing takes down the entire page and the user
-// sees a blank screen with nothing to act on.
+// React has no hook for catching render errors, so this is a class.
 export default class ErrorBoundary extends Component<Props, State> {
   override state: State = { error: null };
 

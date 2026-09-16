@@ -15,11 +15,8 @@ interface Props {
 }
 
 /**
- * The comments under a post.
- *
- * The delete button appears on your own comments. The mutation returns the
- * post with its remaining reactions, and Apollo matches that on `_id`, so the
- * list updates from the response with no refetch.
+ * The comments under a post. Deleting returns the post with its remaining
+ * reactions, which Apollo matches on `_id`, so no refetch is needed.
  */
 export default function ReactionList({ thoughtId, reactions }: Props) {
   const me = useAuthStore((state) => state.user?.username ?? "");

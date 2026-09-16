@@ -1,19 +1,13 @@
 import { moveBody, type Body } from "./collision.ts";
 import type { BlockKey } from "./coords.ts";
 
-/**
- * How the player moves. A plain function rather than something inside a React
- * component, so jumping and walking can be tested directly.
- */
-
 export const WALK_SPEED = 6;
 export const SNEAK_SPEED = 3;
 export const GRAVITY = -30;
 
 /**
- * Upward speed at the start of a jump, which peaks at roughly 1.35 blocks. The
- * height matters: building a pillar means placing a block under your own feet,
- * which is only legal while they are more than a block clear of the ground.
+ * Peaks at about 1.35 blocks: enough clearance to place a block under your own
+ * feet, which needs more than a whole block.
  */
 export const JUMP_SPEED = 9;
 
@@ -33,11 +27,7 @@ export const MAX_TIMESTEP = 1 / 30;
 
 export interface MotionState {
   verticalSpeed: number;
-  /**
-   * True once a jump has been started and the key has not been released.
-   * Without this, holding the jump key jumps again the instant the player
-   * touches down, so they never appear to land.
-   */
+  /** Set while the key is held, so holding jump gives one jump rather than a bounce on every landing. */
   jumpHeld: boolean;
   /** Creative flight: gravity off, jump rises, sneak descends. */
   flying: boolean;
@@ -80,16 +70,13 @@ export function stepPlayer(
   const dt = Math.min(delta, MAX_TIMESTEP);
   motion.elapsed += dt;
 
-  // A second jump press soon after the first toggles flight, the way creative
-  // mode does. The first press has already produced a jump by then, which is
-  // what makes the gesture feel like taking off.
+  // A second press within the window toggles flight, as creative mode does.
   const freshPress = input.jump && !motion.jumpHeld;
   if (freshPress) {
     if (motion.elapsed - motion.lastJumpPressAt < DOUBLE_TAP_SECONDS) {
       motion.flying = !motion.flying;
       motion.verticalSpeed = 0;
-      // Consume the pair, so a third tap starts a new one rather than
-      // toggling straight back.
+      // Consume the pair, so a third tap starts a new one rather than toggling back.
       motion.lastJumpPressAt = -Infinity;
     } else {
       motion.lastJumpPressAt = motion.elapsed;
@@ -107,8 +94,6 @@ export function stepPlayer(
     vz = ((input.forward * input.headingZ + input.strafe * input.headingX) / length) * speed;
   }
 
-  // A jump needs a fresh press. Holding the key gives one jump, not a bounce
-  // on every landing.
   if (freshPress && !motion.flying && body.onGround) {
     motion.verticalSpeed = JUMP_SPEED;
   }
@@ -116,14 +101,10 @@ export function stepPlayer(
 
   let dy: number;
   if (motion.flying) {
-    // No gravity while flying; the keys drive height directly.
     motion.verticalSpeed = 0;
     dy = ((input.jump ? FLY_SPEED : 0) - (input.sneak ? FLY_SPEED : 0)) * dt;
   } else {
-    // Integrate over the average of the speeds at the start and end of the
-    // frame. Using only the end speed, as before, meant one frame of gravity
-    // was applied before the jump had lifted the player at all, which both
-    // lowered the jump and made its height depend on the frame rate.
+    // Average the start and end speeds, or the jump height depends on the frame rate.
     const startSpeed = motion.verticalSpeed;
     const endSpeed = Math.max(TERMINAL_VELOCITY, startSpeed + GRAVITY * dt);
     dy = ((startSpeed + endSpeed) / 2) * dt;
@@ -132,21 +113,13 @@ export function stepPlayer(
 
   moveBody(blocks, body, vx * dt, dy, vz * dt);
 
-  // Landing or hitting a ceiling cancels vertical momentum.
   if (body.onGround && motion.verticalSpeed < 0) motion.verticalSpeed = 0;
 }
 
-/**
- * How far past the edge of the world someone may go before being put back at
- * the spawn point. Far enough to fly out and look at what they have built, near
- * enough that the island is never a speck behind them.
- */
+/** How far past the edge before being put back at spawn: room to fly out and look at a build. */
 export const STRAY_MARGIN = 32;
 
-/**
- * Whether someone has wandered off the world. Height is deliberately not part
- * of it: building tall is the point, and falling is caught by its own check.
- */
+/** Height is left out on purpose: building tall is the point, and falling has its own check. */
 export function hasStrayed(x: number, z: number, size: number): boolean {
   return x < -STRAY_MARGIN || z < -STRAY_MARGIN || x > size + STRAY_MARGIN || z > size + STRAY_MARGIN;
 }

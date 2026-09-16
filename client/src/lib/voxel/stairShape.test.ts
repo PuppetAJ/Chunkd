@@ -41,7 +41,6 @@ test("a stair on its own is straight", () => {
 });
 
 test("a straight run stays straight", () => {
-  // Stairs in line with each other continue, they do not turn.
   const blocks = world([
     [0, 0, 0, stair(FACING_NORTH)],
     [0, 0, 1, stair(FACING_NORTH)],
@@ -51,7 +50,6 @@ test("a straight run stays straight", () => {
 });
 
 test("a turn against the tall side makes an outer corner", () => {
-  // One quarter left, on the outside of the turn.
   const blocks = world([
     [0, 0, 0, stair(FACING_NORTH)],
     [0, 0, 1, stair(FACING_EAST)],
@@ -62,20 +60,17 @@ test("a turn against the tall side makes an outer corner", () => {
 });
 
 test("a turn against the low side makes an inner corner", () => {
-  // Three quarters, wrapping the inside of the turn.
   const blocks = world([
     [0, 0, 0, stair(FACING_NORTH)],
     [0, 0, -1, stair(FACING_EAST)],
   ]);
   const mask = stairQuadrants(blocks, 0, 0, 0);
   assert.equal(filled(mask), 3, `mask ${mask.toString(2)}`);
-  // An inner corner keeps everything the straight one had and adds to it.
   assert.equal(mask & straightQuadrants(FACING_NORTH), straightQuadrants(FACING_NORTH));
 });
 
 test("a corner is made of quarters the neighbour's own shape reaches", () => {
-  // The two shapes have to meet, or the turn has a gap in it. The quarter an
-  // outer corner keeps must be one the neighbour also fills on its side.
+  // The quarter an outer corner keeps must be one the neighbour fills too, or the turn has a gap.
   const blocks = world([
     [0, 0, 0, stair(FACING_NORTH)],
     [0, 0, 1, stair(FACING_EAST)],
@@ -89,8 +84,6 @@ test("a corner is made of quarters the neighbour's own shape reaches", () => {
 });
 
 test("stairs in different halves of their cells do not turn together", () => {
-  // An upside-down stair beside an upright one is not a corner: they are not
-  // at the same height and joining them would look wrong.
   const blocks = world([
     [0, 0, 0, stair(FACING_NORTH)],
     [0, 0, 1, stair(FACING_EAST, true)],

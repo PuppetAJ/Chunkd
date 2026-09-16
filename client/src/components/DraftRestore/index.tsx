@@ -16,12 +16,7 @@ interface Props {
   onDiscard: () => void;
 }
 
-/**
- * Offer back a world that was never saved.
- *
- * The editor writes one to this browser as it is built, so closing the tab, a
- * crash or a session ending is no longer the end of an afternoon's work.
- */
+/** Offer back a world the editor kept in this browser but never saved. */
 export default function DraftRestore({ draft, onRestore, onDiscard }: Props) {
   return (
     <Dialog open>

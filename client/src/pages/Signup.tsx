@@ -30,9 +30,7 @@ export default function Signup() {
 
   const [formState, setFormState] = useState({ username: "", email: "", password: "" });
 
-  // One message per field, plus one for whatever the server says. Previously
-  // every failure rendered the same "Signup failed !", so a password that was
-  // too short looked identical to an email that was already taken.
+  // One message per field, plus one for whatever the server says.
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -42,8 +40,6 @@ export default function Signup() {
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormState((previous) => ({ ...previous, [name]: value }));
-    // Clear a field's complaint as soon as it is being edited, so the message
-    // does not sit there contradicting what is on screen.
     setFieldErrors((previous) => ({ ...previous, [name]: null }));
     setSubmitError("");
   };

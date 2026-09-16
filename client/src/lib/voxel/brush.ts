@@ -1,8 +1,4 @@
-/**
- * How many cells one break or place covers. The square lies in the face being
- * looked at, so it spreads across the floor when levelling ground and up the
- * wall when raising one. Odd sizes only, so the crosshair has a middle cell.
- */
+/** Odd sizes only, so the crosshair has a middle cell. */
 export const BRUSH_SIZES = [1, 3, 5, 7, 9];
 
 /** One cell of the world, as x, y and z. */
@@ -15,11 +11,7 @@ export function nextBrush(size: number, direction: number): number {
   return BRUSH_SIZES[Math.min(Math.max(next, 0), BRUSH_SIZES.length - 1)] ?? 1;
 }
 
-/**
- * The cells a brush of this size covers, centred on one cell and lying flat
- * against the face whose normal is given. A size of 1 is just that cell, so
- * the caller needs no special case for the ordinary brush.
- */
+/** The cells a brush covers, centred on one cell and flat against the face with this normal. */
 export function brushCells(
   x: number,
   y: number,

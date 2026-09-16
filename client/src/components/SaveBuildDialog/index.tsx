@@ -24,15 +24,7 @@ import { Label } from "../ui/label.tsx";
 
 const MAX_NAME_LENGTH = 60;
 
-/**
- * Names a world before it is saved, and asks before a name is reused.
- *
- * The world and its picture are captured the instant P is pressed, so the
- * thumbnail shows the view the player chose rather than wherever the camera
- * drifted while they were typing. A name that matches a build they already
- * have is offered as an overwrite: saving a work in progress every few minutes
- * would otherwise leave a trail of copies, and the cap is fifty.
- */
+/** Names the world captured when P was pressed, and asks before a name is reused. */
 export default function SaveBuildDialog() {
   const pending = useEditorUiStore((state) => state.pendingSave);
   const setPendingSave = useEditorUiStore((state) => state.setPendingSave);
@@ -54,8 +46,7 @@ export default function SaveBuildDialog() {
   });
   const loading = saving || updating;
 
-  // Each capture starts a fresh naming. A world opened from a saved build
-  // starts from that build's name, since overwriting it is the likely intent.
+  // A world opened from a saved build starts from that build's name.
   useEffect(() => {
     if (pending) {
       setName(source?.name ?? "");
@@ -74,8 +65,6 @@ export default function SaveBuildDialog() {
 
   const fail = (requestError: unknown) => {
     setSaveStatus("idle");
-    // The captured world is held until the save succeeds or the dialog is
-    // cancelled, so an ended session only costs a password and a second press.
     setError(
       isUnauthenticated(requestError)
         ? "Your session ended while you were building. Sign in, then save again: this world is still here."

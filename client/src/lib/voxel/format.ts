@@ -3,33 +3,18 @@ import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
 /**
- * Saved build format, version 5.
- *
- * A save is the seed plus the differences: blocks the player removed and blocks
- * they added. The terrain is regenerated on load, so a build is proportional to
- * what the player did rather than to the size of the world.
- *
- * The version rises whenever a payload needs a reader that knows something new,
- * even when the shape of the file has not changed. Every older version is still
- * readable, because each new field defaults to what the old data meant: no shape
- * bits is a full cube (3), no `trees` field is a world grown with them (4), and
- * no trapdoor bits is a build without trapdoors (5). The generator's inputs, the
- * seed, the size and `trees`, all have to be stored: without them the terrain a
- * build is a difference against cannot be rebuilt.
+ * A save is the seed plus the blocks removed and added; the terrain is
+ * regenerated on load. The version rises whenever a payload needs a reader that
+ * knows something new. Each new field defaults to what older data meant.
  */
 export const BUILD_FORMAT_VERSION = 5;
 
-/**
- * The versions this can load. A list rather than "anything up to the current
- * one", so keeping an old version readable stays a decision.
- */
+/** A list rather than "anything up to now", so keeping an old version readable stays a decision. */
 const READABLE_VERSIONS = [2, 3, 4, 5] as const;
 
 const positionSchema = z.tuple([z.number().int(), z.number().int(), z.number().int()]);
 
 const buildSchema = z.object({
-  // z.literal takes a list, so the readable versions stay in one place rather
-  // than being spelled out again here.
   v: z.literal(READABLE_VERSIONS),
   size: z.number().int().positive(),
   seed: z.number().int().nonnegative(),
@@ -84,12 +69,7 @@ export interface LoadedWorld {
   trees: boolean;
 }
 
-/**
- * Rebuild a world from a saved payload.
- *
- * Returns null rather than throwing when the data is unreadable, so a corrupt or
- * outdated build shows a message instead of taking down the page.
- */
+/** Null rather than a throw for unreadable data, so a bad build shows a message. */
 export function deserializeWorld(payload: string): LoadedWorld | null {
   let parsed: unknown;
   try {
@@ -101,9 +81,7 @@ export function deserializeWorld(payload: string): LoadedWorld | null {
   const result = buildSchema.safeParse(parsed);
   if (!result.success) return null;
 
-  // size and trees are the generator's inputs. Rebuilding the terrain without
-  // them gives a different landscape to the one the differences were recorded
-  // against, so the build would load subtly wrong rather than fail.
+  // size and trees are generator inputs; without them the build loads against the wrong terrain.
   const { seed, size, trees, removed, added } = result.data;
   const blocks = generateTerrain(seed, size, { trees });
 

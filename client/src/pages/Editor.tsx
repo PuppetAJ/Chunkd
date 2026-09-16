@@ -31,30 +31,21 @@ import { QUERY_BUILD } from "../utils/queries.ts";
 import type { Body } from "../lib/voxel/collision.ts";
 
 /**
- * Ask for the mouse. The pause screen and the inventory cover the canvas, so
- * drei's click-to-lock never sees the click that dismissed them. A refusal,
- * which is what an automated browser always does, leaves play running without it.
+ * The pause screen and inventory cover the canvas, so drei's click-to-lock
+ * never sees the click that dismissed them.
  */
 function requestPointerLock(): void {
   try {
     document.querySelector("#editor canvas")?.requestPointerLock?.();
   } catch {
-    // Refused. Nothing to recover; the crosshair simply stops following.
+    // Refused; play carries on without the lock.
   }
 }
 
 /**
- * Mouse-look. Both props matter, and both are about drei's defaults.
- *
- * `selector` keeps its click-to-lock on the canvas; left alone it listens on the
- * whole document, so a click on the pause screen's settings took the mouse.
- *
- * `domElement` pins the lock to the canvas. Otherwise drei locks whatever
- * element the scene takes input from, which becomes the canvas's wrapper once
- * the scene has wired up, and clicks then never reach the canvas.
- *
- * It stays mounted through menus for the same reason: a second mount is what
- * moved the lock onto the wrapper. Menus cover the canvas anyway.
+ * `selector` keeps drei's click-to-lock on the canvas instead of the whole document.
+ * `domElement` pins the lock to the canvas; otherwise drei locks the canvas's wrapper
+ * once the scene is wired up. Stays mounted through menus: a remount moves the lock onto the wrapper.
  */
 function LookControls() {
   const canvas = useThree((state) => state.gl.domElement);
@@ -73,18 +64,14 @@ export default function Editor() {
 
   const [everPlayed, setEverPlayed] = useState(false);
 
-  // A build named in the URL is fetched and loaded in place of the fresh world.
-  // Play is held back until it lands, or the first click would be into a world
-  // about to be replaced.
+  // A build named in the URL is loaded in place of the fresh world; play waits for it.
   const [params, setParams] = useSearchParams();
   const buildId = params.get("build");
   const source = useWorldStore((state) => state.source);
   const loadBuild = useWorldStore((state) => state.loadBuild);
-  // Which build this world came from, which is not the same question as which
-  // build it was last saved as. Saving under a second name moves the store's
-  // `source` to the new build, and comparing the address against that would
-  // read as "the address names a build we do not have" and fetch it back over
-  // the world in progress.
+  // Which build this world came from. Not the store's `source`: saving under a
+  // second name moves that, and the address would then fetch the old build back
+  // over the world in progress.
   const [held, setHeld] = useState<string | null>(null);
   const wanted = buildId !== null && buildId !== held;
   const { data: fetchedData, error: fetchError } = useQuery(QUERY_BUILD, {
@@ -109,9 +96,7 @@ export default function Editor() {
   }, [wanted, buildId, fetched, fetchError, loadBuild]);
   const loadingBuild = wanted && !fetchError ? (fetched?.name ?? "your build") : null;
 
-  // The address names whichever build the editor is holding, so that saving
-  // under a new name, or starting a new world, leaves a link that reopens what
-  // is actually on screen.
+  // The address names whichever build the editor is holding, so a link reopens what is on screen.
   useEffect(() => {
     if (wanted) return;
     const id = source?.id ?? null;
@@ -128,12 +113,10 @@ export default function Editor() {
     );
   }, [wanted, source, buildId, setParams]);
 
-  // The world is kept in this browser as it is built. See useWorldDraft.
   useWorldDraft();
 
-  // An unsaved world from last time is offered back, but only once whatever the
-  // address asked for has arrived: a build still on its way in would otherwise
-  // land on top of the one just restored.
+  // The draft is offered only once whatever the address asked for has arrived,
+  // or that build would land on top of the restored one.
   const [draft, setDraft] = useState<Draft | null>(null);
   const offeredDraft = useRef(false);
   useEffect(() => {
@@ -160,8 +143,6 @@ export default function Editor() {
     setDraft(null);
   };
 
-  // A build's thumbnail is a capture of this render, so how the editor is lit
-  // decides how the build looks everywhere else on the site.
   const { environment, grid: showGrid, light } = useEditorSettings((state) => state.settings);
   const studio = environment === "studio";
   const lightScale = LIGHT_SCALE[light];
@@ -172,12 +153,9 @@ export default function Editor() {
   const pendingSave = useEditorUiStore((state) => state.pendingSave);
   const inventoryOpen = useEditorUiStore((state) => state.inventoryOpen);
 
-  // Zooming the page moves the crosshair away from where the player is aiming.
   useSuppressZoomGestures(true);
 
-  // Closing the inventory puts the player straight back in the world. The
-  // keypress or click that closed it counts as the gesture a browser wants
-  // before it will hand the mouse back.
+  // The gesture that closed it is what lets the browser hand the mouse back.
   const closeInventory = () => {
     useEditorUiStore.getState().setInventoryOpen(false);
     if (useEditorUiStore.getState().playing) requestPointerLock();
@@ -189,43 +167,36 @@ export default function Editor() {
       // Typing a build name should not also open the inventory.
       if (ui.pendingSave) return;
 
-      // In play there is nothing for focus to move to, and a control that
-      // took it would answer the next Space or Enter as a click.
+      // A control that took focus would answer the next Space or Enter as a click.
       if (event.code === "Tab" && ui.playing && !ui.inventoryOpen) event.preventDefault();
 
       if (event.code === "KeyE") {
         if (ui.inventoryOpen) closeInventory();
-        // Only from play. Opened over the pause screen it hid that screen and
-        // then closed back onto it, a menu on top of a paused game.
+        // Only from play, not over the pause screen.
         else if (ui.playing) ui.setInventoryOpen(true);
       }
 
       if (event.code === "Escape") {
-        // Escape means "back out of whatever I am in". With the inventory open
-        // that is the inventory, not the game; pausing as well would drop the
-        // player onto the pause screen for closing a menu.
+        // Escape backs out of the inventory, not the game.
         if (ui.inventoryOpen) {
           closeInventory();
           return;
         }
-        // With the mouse really locked the browser releases it and the handler
-        // below pauses. When the lock was never granted there is no such event,
-        // and without this the pause screen would be unreachable.
+        // With a real lock the browser releases it and the change handler
+        // pauses. Without one there is no such event, so pause here.
         if (!document.pointerLockElement) ui.setPlaying(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // Registered once. Everything it reads comes from the store rather than
-    // from a render, so there is nothing here that can go stale.
+    // Everything it reads comes from the store, so nothing here goes stale.
   }, []);
 
   // Losing the mouse is the browser's way of pausing, so the editor follows it.
   useEffect(() => {
     const onChange = () => {
       if (document.pointerLockElement) return;
-      // The lock is also released deliberately when the inventory or the naming
-      // dialog opens. That is a menu, not the player asking to stop.
+      // The lock is also released on purpose for the inventory and the naming dialog.
       const ui = useEditorUiStore.getState();
       if (ui.inventoryOpen || ui.pendingSave) return;
       setPlaying(false);
@@ -250,9 +221,8 @@ export default function Editor() {
     if (inventoryOpen && document.pointerLockElement) document.exitPointerLock();
   }, [inventoryOpen]);
 
-  // A session can run out mid-build. The route keeps the editor mounted so the
-  // world survives it; this stops the world moving underneath the sign-in box
-  // and hands the mouse back for typing.
+  // The route keeps the editor mounted through an expired session; this stops
+  // the world moving under the sign-in box.
   const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
   useEffect(() => {
     if (isLoggedIn) return;
@@ -260,20 +230,16 @@ export default function Editor() {
     if (document.pointerLockElement) document.exitPointerLock();
   }, [isLoggedIn, setPlaying]);
 
-  // The player's position is deliberately not React state. It changes every
-  // frame, and both the movement code and the block placement check read it
-  // directly rather than through a re-render.
+  // Deliberately not React state: it changes every frame.
   const body = useMemo<Body>(() => {
     const [x, y, z] = spawnPoint();
     return { x, y, z, onGround: false };
-    // Neither `seed` nor `size` is read here, but `spawnPoint`'s identity never
-    // changes, so without them a new world reuses the old spawn point.
+    // `spawnPoint`'s identity never changes, so without `seed` and `size` a
+    // new world would reuse the old spawn point.
     // oxlint-disable-next-line exhaustive-deps
   }, [seed, size, spawnPoint]);
 
-  // Development-only handle on the player's box, so a test can stand them
-  // somewhere. An effect, not canvas setup: a new world makes a new body, and
-  // the canvas is created once, so that would go stale.
+  // An effect, not canvas setup: a new world makes a new body and the canvas is created once.
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     window.__player = body;
@@ -289,30 +255,25 @@ export default function Editor() {
         id="editor"
         shadows
         camera={{ fov: 70, near: 0.1, far: 400 }}
-        // Rendering at the screen's own pixel density is what stops block edges
-        // looking ragged on a retina display; capped at 2 so a very dense screen
-        // does not quadruple the work for no visible gain.
+        // Capped at 2 so a very dense screen does not quadruple the work.
         dpr={[1, 2]}
-        // The filmic curve is not colour accurate, taking about a third off the
-        // red and blue of a lit grass block, but its contrast is what gives the
-        // scene its punch. The exposure lift pays back the darkening.
+        // ACES is not colour accurate but gives the scene its contrast; the
+        // exposure lift pays back the darkening.
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 1.1,
         }}
         onCreated={(state) => {
-          // Development-only handles for the end-to-end tests: one to aim the
-          // camera and read what was drawn, one to inspect the world itself.
+          // Development-only handles for the end-to-end tests.
           if (import.meta.env.DEV) {
             window.__r3f = state;
             window.__world = useWorldStore;
           }
         }}
       >
-        {/* Block textures suspend while they load. Without a boundary inside
-            the Canvas that suspension reaches the router, which unmounts the
-            Canvas and destroys its WebGL context. */}
+        {/* Without a boundary inside the Canvas, a suspension reaches the router,
+            which unmounts the Canvas and destroys its WebGL context. */}
         <Suspense fallback={null}>
           <Preload all />
           {studio ? (
@@ -336,10 +297,8 @@ export default function Editor() {
           ) : (
             <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
           )}
-          {/* Blocks carry their own face shading in the cube's vertex colours;
-              the sun is layered on top of that for cast shadows. Its camera is
-              aimed at the middle of the world, because it defaults to the origin
-              and that left the far half of the map unshadowed. */}
+          {/* The sun's shadow camera is aimed at the middle of the world; it
+              defaults to the origin, which left the far half unshadowed. */}
           <ambientLight intensity={lighting.ambient * lightScale} />
           <primitive object={lightTarget} position={[centre, 0, centre]} />
           {lighting.fill > 0 && (
@@ -367,8 +326,6 @@ export default function Editor() {
           <Player body={body} />
           <SaveControls />
         </Suspense>
-        {/* Mouse-look would fight the cursor while the inventory or the save
-            dialog is open, and there is nothing to look at while paused. */}
         <LookControls />
       </Canvas>
 
@@ -383,8 +340,6 @@ export default function Editor() {
       {/* The editor is routed outside the site shell, so it carries its own. */}
       <Toaster />
 
-      {/* The pause screen would otherwise stack on top of the two things that
-          legitimately take the mouse away from the world. */}
       {isLoggedIn && !draft && !playing && !inventoryOpen && !pendingSave && (
         <EditorPause firstVisit={!everPlayed} loading={loadingBuild} onPlay={startPlaying} />
       )}

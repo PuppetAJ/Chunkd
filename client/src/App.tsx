@@ -13,22 +13,17 @@ import { useHasFinePointer } from "./lib/useHasFinePointer.ts";
 import { useAuthStore } from "./lib/auth.ts";
 import { useSessionRenewal } from "./lib/useSessionRenewal.ts";
 
-// Three.js, the physics engine and its WebAssembly module together are larger
-// than everything else in the app combined. Loading these routes on demand keeps
-// them out of the bundle that the login and feed pages have to download.
+// Keeps three.js and the physics engine out of the login and feed bundle.
 const Editor = lazy(() => import("./pages/Editor.tsx"));
 const Profile = lazy(() => import("./pages/Profile.tsx"));
 const SingleThought = lazy(() => import("./pages/SingleThought.tsx"));
 const Settings = lazy(() => import("./pages/Settings.tsx"));
 
 export default function App() {
-  // A session that would otherwise run out mid-build is extended in the
-  // background. See useSessionRenewal.
   useSessionRenewal();
 
   return (
     <Routes>
-      {/* Everything except the editor is a page inside the site shell. */}
       <Route element={<SiteLayout />}>
         <Route path="/" element={<Root />} />
         <Route path="/login" element={<Login />} />
@@ -61,33 +56,19 @@ export default function App() {
         <Route path="*" element={<NoMatch />} />
       </Route>
 
-      {/* The editor owns the whole window: it is pointer-locked, full-bleed and
-          draws its own overlay, so it sits outside the shell rather than
-          fighting a sticky header and a footer for the same pixels. */}
+      {/* The editor is pointer-locked and full-bleed, so it sits outside the shell. */}
       <Route path="/editor" element={<EditorRoute />} />
     </Routes>
   );
 }
 
-/**
- * The root is two different pages.
- *
- * Someone signed in wants the feed. Someone who has never been here wants to
- * know what this is, and a feed of other people's posts does not tell them.
- */
 function Root() {
   const loggedIn = useAuthStore((state) => state.isLoggedIn);
   return loggedIn ? <Home /> : <Landing />;
 }
 
-/**
- * The editor route, with the devices that cannot run it turned away first.
- *
- * The check sits outside RequireAuth on purpose. Someone on a phone should be
- * told the editor will not work here, not made to log in and then told.
- * Checking first also means the three.js chunk is never downloaded on a device
- * that has no use for it.
- */
+// The pointer check sits outside RequireAuth on purpose: a phone should be
+// turned away before being asked to log in, and before the three.js chunk loads.
 function EditorRoute() {
   const hasFinePointer = useHasFinePointer();
   if (!hasFinePointer) return <EditorUnavailable />;
