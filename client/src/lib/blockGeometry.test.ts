@@ -16,6 +16,8 @@ import {
   fenceParts,
   geometryForBlock,
   geometryForShape,
+  MATERIAL_BOTTOM,
+  MATERIAL_TOP,
   paneParts,
   stairParts,
   trapdoorParts,
@@ -176,11 +178,11 @@ test("a glass pane reaches the edge of its cell on each side it joins", () => {
 });
 
 /**
- * BlockLayer gives a block with different textures per face an array of six
- * materials, and picks between them by the group each face is in: index 2 is
- * the top texture, 3 the bottom, the rest the sides. A shape built from
- * several boxes used to be grouped by box instead, so its third box was drawn
- * entirely with the top texture and its fourth with the bottom.
+ * BlockLayer gives a block with different textures per face three materials,
+ * for the sides, the top and the bottom, and picks between them by the group
+ * each face is in. A shape built from several boxes used to be grouped by box
+ * instead, so its third box was drawn entirely with the top texture and its
+ * fourth with the bottom.
  */
 function facesMatchTheirMaterial(geometry: {
   groups: { start: number; count: number; materialIndex?: number }[];
@@ -192,10 +194,13 @@ function facesMatchTheirMaterial(geometry: {
   for (const group of geometry.groups) {
     for (let i = group.start; i < group.start + group.count; i += 1) {
       const ny = normal.getY(index.getX(i));
-      const expected = group.materialIndex === 2 ? 1 : group.materialIndex === 3 ? -1 : 0;
+      const expected =
+        group.materialIndex === MATERIAL_TOP ? 1 : group.materialIndex === MATERIAL_BOTTOM ? -1 : 0;
       assert.equal(ny, expected, `material ${group.materialIndex} on a face pointing ${ny}`);
     }
   }
+  // One draw call per material, however many boxes the shape is made of.
+  assert.ok(geometry.groups.length <= 3, `${geometry.groups.length} groups`);
 }
 
 test("a glass pane's faces are each drawn with the texture for the way they point", () => {
