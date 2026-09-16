@@ -154,6 +154,7 @@ async function seed(): Promise<void> {
       format: showcase.format,
       data: showcase.data,
       thumbnail: showcase.thumbnail,
+      featured: true,
     });
 
     await Thought.create({
