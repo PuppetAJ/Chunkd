@@ -28,6 +28,8 @@ const MAX_BUILD_BYTES = 2 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 256 * 1024;
 
 const DEFAULT_FEED_LIMIT = 10;
+/** The hero plus two rows of three. */
+const SHOWCASE_SIZE = 7;
 const MAX_FEED_LIMIT = 50;
 
 function feedWindow(args: { limit?: number | null; offset?: number | null }) {
@@ -144,6 +146,12 @@ export const resolvers = {
           .limit(limit);
       }
       return Thought.find().sort({ createdAt: -1 }).skip(offset).limit(limit);
+    },
+
+    showcase: async () => {
+      const featured = await Build.find({ featured: true }).select("_id");
+      const build = featured.length > 0 ? { $in: featured.map((one) => one._id) } : { $ne: null };
+      return Thought.find({ build }).sort({ createdAt: -1 }).limit(SHOWCASE_SIZE);
     },
 
     thought: async (_parent: unknown, args: { _id: string }) =>

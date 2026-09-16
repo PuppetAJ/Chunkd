@@ -33,6 +33,7 @@ export const typeDefs = /* GraphQL */ `
     format: Int!
     data: String!
     thumbnail: String
+    featured: Boolean!
     owner: User!
     createdAt: String!
     updatedAt: String!
@@ -75,6 +76,11 @@ export const typeDefs = /* GraphQL */ `
     thoughts(username: String, limit: Int, offset: Int): [Thought!]!
     thought(_id: ID!): Thought
     build(_id: ID!): Build
+    """
+    The landing page's builds: the posts of the featured builds, newest first,
+    or the newest posts with a build when nothing has been marked featured.
+    """
+    showcase: [Thought!]!
   }
 
   type Mutation {

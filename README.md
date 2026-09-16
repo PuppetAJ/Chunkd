@@ -81,8 +81,9 @@ accounts get a random one. The worlds come from
 `server/src/seeders/showcaseBuilds.json`, which is committed. To change them,
 build and save the worlds in the editor under one account, list them with a
 caption in `server/src/scripts/exportShowcaseBuilds.ts`, and run
-`pnpm showcase:export <username>`. The last build in the list becomes the
-landing page hero. Every seeded account uses the password
+`pnpm showcase:export <username>`. The seeder marks these builds as featured,
+which keeps them on the landing page ahead of anything posted later, and the
+last build in the list becomes the hero. Every seeded account uses the password
 `chunkd-dev-password`, and each one's email address is its username followed
 by `@chunkd.test`.
 

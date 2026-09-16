@@ -1564,13 +1564,13 @@ page.on("response", watchRefetch);
 
 await page.getByRole("button", { name: "Account menu" }).click();
 await page.getByRole("menuitem", { name: "Log out" }).click();
-await waitFor(() => refetched.includes("thoughts"));
+await waitFor(() => refetched.includes("showcase"));
 await appears(page.getByRole("heading", { name: /Build a world in your browser/ }));
 page.off("response", watchRefetch);
 
 check(
-  "signing out refetches the feed rather than leaving stale data on screen",
-  refetched.includes("thoughts"),
+  "signing out fetches the landing page afresh rather than leaving stale data on screen",
+  refetched.includes("showcase"),
   refetched.join(", ") || "(no graphql requests after signing out)",
 );
 check(
