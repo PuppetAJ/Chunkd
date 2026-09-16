@@ -83,8 +83,7 @@ function compare(blocks: Map<BlockKey, number>, rays: number, seed: number, size
     const origin = new THREE.Vector3(next() * size, 6 + next() * 12, next() * size);
     const direction = new THREE.Vector3(next() * 2 - 1, next() * 2 - 1, next() * 2 - 1);
     if (direction.lengthSq() === 0) continue;
-    // The player never stands inside a block, and a scene raycast cannot see
-    // one from the inside: its faces point away.
+    // A scene raycast cannot see a block from inside, so skip origins in one.
     const inside = blocks.get(
       toKey(Math.round(origin.x), Math.round(origin.y), Math.round(origin.z)),
     );
@@ -115,7 +114,6 @@ test("the walk agrees with a scene raycast over open terrain", () => {
 
 test("the walk agrees with a scene raycast over shapes that do not fill their cell", () => {
   const blocks = generateTerrain(9001, 24, { trees: false });
-  // A line of each shape at a height the rays pass through.
   let x = 4;
   for (const shape of [SHAPE_SLAB_BOTTOM, SHAPE_STAIRS_BOTTOM, SHAPE_FENCE, SHAPE_WALL]) {
     for (let z = 4; z < 20; z += 1) {

@@ -1,11 +1,8 @@
 import { gql } from "@apollo/client";
 
-// Every query below fetches build metadata only. The world data itself is
-// behind QUERY_BUILD so that opening a profile no longer downloads every world
-// the user has ever saved.
+// Every query here fetches build metadata only; world data is behind QUERY_BUILD.
 
-// The feed is paged. `limit` and `offset` describe the window; the cache is
-// told how to stitch consecutive windows together in lib/apollo.ts.
+// Paged. lib/apollo.ts stitches the windows together in the cache.
 export const QUERY_THOUGHTS = gql`
   query thoughts($username: String, $limit: Int, $offset: Int) {
     thoughts(username: $username, limit: $limit, offset: $offset) {

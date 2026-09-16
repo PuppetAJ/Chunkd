@@ -1,11 +1,11 @@
 /**
  * Runs axe-core against every page and fails on anything at WCAG 2.1 A or AA.
- * Needs the app running; E2E_BASE_URL points it elsewhere.
+ * Needs the app running.
  *
  *   pnpm test:a11y
  *
  * The editor is audited on its pause screen: in world it is a locked canvas
- * with no accessibility tree, which a headless browser cannot enter anyway.
+ * with no accessibility tree.
  */
 import { chromium } from "playwright";
 import { createRequire } from "node:module";
@@ -21,8 +21,7 @@ const page = await context.newPage();
 
 let failures = 0;
 
-// Signing in first, so the pages that only exist for a signed-in user are
-// audited as well.
+// Sign in first so the signed-in pages get audited too.
 const username = `a11y${Date.now().toString().slice(-8)}`;
 await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
 await page.fill("#username", username);
@@ -70,8 +69,7 @@ await audit("not found", "/definitely-not-a-page");
 // The world has to finish generating before the pause screen settles.
 await audit("editor pause screen", "/editor", 9000);
 
-// The root is a different page when nobody is signed in, and it is the one
-// most visitors see first, so it gets audited in that state too.
+// The root is a different page when nobody is signed in.
 await page.evaluate(() => localStorage.clear());
 await audit("landing (signed out)", "/", 4000);
 

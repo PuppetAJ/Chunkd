@@ -17,14 +17,6 @@ import { Label } from "../ui/label.tsx";
 import { Slider } from "../ui/slider.tsx";
 import { Switch } from "../ui/switch.tsx";
 
-/**
- * Generate a fresh world, with a say in what comes out.
- *
- * The editor used to seed itself at random on arrival with no way to ask for
- * anything else, so the only route to a world you wanted was reloading until
- * you got one.
- */
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -44,10 +36,7 @@ export default function NewWorldDialog({ open, onOpenChange }: Props) {
     const seed = Number.isFinite(typed) && typed >= 0 ? typed : randomSeed();
 
     setWorking(true);
-    // The widest world is around half a million blocks and holds the main
-    // thread for about a second while it is built. Yielding first lets the
-    // button reach its loading state, so the freeze reads as work rather than
-    // a click that did nothing.
+    // Yield first so the button can show its loading state before the main thread is held.
     window.setTimeout(() => {
       newWorld(seed, { size, trees });
       setWorking(false);

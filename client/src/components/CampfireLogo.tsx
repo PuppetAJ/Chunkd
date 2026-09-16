@@ -10,14 +10,10 @@ import fire96 from "../assets/Campfire_96.webp";
 import fire96Still from "../assets/Campfire_96_still.webp";
 
 /**
- * The campfire mark, which turns from soul fire to ordinary fire on hover. Both
- * images are stacked and cross-faded so neither is fetched on first hover, and
+ * The campfire mark, which cross-fades from soul fire to fire on hover.
  * `group-hover` follows the whole wordmark link rather than the icon alone.
  */
 
-// Two sizes rather than one, because the header draws the mark at 28px on every
-// page and the auth pages draw it at 48px. A single 96px file meant the header
-// downloaded three and a half times the image it painted.
 type LogoSize = "sm" | "lg";
 
 const ART: Record<LogoSize, { soul: Flames; fire: Flames }> = {
@@ -51,10 +47,8 @@ export default function CampfireLogo({ size, className }: Props) {
         flames={art.soul}
         className="transition-opacity duration-200 group-hover:opacity-0"
       />
-      {/* The hover flame is never on screen until someone points at the brand,
-          so it must not compete for bandwidth with the first paint. Low priority
-          keeps it off the critical path while still fetching it up front, which
-          is what makes the first hover instant. */}
+      {/* Fetched up front at low priority, so the first hover is instant without
+          competing with the first paint. */}
       <Flame
         flames={art.fire}
         priority="low"
@@ -65,12 +59,8 @@ export default function CampfireLogo({ size, className }: Props) {
 }
 
 /**
- * One flame, in the version that suits the viewer.
- *
- * A forty-frame loop running forever in the corner of every page is exactly
- * what "reduce motion" is for, and no amount of CSS can pause an animated WebP.
- * A `<picture>` can choose a different file entirely, so someone with that
- * preference gets a single frame instead.
+ * One flame. Reduced motion gets a single frame through the <picture>, since
+ * CSS cannot pause an animated WebP.
  */
 function Flame({
   flames,

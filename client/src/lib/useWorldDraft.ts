@@ -10,11 +10,8 @@ const SETTLE_MS = 8000;
 const IDLE_LIMIT_MS = 2000;
 
 /**
- * Keep a copy of the world in this browser while it is being built.
- *
- * Written after building pauses rather than on every block, because encoding a
- * world walks the terrain the save is a difference against: ten milliseconds on
- * a small world and about a hundred on the largest one offered.
+ * Keep a copy of the world in this browser while it is being built. Written
+ * after building pauses rather than on every block, because encoding is costly.
  */
 export function useWorldDraft(): void {
   useEffect(() => {
@@ -30,10 +27,8 @@ export function useWorldDraft(): void {
     const schedule = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
-        // Encoding is the most expensive thing the editor does off the frame
-        // loop, so it waits for a gap rather than taking one. The timeout is
-        // not optional: the editor draws every frame, so a page that never goes
-        // idle would otherwise never write a draft at all.
+        // The timeout is not optional: the editor draws every frame, so the
+        // page may never go idle.
         if ("requestIdleCallback" in window) idle = window.requestIdleCallback(write, { timeout: IDLE_LIMIT_MS });
         else write();
       }, SETTLE_MS);
@@ -49,8 +44,7 @@ export function useWorldDraft(): void {
       schedule();
     });
 
-    // A tab being closed or hidden is exactly the case this exists for, and
-    // there is no time for an idle callback there.
+    // No time for an idle callback when the tab is closing.
     const onHide = () => {
       window.clearTimeout(timer);
       write();
@@ -62,13 +56,12 @@ export function useWorldDraft(): void {
       window.clearTimeout(timer);
       if ("cancelIdleCallback" in window) window.cancelIdleCallback(idle);
       window.removeEventListener("pagehide", onHide);
-      // Leaving the editor with work that was never saved still leaves the
-      // draft behind on purpose. It is cleared when a build is saved.
+      // The draft is left behind on purpose; it is cleared when a build is saved.
     };
   }, []);
 }
 
-/** Called once a world has reached the server, where drafts are no longer what stands between it and being lost. */
+/** Called once a world has reached the server. */
 export function draftSaved(): void {
   clearDraft();
   useWorldStore.getState().setEdited(false);

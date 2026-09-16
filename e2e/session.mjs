@@ -1,14 +1,9 @@
 /**
- * What happens to a world when a session runs out underneath it.
- *
- * Separate from the smoke suite because it needs a server that hands out
- * short-lived tokens, which nothing else wants:
+ * What happens to a world when a session runs out underneath it. Needs a
+ * server that hands out short-lived tokens:
  *
  *   JWT_EXPIRES_IN=60s pnpm dev:server
  *   pnpm test:session
- *
- * A token normally lasts two hours, so this is the only way to reach the code
- * that matters in less than an afternoon.
  */
 import { launch, helpers, reporter, newUser, signUp, BASE } from "./lib.mjs";
 

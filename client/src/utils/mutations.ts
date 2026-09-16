@@ -12,8 +12,7 @@ export const LOGIN_USER = gql`
   }
 `;
 
-// Takes no arguments on purpose. The demo account's password stays on the
-// server, so there is nothing here for anyone to read out of the bundle.
+// Takes no arguments on purpose: the demo password stays on the server.
 export const DEMO_LOGIN = gql`
   mutation demoLogin {
     demoLogin {
@@ -38,8 +37,7 @@ export const ADD_USER = gql`
   }
 `;
 
-// Both of these hand back a fresh token: the username and email are baked into
-// the old one, so it is wrong the moment either changes.
+// Both hand back a fresh token, since the username and email are baked into the old one.
 export const UPDATE_ACCOUNT = gql`
   mutation updateAccount($username: String, $email: String) {
     updateAccount(username: $username, email: $email) {
@@ -79,7 +77,6 @@ export const FOLLOW = gql`
   }
 `;
 
-/** Existed only as a commented-out block before the server supported it. */
 export const UNFOLLOW = gql`
   mutation unfollow($id: ID!) {
     unfollow(userId: $id) {
@@ -160,7 +157,6 @@ export const DELETE_REACTION = gql`
   }
 `;
 
-/** Replaces ADD_BUILD, which appended a JSON blob to an array on the user. */
 export const RENEW_TOKEN = gql`
   mutation renewToken {
     renewToken {

@@ -1,15 +1,10 @@
 import { GraphQLError } from "graphql";
 
 /**
- * A per-address limit on how often something can be tried. The rate limiter in
- * server.ts counts every GraphQL request the same, which is generous for
- * password guessing, so the sign-in mutations apply this tighter one too.
- *
- * In memory: the API runs as one process. Several instances would need a
- * shared store.
+ * A per-address limit on how often something can be tried, tighter than the
+ * general rate limiter. In memory, so it assumes one API process.
  */
 export function attemptLimiter(what: string, maxAttempts: number, windowMs: number) {
-  // Timestamps of recent attempts, per address.
   const recent = new Map<string, number[]>();
 
   return (address: string): void => {
@@ -28,8 +23,7 @@ export function attemptLimiter(what: string, maxAttempts: number, windowMs: numb
     attempts.push(now);
     recent.set(address, attempts);
 
-    // Addresses that have gone quiet are dropped, so the map does not grow
-    // with every visitor the process has ever seen.
+    // Drop addresses that have gone quiet, so the map does not grow forever.
     if (recent.size > 10_000) {
       for (const [key, times] of recent) {
         if (times.every((at) => at <= cutoff)) recent.delete(key);

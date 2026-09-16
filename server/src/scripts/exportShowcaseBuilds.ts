@@ -1,12 +1,10 @@
 /**
- * Copies saved builds out of the database into showcaseBuilds.json, which is
- * what `pnpm seed` puts on the landing page. Build a world in the editor, save
- * it, then export every build the account has that is listed below:
+ * Exports the builds listed below from one account into showcaseBuilds.json,
+ * which `pnpm seed` puts on the landing page:
  *
  *   pnpm showcase:export badelin
  *
- * Builds come out in the order of the list, and the seeder posts them in that
- * order, so the last one is the newest post and becomes the landing page hero.
+ * The seeder posts them in list order, so the last one becomes the landing page hero.
  */
 import { writeFileSync } from "node:fs";
 import { connectToDatabase, disconnectFromDatabase } from "../config/db.ts";

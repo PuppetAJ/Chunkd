@@ -7,14 +7,9 @@ import {
 } from "graphql";
 
 /**
- * Refuse queries that are too deep or too wide before they run.
- *
- * `User.following` and `User.followers` refer back to `User`, so nesting them
- * multiplies: depth 7 killed the process with the heap exhausted, on one request
- * from nobody. Width matters too, since aliases run a permitted query a hundred
- * times over, so the field count is capped as well.
- *
- * Both sit well above the client, whose deepest query is four levels.
+ * How deep and how wide a query may be. `User.following` and `User.followers`
+ * refer back to `User`, so nesting multiplies, and aliases run one query many
+ * times over. Both limits sit well above anything the client sends.
  */
 export interface QueryLimits {
   maxDepth: number;
@@ -30,9 +25,6 @@ interface Measurement {
 }
 
 export function queryLimits(limits: QueryLimits = DEFAULT_QUERY_LIMITS) {
-  // A validation rule is a function that is handed the document being checked
-  // and returns a visitor: an object whose keys name the kinds of node to look
-  // at. This one only looks at whole operations, and measures each one.
   return (context: ValidationContext): ASTVisitor => {
     const fragments = new Map<string, FragmentDefinitionNode>();
     for (const definition of context.getDocument().definitions) {
@@ -41,11 +33,8 @@ export function queryLimits(limits: QueryLimits = DEFAULT_QUERY_LIMITS) {
       }
     }
 
-    // Walk a selection set, returning how deep it goes and how many fields it
-    // holds. Fragments are followed so they cannot be used to hide nesting.
-    // `expanding` is the set of fragments already being followed on this
-    // path, which stops a fragment that includes itself from looping forever.
-    // (A separate built-in rule rejects such a query anyway.)
+    // Fragments are followed so they cannot hide nesting. `expanding` stops a
+    // fragment that includes itself from looping forever.
     function measure(
       selectionSet: SelectionSetNode | undefined,
       depth: number,
@@ -58,8 +47,7 @@ export function queryLimits(limits: QueryLimits = DEFAULT_QUERY_LIMITS) {
 
       for (const selection of selectionSet.selections) {
         if (selection.kind === "Field") {
-          // Introspection fields are refused separately in production, and in
-          // development the explorer's own queries would trip the limit.
+          // The explorer's introspection queries would trip the limit in development.
           if (selection.name.value.startsWith("__")) continue;
           fields += 1;
           const inner = measure(selection.selectionSet, depth + 1, expanding);

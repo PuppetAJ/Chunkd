@@ -3,28 +3,14 @@ import bcrypt from "bcryptjs";
 
 const SALT_ROUNDS = 10;
 
-// The shape of a user document. Writing this out by hand means the editor can
-// autocomplete `user.username` and will complain about `user.usrname`.
 export interface UserDocument {
   _id: Types.ObjectId;
   username: string;
   email: string;
   password: string;
-  /**
-   * The people this user follows.
-   *
-   * This has always been a one-way list. Adding someone put them here and
-   * nowhere else, so it was a following list wearing the word "friends". The
-   * name now says what it is. Followers are the reverse lookup: everyone whose
-   * `following` contains this user.
-   */
+  /** The people this user follows. Followers are the reverse lookup. */
   following: Types.ObjectId[];
-  /**
-   * True only for the shared account behind the "explore the demo" button.
-   *
-   * It exists so that account can be refused the changes that would lock
-   * everyone else out of it, such as a new password or a new email address.
-   */
+  /** True only for the shared demo account, which refuses password and email changes. */
   isDemo: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -40,9 +26,7 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
       minlength: [3, "Username must be at least 3 characters"],
       maxlength: [24, "Username must be at most 24 characters"],
-      // Letters, digits, and the three separators people expect. Without this
-      // a name could hold control characters, or look-alike letters from other
-      // scripts that render as somebody else's name.
+      // Keeps out control characters and look-alike letters from other scripts.
       match: [/^[A-Za-z0-9_.-]+$/, "Username may only use letters, numbers, dots, dashes and underscores"],
     },
     email: {
@@ -56,7 +40,6 @@ const userSchema = new Schema<UserDocument>(
     password: {
       type: String,
       required: [true, "A password is required"],
-      // Raised from 5. Short passwords were the weakest part of the old auth.
       minlength: [8, "Password must be at least 8 characters"],
     },
     isDemo: {
@@ -67,21 +50,16 @@ const userSchema = new Schema<UserDocument>(
       {
         type: Schema.Types.ObjectId,
         ref: "User",
-        // Indexed because finding someone's followers means asking which users
-        // have their id in this array, which is a query against it.
+        // Finding someone's followers is a query against this array.
         index: true,
       },
     ],
   },
   {
-    // Replaces the hand-rolled createdAt field and its date-formatting getter.
     timestamps: true,
   },
 );
 
-// Hash the password before it is written, whether the user is new or changing it.
-// An async hook reports that it is finished by returning, so unlike the old
-// callback style there is no `next` to call.
 userSchema.pre("save", async function () {
   if (this.isNew || this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, SALT_ROUNDS);

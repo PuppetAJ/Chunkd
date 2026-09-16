@@ -4,13 +4,9 @@ import { toKey, type BlockKey } from "./coords.ts";
 import { QUADRANT_COUNT, quadrantSides, stairQuadrants } from "./stairShape.ts";
 
 /**
- * Which sides a fence, a wall or a glass pane joins to, from its neighbours.
- * Derived rather than stored, like a stair's corners, so breaking a block
- * beside one tidies it up with nothing to migrate.
- *
- * The rules are Minecraft's: each joins its own kind and any whole solid block,
- * glass included. Walls and panes join each other, and a pane joins the solid
- * back of a stair. Nothing joins leaves, and a fence joins only fences.
+ * Which sides a fence, wall or pane joins, derived from its neighbours. Minecraft's
+ * rules: each joins its own kind and any whole solid block, glass included. Walls
+ * and panes join each other, a pane joins a stair's solid back, nothing joins leaves.
  */
 
 export const SIDE_NORTH = 1;
@@ -34,11 +30,7 @@ export function isPane(value: number): boolean {
   return PANE_BLOCK_IDS.has(blockIdOf(value));
 }
 
-/**
- * A whole block that fences, walls and panes join. Glass counts though it can be
- * seen through: Mojang closed the report of fences and walls joining it as
- * working as intended (MC-147798). Leaves do not, which is also the game's rule.
- */
+/** Glass counts as solid: Mojang closed fences joining it as intended (MC-147798). Leaves do not. */
 function isSolidToJoin(value: number): boolean {
   if (blockShapeOf(value) !== SHAPE_FULL) return false;
   const id = blockIdOf(value);
@@ -63,7 +55,6 @@ function stairFaceIsWhole(
   return true;
 }
 
-/** The three kinds of block that join their neighbours. */
 type Joiner = "fence" | "wall" | "pane";
 
 function joins(
@@ -111,11 +102,8 @@ export function connectionMask(
 }
 
 /**
- * Whether a wall stands a post in its middle.
- *
- * It does unless it runs straight through, joined on exactly two opposite
- * sides, or is a crossing joined on all four, which is the wiki's rule. A wall
- * stacked on top always gets one, so the column above has something to rest on.
+ * No post on a straight run or a four-way crossing, which is the wiki's rule.
+ * A wall stacked on top always gets one.
  */
 export function wallHasPost(
   blocks: Map<BlockKey, number>,
@@ -132,11 +120,9 @@ export function wallHasPost(
 }
 
 /**
- * The footprint of a glass pane within its cell, as rectangles across x and z
- * from -0.5 to 0.5, each as min x, max x, min z, max z: a centre post and an
- * arm out to each side it joins. The sizes are Minecraft's model, two
- * sixteenths thick. The geometry and the collision both read this, so what is
- * drawn and what the player walks into cannot drift apart.
+ * A centre post plus an arm to each joined side, two sixteenths thick as in
+ * Minecraft's model. Each rect is min x, max x, min z, max z from the cell centre.
+ * Both the geometry and the collision read this.
  */
 export function paneRects(mask: number): [number, number, number, number][] {
   const near = 7 / 16 - 0.5;

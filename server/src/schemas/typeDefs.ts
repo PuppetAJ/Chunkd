@@ -1,6 +1,3 @@
-// The GraphQL contract. Compared with the original schema this adds a real Build
-// type, the delete/update mutations that only existed as commented-out code, and
-// non-null markers (`!`) so the client knows which fields can actually be absent.
 export const typeDefs = /* GraphQL */ `
   type User {
     _id: ID!

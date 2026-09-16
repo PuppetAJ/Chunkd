@@ -25,11 +25,7 @@ interface Props {
   textures: BlockTextures;
 }
 
-/**
- * Every block of one type, drawn in as few calls as the block allows: positions
- * go straight into an instance buffer. A block whose six faces share one texture
- * is a single draw call, and grass, logs and hay get one material per face group.
- */
+/** Every block of one type, shape and variant, drawn as one instanced mesh. */
 function BlockLayer({ block, layer, textures }: Props) {
   const { shape, variant, positions, axes } = layer;
   const meshRef = useRef<THREE.InstancedMesh>(null);
@@ -41,25 +37,18 @@ function BlockLayer({ block, layer, textures }: Props) {
     const build = (url: string, cutout = block.draw === "cutout") =>
       new THREE.MeshLambertMaterial({
         map: textures.get(url) ?? null,
-        // Added rather than multiplied, so it lifts the darkest pixels and
-        // leaves the rest alone: the filmic curve is steep at the bottom and
-        // a spruce log's grain falls off the end of it. Raising it costs
-        // colour, since the light it adds is white.
+        // Added rather than multiplied: lifts the darkest pixels, which the
+        // filmic curve crushes, and leaves the rest alone.
         emissive: new THREE.Color(BLACK_FLOOR, BLACK_FLOOR, BLACK_FLOOR),
-        // The cube carries its face shading in its vertex colours, which this
-        // multiplies into the texture. The sun adds cast shadows on top.
+        // The cube's face shading is in its vertex colours.
         vertexColors: true,
-        // Back faces only, which removes the need for a depth bias: every block
-        // is a closed cube, so the recorded depth is its far side and a lit face
-        // can never be behind its own shadow.
+        // Back faces only, which needs no depth bias: every block is a closed
+        // cube, so a lit face can never be behind its own shadow.
         shadowSide: THREE.BackSide,
-        // Glass is a frame around a hole. Discarding the hole outright, rather
-        // than blending it, keeps the frame at full strength and leaves no draw
-        // order to get wrong.
+        // Cutouts are discarded rather than blended, so there is no draw order to get wrong.
         alphaTest: cutout ? 0.5 : 0,
       });
 
-    // A trapdoor has its own drawing, holes and all, rather than the block's.
     if (shape === SHAPE_TRAPDOOR && block.trapdoor) return build(block.trapdoor, true);
 
     const uniform = block.top === block.side && block.side === block.bottom;
@@ -69,9 +58,8 @@ function BlockLayer({ block, layer, textures }: Props) {
     return [build(block.side), build(block.top), build(block.bottom)];
   }, [block, shape, textures]);
 
-  // Nearest filtering and the sRGB tag are set when the texture loads, but
-  // react-three-fiber rewrites the colour space of anything it assigns to a
-  // colour map, so they are re-asserted here, once the material holds the map.
+  // react-three-fiber rewrites the colour space of anything assigned as a colour
+  // map, so the texture settings are re-asserted once the material holds it.
   useLayoutEffect(() => {
     const maps = (Array.isArray(material) ? material : [material])
       .map((one) => one.map)
@@ -91,29 +79,24 @@ function BlockLayer({ block, layer, textures }: Props) {
 
     mesh.count = count;
     mesh.instanceMatrix.needsUpdate = true;
-    // An InstancedMesh otherwise keeps the bounding sphere of its source
-    // geometry, a single cube at the origin, and the renderer culls the entire
-    // world as soon as the origin leaves the view.
+    // Otherwise the mesh keeps its source geometry's bounding sphere, one cube at
+    // the origin, and the whole world is culled once the origin leaves the view.
     mesh.computeBoundingSphere();
   }, [positions, axes, count, geometry]);
 
   return (
     <instancedMesh
-      // Changing the buffer size means a new mesh, so key on the capacity
-      // rather than the exact count.
+      // A new buffer size means a new mesh.
       key={capacity}
       ref={meshRef}
       args={[geometry, undefined, capacity]}
       material={material}
-      // Glass lets nearly all the light through, so casting from it would draw a
-      // solid black block on the ground.
+      // Glass would cast a solid black shadow.
       castShadow={block.draw !== "cutout"}
       receiveShadow
     />
   );
 }
 
-// An edit hands back the same layer object for every layer it did not touch.
-// Skipping those here is what keeps an edit from putting every layer in the
-// world through React, which is what made each click stall in Firefox.
+// An edit reuses the layer objects it did not touch, so memo skips them.
 export default memo(BlockLayer);
