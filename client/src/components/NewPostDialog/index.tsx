@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@apollo/client/react";
+import type { Reference } from "@apollo/client";
 
 import { ADD_THOUGHT } from "../../utils/mutations.ts";
-import { QUERY_THOUGHTS, QUERY_ME } from "../../utils/queries.ts";
-import { FEED_PAGE_SIZE } from "../../lib/feedTypes.ts";
+import { QUERY_ME } from "../../utils/queries.ts";
 import { requestErrorMessage } from "../../lib/credentials.ts";
+import { useAuthStore } from "../../lib/auth.ts";
 import type { BuildSummary } from "../../lib/feedTypes.ts";
 import { Button } from "../ui/button.tsx";
 import {
@@ -21,6 +22,11 @@ import { Textarea } from "../ui/textarea.tsx";
 const MAX_LENGTH = 280;
 const NO_BUILD = "";
 
+/** The part of cache.modify's toolkit that turns a cache id back into a link. */
+interface Helpers {
+  toReference: (id: string) => Reference | undefined;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +37,7 @@ interface Props {
  * every platform, and it opens the system picker on a phone.
  */
 export default function NewPostDialog({ open, onOpenChange }: Props) {
+  const me = useAuthStore((state) => state.user);
   const [thoughtText, setThoughtText] = useState("");
   const [selectedBuildId, setSelectedBuildId] = useState(NO_BUILD);
   const [submitError, setSubmitError] = useState("");
@@ -38,11 +45,29 @@ export default function NewPostDialog({ open, onOpenChange }: Props) {
   const { loading, data } = useQuery(QUERY_ME);
   const builds: BuildSummary[] = (data as { me?: { builds?: BuildSummary[] } })?.me?.builds ?? [];
 
+  // The mutation returns every field the feed asks for, so the post can go
+  // straight into the lists that should hold it. Home pages by cache length,
+  // which counts this one, so the next page still starts in the right place.
   const [addThought, { loading: submitting }] = useMutation(ADD_THOUGHT, {
-    refetchQueries: [
-      { query: QUERY_THOUGHTS, variables: { limit: FEED_PAGE_SIZE, offset: 0 } },
-      { query: QUERY_ME },
-    ],
+    update(cache, { data }) {
+      const created = (data as { addThought?: { _id: string } } | undefined)?.addThought;
+      const posted = created && cache.identify({ __typename: "Thought", _id: created._id });
+      if (!posted) return;
+
+      const prepend = (existing: readonly Reference[] = [], { toReference }: Helpers) => {
+        const ref = toReference(posted);
+        return ref ? [ref, ...existing] : existing;
+      };
+
+      // Nothing asks Query.thoughts for one author, so the feed is stored once.
+      cache.modify({ fields: { thoughts: prepend } });
+      if (me) {
+        cache.modify({
+          id: cache.identify({ __typename: "User", _id: me._id }),
+          fields: { thoughts: prepend },
+        });
+      }
+    },
   });
 
   const close = () => {
