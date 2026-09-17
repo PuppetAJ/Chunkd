@@ -4,7 +4,6 @@ import { useMutation } from "@apollo/client/react";
 import { Blocks, Boxes, Pencil, Trash2 } from "lucide-react";
 
 import { DELETE_BUILD } from "../../utils/mutations.ts";
-import { QUERY_ME } from "../../utils/queries.ts";
 import { formatTimestamp } from "../../lib/formatTimestamp.ts";
 import type { BuildSummary } from "../../lib/feedTypes.ts";
 import SavedBuild from "../SavedBuild/index.tsx";
@@ -36,8 +35,16 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
   const [openBuild, setOpenBuild] = useState<BuildSummary | null>(null);
   const [buildToDelete, setBuildToDelete] = useState<BuildSummary | null>(null);
 
+  // A build is cached under two type names: lists hold a BuildSummary, the
+  // viewer fetches the full Build. Both have to go.
   const [deleteBuild, { loading: deleting }] = useMutation(DELETE_BUILD, {
-    refetchQueries: [{ query: QUERY_ME }],
+    update(cache, _result, { variables }) {
+      const buildId = variables?.["buildId"];
+      for (const __typename of ["Build", "BuildSummary"]) {
+        cache.evict({ id: cache.identify({ __typename, _id: buildId }) });
+      }
+      cache.gc();
+    },
   });
 
   if (builds.length === 0) {
