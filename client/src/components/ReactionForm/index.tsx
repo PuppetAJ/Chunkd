@@ -3,6 +3,8 @@ import { useMutation } from "@apollo/client/react";
 
 import { ADD_REACTION } from "../../utils/mutations.ts";
 import { requestErrorMessage } from "../../lib/credentials.ts";
+import { useAuthStore } from "../../lib/auth.ts";
+import { asReaction, type Reaction } from "../../lib/feedTypes.ts";
 import { Button } from "../ui/button.tsx";
 import { Textarea } from "../ui/textarea.tsx";
 
@@ -10,9 +12,12 @@ const MAX_LENGTH = 280;
 
 interface Props {
   thoughtId: string;
+  /** The comments already on the post, which the optimistic reply has to repeat. */
+  reactions: Reaction[];
 }
 
-export default function ReactionForm({ thoughtId }: Props) {
+export default function ReactionForm({ thoughtId, reactions }: Props) {
+  const me = useAuthStore((state) => state.user?.username ?? "");
   const [reactionBody, setReactionBody] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [addReaction, { loading }] = useMutation(ADD_REACTION);
@@ -24,7 +29,27 @@ export default function ReactionForm({ thoughtId }: Props) {
 
     setSubmitError("");
     try {
-      await addReaction({ variables: { reactionBody: body, thoughtId } });
+      await addReaction({
+        variables: { reactionBody: body, thoughtId },
+        // The comment appears while the request is still in flight. Apollo
+        // rolls this back by itself if the mutation fails.
+        optimisticResponse: {
+          addReaction: {
+            __typename: "Thought",
+            _id: thoughtId,
+            reactionCount: reactions.length + 1,
+            reactions: [
+              ...reactions.map(asReaction),
+              asReaction({
+                _id: `temp-${Date.now()}`,
+                reactionBody: body,
+                createdAt: new Date().toISOString(),
+                username: me,
+              }),
+            ],
+          },
+        },
+      });
       setReactionBody("");
     } catch (error) {
       setSubmitError(requestErrorMessage(error));
