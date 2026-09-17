@@ -224,6 +224,9 @@ export const resolvers = {
       return author?.username ?? "[deleted]";
     },
 
+    parent: (reaction: ReactionSubdocument) =>
+      reaction.parent ? String(reaction.parent) : null,
+
     createdAt: (parent: ReactionSubdocument) => parent.createdAt.toISOString(),
   },
 
@@ -376,24 +379,48 @@ export const resolvers = {
 
     addReaction: async (
       _parent: unknown,
-      args: { thoughtId: string; reactionBody: string },
+      args: { thoughtId: string; reactionBody: string; parentId?: string | null },
       context: GraphQLContext,
     ) => {
       const auth = requireAuth(context);
-      const thought = await Thought.findByIdAndUpdate(
-        toObjectId(args.thoughtId, "Thought id"),
-        {
-          $push: {
-            reactions: {
-              reactionBody: args.reactionBody,
-              author: new Types.ObjectId(auth._id),
-            },
-          },
-        },
-        { returnDocument: "after", runValidators: true },
-      );
-
+      const thought = await Thought.findById(toObjectId(args.thoughtId, "Thought id"));
       if (!thought) throw notFound("That post no longer exists.");
+
+      let parent: Types.ObjectId | null = null;
+      if (args.parentId) {
+        const replyingTo = thought.reactions.id(args.parentId);
+        if (!replyingTo) throw notFound("That comment no longer exists.");
+        // Threads stay one level deep: a reply to a reply joins the same thread.
+        parent = replyingTo.parent ?? replyingTo._id;
+      }
+
+      thought.reactions.push({
+        reactionBody: args.reactionBody,
+        author: new Types.ObjectId(auth._id),
+        parent,
+      } as ReactionSubdocument);
+      await thought.save();
+      return thought;
+    },
+
+    updateReaction: async (
+      _parent: unknown,
+      args: { thoughtId: string; reactionId: string; reactionBody: string },
+      context: GraphQLContext,
+    ) => {
+      const auth = requireAuth(context);
+      const thought = await Thought.findById(toObjectId(args.thoughtId, "Thought id"));
+      if (!thought) throw notFound("That post no longer exists.");
+
+      const reaction = thought.reactions.id(args.reactionId);
+      if (!reaction) throw notFound("That comment no longer exists.");
+      // Unlike deleting, the post's owner does not get to edit what others wrote.
+      if (reaction.author.toString() !== auth._id) {
+        throw forbidden("You can only edit your own comments.");
+      }
+
+      reaction.reactionBody = args.reactionBody;
+      await thought.save();
       return thought;
     },
 
@@ -415,6 +442,12 @@ export const resolvers = {
         throw forbidden("You can only delete your own comments.");
       }
 
+      // A reply whose parent is gone would have nothing to sit under.
+      for (const reply of thought.reactions.filter(
+        (other) => other.parent?.toString() === reaction._id.toString(),
+      )) {
+        reply.deleteOne();
+      }
       reaction.deleteOne();
       await thought.save();
       return thought;

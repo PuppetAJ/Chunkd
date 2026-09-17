@@ -252,6 +252,103 @@ test("a page of the feed costs a handful of queries, not one per row", async () 
   assert.ok(queries <= 3, `${queries} queries for five posts`);
 });
 
+test("only a comment's own author edits it, not even the post's owner", async () => {
+  const owner = await signUp();
+  const commenter = await signUp();
+  const thoughtId = await post(owner);
+
+  const added = await run(
+    `mutation ($id: ID!) { addReaction(thoughtId: $id, reactionBody: "Frist") { reactions { _id } } }`,
+    { id: thoughtId },
+    commenter,
+  );
+  const addedReactions = added.data?.["addReaction"].reactions as { _id: string }[];
+  const reactionId = addedReactions[0]!._id;
+
+  const edit = (as: Identity, body: string) =>
+    run(
+      `mutation ($id: ID!, $reactionId: ID!, $body: String!) {
+        updateReaction(thoughtId: $id, reactionId: $reactionId, reactionBody: $body) {
+          reactions { _id reactionBody }
+        }
+      }`,
+      { id: thoughtId, reactionId, body },
+      as,
+    );
+
+  assert.equal((await edit(owner, "Hijacked")).errors[0]?.code, "FORBIDDEN");
+
+  const mine = await edit(commenter, "First, sorry");
+  assert.deepEqual(mine.errors, []);
+  const reactions = mine.data?.["updateReaction"].reactions as { reactionBody: string }[];
+  assert.equal(reactions[0]?.reactionBody, "First, sorry");
+});
+
+test("a reply hangs off the comment it answers, and threads stay one deep", async () => {
+  const owner = await signUp();
+  const thoughtId = await post(owner);
+
+  const add = async (body: string, parentId?: string) => {
+    const result = await run(
+      `mutation ($id: ID!, $body: String!, $parentId: ID) {
+        addReaction(thoughtId: $id, reactionBody: $body, parentId: $parentId) {
+          reactions { _id reactionBody parent }
+        }
+      }`,
+      { id: thoughtId, body, parentId },
+      owner,
+    );
+    assert.deepEqual(result.errors, []);
+    return result.data?.["addReaction"].reactions as { _id: string; reactionBody: string; parent: string | null }[];
+  };
+
+  const afterRoot = await add("The comment");
+  const root = afterRoot[0]!;
+  assert.equal(root.parent, null);
+
+  const afterReply = await add("The reply", root._id);
+  const reply = afterReply.find((one) => one.reactionBody === "The reply")!;
+  assert.equal(reply.parent, root._id);
+
+  // Replying to a reply joins the same thread rather than nesting further.
+  const afterDeep = await add("The reply to the reply", reply._id);
+  const deep = afterDeep.find((one) => one.reactionBody === "The reply to the reply")!;
+  assert.equal(deep.parent, root._id);
+});
+
+test("deleting a comment takes its replies with it", async () => {
+  const owner = await signUp();
+  const thoughtId = await post(owner);
+
+  const add = async (body: string, parentId?: string) => {
+    const result = await run(
+      `mutation ($id: ID!, $body: String!, $parentId: ID) {
+        addReaction(thoughtId: $id, reactionBody: $body, parentId: $parentId) { reactions { _id reactionBody } }
+      }`,
+      { id: thoughtId, body, parentId },
+      owner,
+    );
+    const reactions = result.data?.["addReaction"].reactions as { _id: string; reactionBody: string }[];
+    return reactions.find((one) => one.reactionBody === body)!._id;
+  };
+
+  const root = await add("Parent");
+  await add("Reply one", root);
+  await add("Reply two", root);
+  const survivor = await add("A separate comment");
+
+  const removed = await run(
+    `mutation ($id: ID!, $reactionId: ID!) {
+      deleteReaction(thoughtId: $id, reactionId: $reactionId) { reactionCount reactions { _id } }
+    }`,
+    { id: thoughtId, reactionId: root },
+    owner,
+  );
+  assert.deepEqual(removed.errors, []);
+  const left = removed.data?.["deleteReaction"].reactions as { _id: string }[];
+  assert.deepEqual(left.map((one) => one._id), [survivor]);
+});
+
 test("editing a post can attach, swap and remove its build", async () => {
   const owner = await signUp();
   const stranger = await signUp();
