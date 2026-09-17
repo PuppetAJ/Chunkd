@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { DELETE_REACTION } from "../../utils/mutations.ts";
 import { formatTimestamp } from "../../lib/formatTimestamp.ts";
 import { useAuthStore } from "../../lib/auth.ts";
-import type { Reaction } from "../../lib/feedTypes.ts";
+import { asReaction, isPending, type Reaction } from "../../lib/feedTypes.ts";
 import UserAvatar from "../UserAvatar.tsx";
 import { Button } from "../ui/button.tsx";
 
@@ -16,7 +16,8 @@ interface Props {
 
 /**
  * The comments under a post. Deleting returns the post with its remaining
- * reactions, which Apollo matches on `_id`, so no refetch is needed.
+ * reactions, which Apollo matches on `_id`, so no refetch is needed; the
+ * optimistic copy is the same list, minus the one being removed.
  */
 export default function ReactionList({ thoughtId, reactions }: Props) {
   const me = useAuthStore((state) => state.user?.username ?? "");
@@ -54,11 +55,24 @@ export default function ReactionList({ thoughtId, reactions }: Props) {
             <Button
               size="icon-sm"
               variant="ghost"
-              disabled={loading}
+              // A comment the server has not acknowledged yet has no id to delete by.
+              disabled={loading || isPending(reaction)}
               aria-label="Delete comment"
               className="text-muted-foreground hover:text-destructive"
               onClick={() =>
-                deleteReaction({ variables: { thoughtId, reactionId: reaction._id } })
+                deleteReaction({
+                  variables: { thoughtId, reactionId: reaction._id },
+                  optimisticResponse: {
+                    deleteReaction: {
+                      __typename: "Thought",
+                      _id: thoughtId,
+                      reactionCount: reactions.length - 1,
+                      reactions: reactions
+                        .filter((other) => other._id !== reaction._id)
+                        .map(asReaction),
+                    },
+                  },
+                })
               }
             >
               <Trash2 />
