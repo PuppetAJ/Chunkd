@@ -1,12 +1,32 @@
 name: CI
 
+# A pull request run covers a branch; the push trigger is for main only, so a
+# branch push does not run twice. Railway waits for the main run before deploying.
 on:
   push:
+    branches: [main]
   pull_request:
+
+# A newer push to the same pull request stops the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
     runs-on: ubuntu-latest
+
+    # The server tests run against a real database, on a name of their own.
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - uses: actions/checkout@v7
