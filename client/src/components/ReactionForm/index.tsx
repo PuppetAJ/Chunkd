@@ -14,13 +14,26 @@ interface Props {
   thoughtId: string;
   /** The comments already on the post, which the optimistic reply has to repeat. */
   reactions: Reaction[];
+  /** Set when this form is a reply box under a comment. */
+  parentId?: string | null;
+  /** Called once a reply has been sent, so the thread can close the box. */
+  onDone?: () => void;
+  onCancel?: () => void;
 }
 
-export default function ReactionForm({ thoughtId, reactions }: Props) {
+export default function ReactionForm({
+  thoughtId,
+  reactions,
+  parentId = null,
+  onDone,
+  onCancel,
+}: Props) {
   const me = useAuthStore((state) => state.user?.username ?? "");
   const [reactionBody, setReactionBody] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [addReaction, { loading }] = useMutation(ADD_REACTION);
+
+  const replying = parentId !== null;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -30,7 +43,7 @@ export default function ReactionForm({ thoughtId, reactions }: Props) {
     setSubmitError("");
     try {
       await addReaction({
-        variables: { reactionBody: body, thoughtId },
+        variables: { reactionBody: body, thoughtId, parentId },
         // The comment appears while the request is still in flight. Apollo
         // rolls this back by itself if the mutation fails.
         optimisticResponse: {
@@ -45,12 +58,14 @@ export default function ReactionForm({ thoughtId, reactions }: Props) {
                 reactionBody: body,
                 createdAt: new Date().toISOString(),
                 username: me,
+                parent: parentId,
               }),
             ],
           },
         },
       });
       setReactionBody("");
+      onDone?.();
     } catch (error) {
       setSubmitError(requestErrorMessage(error));
     }
@@ -59,16 +74,22 @@ export default function ReactionForm({ thoughtId, reactions }: Props) {
   return (
     <form className="space-y-2" onSubmit={handleSubmit}>
       <Textarea
-        rows={3}
-        aria-label="Write a comment"
-        placeholder="What do you think?"
+        rows={replying ? 2 : 3}
+        autoFocus={replying}
+        aria-label={replying ? "Write a reply" : "Write a comment"}
+        placeholder={replying ? "Write a reply" : "What do you think?"}
         value={reactionBody}
         onChange={(event) => setReactionBody(event.target.value.slice(0, MAX_LENGTH))}
       />
       <div className="flex items-center gap-3">
         <Button type="submit" size="sm" disabled={loading || !reactionBody.trim()}>
-          {loading ? "Posting..." : "Comment"}
+          {loading ? "Posting..." : replying ? "Reply" : "Comment"}
         </Button>
+        {onCancel && (
+          <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
         <span
           className={
             reactionBody.length === MAX_LENGTH
