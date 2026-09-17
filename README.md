@@ -99,7 +99,7 @@ Run these from the repository root.
 | `pnpm seed`                              | Resets the database to example content. Does nothing if it is already in that state; `--force` resets anyway |
 | `pnpm showcase:export <username>`        | Copies that account's saved worlds into the seed file that puts them on the landing page                    |
 | `pnpm lint`                              | Lints the whole workspace with oxlint                                                                        |
-| `pnpm test`                              | Runs the unit tests                                                                                          |
+| `pnpm test`                              | Runs the unit tests. The server's need a MongoDB on 127.0.0.1:27017 and use a database called `chunkd_test`  |
 | `pnpm typecheck`                         | Type-checks both packages                                                                                    |
 | `pnpm test:e2e`                          | Drives a real browser through every route, needs `pnpm dev` running                                          |
 | `pnpm test:a11y`                         | Runs axe-core over every page and fails on any WCAG 2.1 A or AA violation, needs `pnpm dev` running          |
