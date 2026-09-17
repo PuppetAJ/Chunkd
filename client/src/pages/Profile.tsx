@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigate, useParams } from "react-router";
 import { useQuery, useMutation } from "@apollo/client/react";
+import type { ApolloCache, Reference } from "@apollo/client";
 import { Plus, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,15 +47,11 @@ export default function Profile() {
 
   // Whether the button says follow or unfollow is a question about your list, not the profile owner's.
   const { data: myData } = useQuery(QUERY_ME_BASIC, { skip: !userParam });
-  const iFollow: UserSummary[] =
-    (myData as { me?: { following?: UserSummary[] } } | undefined)?.me?.following ?? [];
+  const viewer = (myData as { me?: ProfileUser } | undefined)?.me;
+  const iFollow: UserSummary[] = viewer?.following ?? [];
 
-  // Refetching the viewer's own record flips the button; the profile's follower count changed too.
-  const followOptions = {
-    refetchQueries: [{ query: QUERY_ME_BASIC }, { query: QUERY_USER, variables: { username: userParam } }],
-  };
-  const [follow, { loading: following }] = useMutation(FOLLOW, followOptions);
-  const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW, followOptions);
+  const [follow, { loading: following }] = useMutation(FOLLOW);
+  const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW);
 
   // Your own username lands on your own profile page, not the read-only view.
   if (viewingOwnProfile) return <Navigate to="/profile" replace />;
@@ -84,15 +81,52 @@ export default function Profile() {
   const alreadyFollowing = iFollow.some((person) => person._id === user._id);
   const followPending = following || unfollowing;
 
+  // Both mutations return the viewer's own record, so Apollo flips the button
+  // on its own. Only the profile owner's side of the relationship needs help.
+  const meAfter = (adding: boolean) =>
+    viewer && {
+      __typename: "User",
+      _id: viewer._id,
+      username: viewer.username,
+      followingCount: viewer.followingCount + (adding ? 1 : -1),
+      following: adding
+        ? [...iFollow.map(asUser), asUser(user)]
+        : iFollow.filter((person) => person._id !== user._id).map(asUser),
+    };
+
+  const adjustProfile = (cache: ApolloCache, adding: boolean) => {
+    if (!viewer) return;
+    cache.modify({
+      id: cache.identify({ __typename: "User", _id: user._id }),
+      fields: {
+        followerCount: (count: number) => Math.max(0, count + (adding ? 1 : -1)),
+        followers: (existing: readonly Reference[] = [], { toReference, readField }) => {
+          const mine = toReference({ __typename: "User", _id: viewer._id });
+          const listed = existing.some((person) => readField("_id", person) === viewer._id);
+          if (!adding) return existing.filter((person) => readField("_id", person) !== viewer._id);
+          return mine && !listed ? [...existing, mine] : existing;
+        },
+      },
+    });
+  };
+
   const handleFollowClick = async () => {
     setFollowError("");
     try {
       const variables = { id: user._id };
       if (alreadyFollowing) {
-        await unfollow({ variables });
+        await unfollow({
+          variables,
+          optimisticResponse: viewer && { unfollow: meAfter(false) },
+          update: (cache) => adjustProfile(cache, false),
+        });
         toast.success(`Unfollowed ${user.username}`);
       } else {
-        await follow({ variables });
+        await follow({
+          variables,
+          optimisticResponse: viewer && { follow: meAfter(true) },
+          update: (cache) => adjustProfile(cache, true),
+        });
         // Not "request sent": following is one-way.
         toast.success(`You are now following ${user.username}`);
       }
@@ -238,6 +272,11 @@ function PeopleGrid({ people, empty }: { people: UserSummary[]; empty: string })
       ))}
     </ul>
   );
+}
+
+/** An optimistic response is ignored, silently, unless every object carries its type. */
+function asUser(person: UserSummary) {
+  return { __typename: "User", _id: person._id, username: person.username };
 }
 
 function countLabel(count: number, noun: string): string {
