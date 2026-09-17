@@ -73,7 +73,7 @@ export default function SingleThought() {
             scrolling past everything to say anything. */}
         {isLoggedIn ? (
           <div className="py-3">
-            <ReactionForm thoughtId={thought._id} />
+            <ReactionForm thoughtId={thought._id} reactions={reactions} />
           </div>
         ) : (
           <p className="py-3 text-sm text-muted-foreground">

@@ -31,6 +31,22 @@ Live at [chunkd-production.up.railway.app](https://chunkd-production.up.railway.
 Collision and terrain generation are written by hand rather than pulled from a
 physics library. They live in `client/src/lib/voxel/` and are covered by tests.
 
+### What GraphQL is doing here
+
+The API was GraphQL before the rest of this was, so it has been made to earn the
+choice rather than just carry it:
+
+- Every query and mutation the client sends is validated against the server's
+  schema by a test, so a field the server no longer has fails in CI instead of
+  in someone's browser. There is no codegen and no build step.
+- Field resolvers run once per row, so the per-post author and build lookups go
+  through a DataLoader built fresh for each request. A page of five posts costs
+  three database queries instead of sixteen, and a test counts them.
+- Mutations return the objects they changed, and Apollo's normalized cache
+  updates every screen holding them. Following, commenting and deleting cost one
+  round trip rather than two, and the optimistic replies land before the server
+  answers. Refetching is kept only where it is genuinely the cheaper answer.
+
 ## Installation
 
 You need Node 22 or newer and pnpm.

@@ -35,7 +35,26 @@ export interface Thought {
   reactions?: Reaction[];
 }
 
-/** Shared with the new-post dialog, which refetches the same first page. */
+/**
+ * An optimistic response is ignored, silently, unless every object in it names
+ * its type and carries every field the mutation asked for.
+ */
+export function asReaction(reaction: Reaction) {
+  return {
+    __typename: "Reaction",
+    _id: reaction._id,
+    reactionBody: reaction.reactionBody,
+    createdAt: reaction.createdAt,
+    username: reaction.username,
+  };
+}
+
+/** A comment that only exists optimistically, until the server gives it a real id. */
+export function isPending(reaction: Reaction): boolean {
+  return reaction._id.startsWith("temp-");
+}
+
+/** Shared with the new-post dialog, which prepends to the same first page. */
 export const FEED_PAGE_SIZE = 10;
 
 /** Must match server/src/config/demo.ts. */
