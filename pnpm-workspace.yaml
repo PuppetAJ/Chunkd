@@ -7,6 +7,5 @@ allowBuilds:
   # Optional native protobuf acceleration for Apollo usage reporting, which we
   # do not enable. The pure-JavaScript fallback is used instead.
   '@apollo/protobufjs': false
-  # The Railway CLI bundles the config file with esbuild, whose install script
-  # fetches the platform binary it runs.
+  # The Railway CLI bundles the config file with esbuild, which fetches its binary on install.
   esbuild: true

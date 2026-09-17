@@ -5,9 +5,8 @@ import { typeDefs, resolvers } from "../schemas/index.ts";
 import type { GraphQLContext } from "../utils/auth.ts";
 
 /**
- * Runs operations against the real schema and a real database, the way a
- * request would, minus HTTP. The caller passes the signed-in user directly
- * instead of a token, since what the token carries is what the context holds.
+ * Runs operations through the real schema against a real database, minus HTTP.
+ * The signed-in user is passed straight in, since that is all a token carries.
  */
 
 /** Who the request is from: the same fields a token carries. */
@@ -77,8 +76,7 @@ export async function signUp(): Promise<Identity> {
     { username, email, password: PASSWORD },
   );
   if (result.errors.length > 0) throw new Error(result.errors[0]?.message);
-  // The email is not read back: the response hides it from anyone who is not
-  // signed in, and at sign-up nobody is yet.
+  // Not read back from the response, which hides it from anyone not signed in.
   return { _id: result.data?.["addUser"].user._id, username, email };
 }
 

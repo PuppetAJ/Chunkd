@@ -1,12 +1,15 @@
 import { defineRailway, github, mongo, preserve, project, service } from "railway/iac";
 
+/**
+ * The Railway project. `railway config apply` shows its plan and asks first.
+ * Service names must match the dashboard, and everything the project holds
+ * must be listed: an omission reads as a deletion.
+ */
 export default defineRailway(() => {
-  // checkSuites waits for GitHub's checks before deploying a commit, so a red
-  // build never reaches the site.
+  // Deploy only once GitHub's checks have passed.
   const repository = github("PuppetAJ/Chunkd", { checkSuites: true });
 
-  // Declared so it is not read as a resource to remove. The URLs pointing at
-  // it are preserved rather than rewritten from here.
+  // Its URLs are preserved on the services rather than set here.
   const database = mongo("MongoDB");
 
   const api = service("Chunkd", {
@@ -16,11 +19,9 @@ export default defineRailway(() => {
     deploy: {
       healthcheckPath: "/health",
       healthcheckTimeout: 100,
-      // No restart policy here on purpose. Setting it does not persist: Railway
-      // stores it as unset, so the plan would offer the same change forever.
-      // The service restarts on failure regardless, which is what we wanted.
-      // Idle containers are billed by the second, so the service stops when
-      // nothing is using it and wakes on the next request.
+      // No restart policy: Railway stores the default as unset, so declaring
+      // it would show as a pending change forever.
+      // Stops when idle and wakes on the next request; idle time is billed.
       sleepApplication: true,
       numReplicas: 1,
     },
@@ -39,7 +40,7 @@ export default defineRailway(() => {
     start: "pnpm --filter server seed",
     deploy: {
       cronSchedule: "0 */6 * * *",
-      // A failed run waits for the next schedule rather than retrying in a loop.
+      // A failed run waits for the next schedule rather than looping.
       restartPolicyType: "NEVER",
     },
     env: {
