@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "node --test 'src/**/*.test.ts'"
+    "test": "node --test --import ./test/loader.mjs 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@apollo/client": "^4.3.0",

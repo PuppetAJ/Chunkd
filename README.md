@@ -11,7 +11,9 @@ walk around a generated landscape and place or break blocks, plus a social feed
 where builds get posted and discussed. The server is a GraphQL API over MongoDB
 that stores accounts, posts, comments, follows and saved worlds.
 
-![A saved build, shared on a post and opened in 3D](./assets/preview.webp)
+Live at [chunkd-production.up.railway.app](https://chunkd-production.up.railway.app).
+
+![The landing page, with a saved build turning in 3D](./assets/preview.webp)
 
 ## Stack
 
@@ -99,7 +101,7 @@ Run these from the repository root.
 | `pnpm seed`                              | Resets the database to example content. Does nothing if it is already in that state; `--force` resets anyway |
 | `pnpm showcase:export <username>`        | Copies that account's saved worlds into the seed file that puts them on the landing page                    |
 | `pnpm lint`                              | Lints the whole workspace with oxlint                                                                        |
-| `pnpm test`                              | Runs the unit tests                                                                                          |
+| `pnpm test`                              | Runs the unit tests. The server's need a MongoDB on 127.0.0.1:27017 and use a database called `chunkd_test`  |
 | `pnpm typecheck`                         | Type-checks both packages                                                                                    |
 | `pnpm test:e2e`                          | Drives a real browser through every route, needs `pnpm dev` running                                          |
 | `pnpm test:a11y`                         | Runs axe-core over every page and fails on any WCAG 2.1 A or AA violation, needs `pnpm dev` running          |
@@ -289,9 +291,20 @@ a browser and a world held on the server are the same thing in two places.
 ## Deploying
 
 In production the API also serves the built client, so this deploys as one
-service rather than a separate frontend and backend. `railway.json` pins the
-build and start commands and points Railway's healthcheck at `/health`, so a
-deploy does not depend on what the platform infers.
+service rather than a separate frontend and backend. The project is described
+in `.railway/railway.ts`: both services, their build and start commands, the
+healthcheck, the reset schedule and which variables are kept out of the
+repository. Railway's CLI applies it, and shows what it would change first:
+
+```sh
+npm install -g @railway/cli
+railway login
+railway link
+railway config apply
+```
+
+Anything the project holds has to be listed in that file, the database
+included, because the CLI reads an omission as something to delete.
 
 Add a MongoDB, either Railway's template or a MongoDB Atlas cluster, then set
 these variables on the service:
@@ -319,22 +332,14 @@ lasts until the next reset. That is the whole moderation strategy, and it is
 why there is nothing worth backing up: `showcaseBuilds.json` in git is the
 canonical state.
 
-Add a second Railway service from the same repository:
-
-```
-Cron schedule:  0 */6 * * *
-Config file:    railway.reset.json
-Variables:      MONGODB_URI, NODE_ENV=production, SEED_ALLOW_PRODUCTION=1
-```
-
-Point that service's config file at `railway.reset.json` rather than leaving it
-on the default. Both services are built from the same repository, so without
-this the reset service reads `railway.json` and inherits the API's start
-command and healthcheck: it would run the API instead of the seeder, never
-exit, and the schedule would do nothing. `railway.reset.json` sets the start
-command to the seeder, skips the client build the reset does not need, and
-turns off restart-on-failure so a failed run waits for the next schedule
-instead of retrying in a loop.
+The reset is a second service from the same repository, named `reset` in
+`.railway/railway.ts`. The file gives it the seeder as its start command, a
+build that skips the client, a cron schedule of every six hours, and no
+restarts, so a failed run waits for the next schedule instead of looping. Its
+variables are `MONGODB_URI`, `JWT_SECRET`, `NODE_ENV=production` and
+`SEED_ALLOW_PRODUCTION=1`. The secret is needed even though the seeder never
+signs a token: the environment module checks every variable as soon as it is
+imported.
 
 Set `SEED_ALLOW_PRODUCTION=1` on the reset service only, never on the API
 service. Without it the seeder refuses to touch a production database, which
@@ -364,7 +369,7 @@ comments, and fails on any console error. The same command checks a real
 deployment:
 
 ```sh
-BASE=https://your-app.up.railway.app pnpm test:prod
+BASE=https://chunkd-production.up.railway.app pnpm test:prod
 ```
 
 Four things catch people out on a first deploy.
