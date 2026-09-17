@@ -93,6 +93,12 @@ test("a bare world round-trips as bare", () => {
   assert.equal(fingerprint(loaded.blocks), fingerprint(blocks));
 });
 
+test("a size the editor does not offer is refused", () => {
+  const payload = JSON.parse(serializeWorld(7, generateTerrain(7)));
+  assert.equal(deserializeWorld(JSON.stringify({ ...payload, size: 100000 })), null);
+  assert.equal(deserializeWorld(JSON.stringify({ ...payload, size: WORLD_SIZE + 1 })), null);
+});
+
 test("a larger world round-trips at its own size", () => {
   // Reloading at the default size would rebuild against a different landscape.
   const size = WORLD_SIZE * 2;
