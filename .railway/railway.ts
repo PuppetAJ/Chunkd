@@ -16,8 +16,9 @@ export default defineRailway(() => {
     deploy: {
       healthcheckPath: "/health",
       healthcheckTimeout: 100,
-      restartPolicyType: "ON_FAILURE",
-      restartPolicyMaxRetries: 10,
+      // No restart policy here on purpose. Setting it does not persist: Railway
+      // stores it as unset, so the plan would offer the same change forever.
+      // The service restarts on failure regardless, which is what we wanted.
       // Idle containers are billed by the second, so the service stops when
       // nothing is using it and wakes on the next request.
       sleepApplication: true,
