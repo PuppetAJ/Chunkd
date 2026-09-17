@@ -103,7 +103,8 @@ export const typeDefs = /* GraphQL */ `
     renewToken: Auth!
 
     addThought(thoughtText: String!, buildId: ID): Thought!
-    updateThought(thoughtId: ID!, thoughtText: String!): Thought!
+    "Leave buildId out to keep the attached build; pass null to detach it."
+    updateThought(thoughtId: ID!, thoughtText: String!, buildId: ID): Thought!
     deleteThought(thoughtId: ID!): ID!
 
     "Pass parentId to reply. Replying to a reply attaches to the same parent."
