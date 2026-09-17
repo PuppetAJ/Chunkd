@@ -91,7 +91,6 @@ export default function Landing() {
             )}
           </div>
         </div>
-
       </section>
 
       {gallery.length > 0 && (
@@ -136,17 +135,17 @@ export default function Landing() {
             {
               icon: <Blocks className="size-5" />,
               title: "Build",
-              body: "A new landscape every time, with a hotbar of blocks and no download.",
+              body: "A new landscape every time, build with an inventory of blocks right in the browser.",
             },
             {
               icon: <Save className="size-5" />,
               title: "Save",
-              body: "Worlds are stored as a seed and the blocks you changed, so a save is a few kilobytes.",
+              body: "Save your worlds onto your account and come back to them later.",
             },
             {
               icon: <Share2 className="size-5" />,
               title: "Share",
-              body: "Post a build and anyone can open it, turn it around and comment on it.",
+              body: "Post a build and anyone can open it, view it, and comment on it.",
             },
           ].map((step) => (
             <li
