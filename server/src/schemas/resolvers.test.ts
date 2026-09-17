@@ -348,3 +348,47 @@ test("deleting a comment takes its replies with it", async () => {
   const left = removed.data?.["deleteReaction"].reactions as { _id: string }[];
   assert.deepEqual(left.map((one) => one._id), [survivor]);
 });
+
+test("editing a post can attach, swap and remove its build", async () => {
+  const owner = await signUp();
+  const stranger = await signUp();
+  const first = await save(owner, "First world");
+  const second = await save(owner, "Second world");
+  const thoughtId = await post(owner, "No build yet");
+
+  const edit = (variables: Record<string, unknown>, as = owner) =>
+    run(
+      `mutation ($id: ID!, $text: String!, $buildId: ID) {
+        updateThought(thoughtId: $id, thoughtText: $text, buildId: $buildId) {
+          thoughtText
+          build { _id name }
+        }
+      }`,
+      { id: thoughtId, text: "Look at this", ...variables },
+      as,
+    );
+
+  const attached = await edit({ buildId: first });
+  assert.deepEqual(attached.errors, []);
+  assert.equal(attached.data?.["updateThought"].build.name, "First world");
+
+  const swapped = await edit({ buildId: second });
+  assert.equal(swapped.data?.["updateThought"].build.name, "Second world");
+
+  // Leaving the argument out keeps whatever is attached.
+  const textOnly = await run(
+    `mutation ($id: ID!, $text: String!) {
+      updateThought(thoughtId: $id, thoughtText: $text) { build { name } }
+    }`,
+    { id: thoughtId, text: "Just new words" },
+    owner,
+  );
+  assert.equal(textOnly.data?.["updateThought"].build.name, "Second world");
+
+  const detached = await edit({ buildId: null });
+  assert.equal(detached.data?.["updateThought"].build, null);
+
+  const strangersBuild = await save(stranger, "Not yours");
+  const refused = await edit({ buildId: strangersBuild });
+  assert.equal(refused.errors[0]?.code, "FORBIDDEN");
+});

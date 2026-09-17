@@ -112,11 +112,16 @@ export const ADD_THOUGHT = gql`
 `;
 
 export const UPDATE_THOUGHT = gql`
-  mutation updateThought($thoughtId: ID!, $thoughtText: String!) {
-    updateThought(thoughtId: $thoughtId, thoughtText: $thoughtText) {
+  mutation updateThought($thoughtId: ID!, $thoughtText: String!, $buildId: ID) {
+    updateThought(thoughtId: $thoughtId, thoughtText: $thoughtText, buildId: $buildId) {
       _id
       thoughtText
       createdAt
+      build {
+        _id
+        name
+        thumbnail
+      }
     }
   }
 `;
