@@ -14,7 +14,7 @@
     "migrate:following": "node --env-file-if-exists=../.env src/scripts/renameFriendsToFollowing.ts",
     "build": "echo \"server needs no build step\"",
     "typecheck": "tsc --noEmit",
-    "test": "node --test 'src/**/*.test.ts'"
+    "test": "node --test --import ./src/test/env.ts 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@apollo/server": "^5.5.1",
