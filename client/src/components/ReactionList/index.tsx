@@ -43,6 +43,13 @@ export default function ReactionList({ thoughtId, reactions }: Props) {
   const roots = reactions.filter((one) => !one.parent);
   const repliesTo = (id: string) => reactions.filter((one) => one.parent === id);
 
+  // Replies all sit at one level, so answering one only reads as a reply to it
+  // if the name is in the text. Answering the comment at the top needs no name.
+  const mentionFor = (id: string | null) => {
+    const target = reactions.find((one) => one._id === id);
+    return target?.parent ? target.username : null;
+  };
+
   const remove = (reaction: Reaction) => {
     // The server takes a comment's replies with it, so the optimistic copy must too.
     const gone = new Set([reaction._id, ...repliesTo(reaction._id).map((one) => one._id)]);
@@ -111,9 +118,12 @@ export default function ReactionList({ thoughtId, reactions }: Props) {
                 {openHere && (
                   <li className="pt-1">
                     <ReactionForm
+                      // Remounts when the target changes, so the mention follows it.
+                      key={replyingTo}
                       thoughtId={thoughtId}
                       reactions={reactions}
                       parentId={root._id}
+                      mention={mentionFor(replyingTo)}
                       onDone={() => setReplyingTo(null)}
                       onCancel={() => setReplyingTo(null)}
                     />

@@ -16,6 +16,8 @@ interface Props {
   reactions: Reaction[];
   /** Set when this form is a reply box under a comment. */
   parentId?: string | null;
+  /** Whose comment is being answered, when that is not obvious from position. */
+  mention?: string | null;
   /** Called once a reply has been sent, so the thread can close the box. */
   onDone?: () => void;
   onCancel?: () => void;
@@ -25,11 +27,12 @@ export default function ReactionForm({
   thoughtId,
   reactions,
   parentId = null,
+  mention = null,
   onDone,
   onCancel,
 }: Props) {
   const me = useAuthStore((state) => state.user?.username ?? "");
-  const [reactionBody, setReactionBody] = useState("");
+  const [reactionBody, setReactionBody] = useState(mention ? `@${mention} ` : "");
   const [submitError, setSubmitError] = useState("");
   const [addReaction, { loading }] = useMutation(ADD_REACTION);
 
