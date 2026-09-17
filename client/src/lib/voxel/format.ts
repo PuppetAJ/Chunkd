@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateTerrain, WORLD_SIZE } from "./terrain.ts";
+import { generateTerrain, WORLD_SIZE, WORLD_SIZES } from "./terrain.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
 /**
@@ -16,7 +16,9 @@ const positionSchema = z.tuple([z.number().int(), z.number().int(), z.number().i
 
 const buildSchema = z.object({
   v: z.literal(READABLE_VERSIONS),
-  size: z.number().int().positive(),
+  // Only the sizes the editor offers. Loading regenerates terrain at this size,
+  // so an unchecked number in a posted build would hang whoever opened it.
+  size: z.number().refine((size) => WORLD_SIZES.some((offered) => offered === size)),
   seed: z.number().int().nonnegative(),
   /** Absent before version 4, where every world was grown with trees. */
   trees: z.boolean().default(true),

@@ -269,7 +269,8 @@ are top texture.
 A saved build stores the world seed and the blocks you changed, not the world
 itself. Loading one regenerates the terrain from the seed and reapplies your
 changes on top. A save is therefore the size of what you did rather than the
-size of the map, which is a few kilobytes instead of several hundred.
+size of the map: a few kilobytes for a cabin, a few hundred for the largest
+imported builds, where writing out every block would run to megabytes.
 
 This makes terrain generation part of the save format. If `generateTerrain` ever
 produces different output, every build saved before the change loads as a
