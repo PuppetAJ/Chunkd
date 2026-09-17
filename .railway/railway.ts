@@ -6,12 +6,14 @@ import { defineRailway, github, preserve, project, service } from "railway/iac";
  * what it would change and asks before doing it.
  *
  * The service names below have to match the ones in the dashboard, or the plan
- * will offer to create new services rather than update the existing ones.
+ * will offer to create new services rather than update the existing ones. The
+ * MongoDB service is deliberately left out: nothing here needs to manage it,
+ * and the URLs pointing at it are preserved rather than rewritten.
  */
 export default defineRailway(() => {
   const repository = github("PuppetAJ/Chunkd");
 
-  const api = service("api", {
+  const api = service("Chunkd", {
     source: repository,
     build: "pnpm build",
     start: "pnpm start",
