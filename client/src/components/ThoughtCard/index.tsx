@@ -4,7 +4,7 @@ import { useMutation, useQuery } from "@apollo/client/react";
 import { Blocks, MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 import { UPDATE_THOUGHT, DELETE_THOUGHT } from "../../utils/mutations.ts";
-import { QUERY_THOUGHTS, QUERY_ME } from "../../utils/queries.ts";
+import { QUERY_ME } from "../../utils/queries.ts";
 import { formatTimestamp } from "../../lib/formatTimestamp.ts";
 import { useAuthStore } from "../../lib/auth.ts";
 import type { BuildSummary, Thought } from "../../lib/feedTypes.ts";
@@ -64,8 +64,13 @@ export default function ThoughtCard({
   const myBuilds: BuildSummary[] = (mine as { me?: { builds?: BuildSummary[] } })?.me?.builds ?? [];
 
   const [updateThought, { loading: saving }] = useMutation(UPDATE_THOUGHT);
+  // Dropping the post from the cache takes it out of every list that held it,
+  // so the feed, the profile and your own post count all lose it at once.
   const [deleteThought, { loading: deleting }] = useMutation(DELETE_THOUGHT, {
-    refetchQueries: [{ query: QUERY_THOUGHTS }, { query: QUERY_ME }],
+    update(cache) {
+      cache.evict({ id: cache.identify({ __typename: "Thought", _id: thought._id }) });
+      cache.gc();
+    },
   });
 
   const startEditing = () => {
