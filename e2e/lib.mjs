@@ -7,14 +7,16 @@ export async function launch({ width = 1280, height = 800 } = {}) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width, height } });
 
-  // An automated browser refuses every pointer lock request, so the suite
-  // records who asked rather than checking whether the lock was granted.
+  // The suite is written for a browser that refuses the pointer lock, which is
+  // what a headless one does on a Mac. On Linux it grants it, and then every
+  // synthetic mouse event turns the camera. So the harness refuses it
+  // everywhere and records who asked; the locked case has its own section.
   await page.addInitScript(() => {
     window.__lockRequests = [];
-    const request = Element.prototype.requestPointerLock;
-    Element.prototype.requestPointerLock = function (...args) {
+    Element.prototype.requestPointerLock = function () {
       window.__lockRequests.push(new Error().stack?.includes("drei") ? "drei" : "editor");
-      return request.apply(this, args);
+      setTimeout(() => document.dispatchEvent(new Event("pointerlockerror")));
+      return undefined;
     };
   });
 

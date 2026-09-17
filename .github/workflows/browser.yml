@@ -1,0 +1,67 @@
+# The end-to-end suite, on pull requests only. It takes a while, so it is not
+# a required check and does not hold up a deploy: main is gated by CI alone.
+name: Browser suite
+
+on:
+  pull_request:
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/chunkd_e2e
+      JWT_SECRET: ci-signing-key-not-for-real-use-0123456789abcdef
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      # The suite expects a populated feed, as a fresh install would not have.
+      - run: pnpm seed --force
+
+      # The server's dev script watches ../.env, and Node refuses to watch a
+      # file that does not exist, so an empty one stands in.
+      - name: Start the app
+        run: |
+          touch .env
+          pnpm dev > dev.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3001/health > /dev/null && curl -sf http://localhost:3000 > /dev/null && exit 0
+            sleep 2
+          done
+          echo "The app did not come up"; cat dev.log; exit 1
+
+      - run: node e2e/smoke.mjs
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev-log
+          path: dev.log
