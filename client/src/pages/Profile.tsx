@@ -83,8 +83,9 @@ export default function Profile() {
 
   // Both mutations return the viewer's own record, so Apollo flips the button
   // on its own. Only the profile owner's side of the relationship needs help.
-  const meAfter = (adding: boolean) =>
-    viewer && {
+  const optimistic = (adding: boolean) => {
+    if (!viewer) return undefined;
+    const meAfter = {
       __typename: "User",
       _id: viewer._id,
       username: viewer.username,
@@ -93,6 +94,8 @@ export default function Profile() {
         ? [...iFollow.map(asUser), asUser(user)]
         : iFollow.filter((person) => person._id !== user._id).map(asUser),
     };
+    return adding ? { follow: meAfter } : { unfollow: meAfter };
+  };
 
   const adjustProfile = (cache: ApolloCache, adding: boolean) => {
     if (!viewer) return;
@@ -117,14 +120,14 @@ export default function Profile() {
       if (alreadyFollowing) {
         await unfollow({
           variables,
-          optimisticResponse: viewer && { unfollow: meAfter(false) },
+          optimisticResponse: optimistic(false),
           update: (cache) => adjustProfile(cache, false),
         });
         toast.success(`Unfollowed ${user.username}`);
       } else {
         await follow({
           variables,
-          optimisticResponse: viewer && { follow: meAfter(true) },
+          optimisticResponse: optimistic(true),
           update: (cache) => adjustProfile(cache, true),
         });
         // Not "request sent": following is one-way.
