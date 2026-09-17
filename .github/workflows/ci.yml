@@ -1,8 +1,16 @@
 name: CI
 
+# A pull request run covers a branch; the push trigger is for main only, so a
+# branch push does not run twice. Railway waits for the main run before deploying.
 on:
   push:
+    branches: [main]
   pull_request:
+
+# A newer push to the same pull request stops the run in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
