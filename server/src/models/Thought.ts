@@ -4,6 +4,8 @@ export interface ReactionSubdocument {
   _id: Types.ObjectId;
   author: Types.ObjectId;
   reactionBody: string;
+  /** The comment this one replies to, or null for a top-level comment. */
+  parent: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,6 +33,12 @@ const reactionSchema = new Schema<ReactionSubdocument>(
       trim: true,
       minlength: 1,
       maxlength: [280, "A comment must be 280 characters or fewer"],
+    },
+    // Threads are one level deep, so this always names a top-level comment or
+    // nothing. A reply to a reply is stored against the same parent.
+    parent: {
+      type: Schema.Types.ObjectId,
+      default: null,
     },
   },
   { timestamps: true },

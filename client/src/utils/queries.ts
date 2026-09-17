@@ -38,6 +38,7 @@ export const QUERY_THOUGHTS = gql`
         createdAt
         username
         reactionBody
+        parent
       }
     }
   }
@@ -61,6 +62,7 @@ export const QUERY_THOUGHT = gql`
         createdAt
         username
         reactionBody
+        parent
       }
     }
   }
@@ -123,6 +125,7 @@ export const QUERY_ME = gql`
           createdAt
           reactionBody
           username
+          parent
         }
       }
       followers {

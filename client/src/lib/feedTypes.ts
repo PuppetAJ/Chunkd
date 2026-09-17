@@ -22,6 +22,8 @@ export interface Reaction {
   reactionBody: string;
   createdAt: string;
   username: string;
+  /** The comment this replies to. Null at the top level; threads are one deep. */
+  parent?: string | null;
 }
 
 export interface Thought {
@@ -46,6 +48,7 @@ export function asReaction(reaction: Reaction) {
     reactionBody: reaction.reactionBody,
     createdAt: reaction.createdAt,
     username: reaction.username,
+    parent: reaction.parent ?? null,
   };
 }
 

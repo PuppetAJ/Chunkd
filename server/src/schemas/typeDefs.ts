@@ -57,6 +57,8 @@ export const typeDefs = /* GraphQL */ `
     reactionBody: String!
     author: User!
     username: String!
+    "The comment this replies to. Null for a top-level comment; threads are one level deep."
+    parent: ID
     createdAt: String!
   }
 
@@ -104,7 +106,10 @@ export const typeDefs = /* GraphQL */ `
     updateThought(thoughtId: ID!, thoughtText: String!): Thought!
     deleteThought(thoughtId: ID!): ID!
 
-    addReaction(thoughtId: ID!, reactionBody: String!): Thought!
+    "Pass parentId to reply. Replying to a reply attaches to the same parent."
+    addReaction(thoughtId: ID!, reactionBody: String!, parentId: ID): Thought!
+    updateReaction(thoughtId: ID!, reactionId: ID!, reactionBody: String!): Thought!
+    "Deleting a comment deletes the replies under it."
     deleteReaction(thoughtId: ID!, reactionId: ID!): Thought!
 
     "Changing a username or email invalidates the old token, so a new one comes back."

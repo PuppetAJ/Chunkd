@@ -456,6 +456,14 @@ a mesh of only the exposed faces, with the textures in one atlas, would draw a
 world in a handful of calls and halve the vertex work. It is a rewrite of the
 render path, so it waits until the draw count is a problem again.
 
+**Deeper comment threads.** Replies are one level deep on purpose. A comment
+carries the id of the comment it answers, and replying to a reply joins the same
+thread rather than nesting further, which keeps the data flat and the page
+readable. Arbitrary depth would mean fetching comments flat and assembling the
+tree on the client, since GraphQL cannot express unbounded recursion in a
+selection set, and it would need answers about sorting and about what happens to
+a reply whose parent is deleted.
+
 ## Credits
 
 Built and maintained by Adrian Jimenez. The 2026 rebuild is his work: the voxel

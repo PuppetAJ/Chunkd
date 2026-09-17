@@ -128,8 +128,8 @@ export const DELETE_THOUGHT = gql`
 `;
 
 export const ADD_REACTION = gql`
-  mutation addReaction($thoughtId: ID!, $reactionBody: String!) {
-    addReaction(thoughtId: $thoughtId, reactionBody: $reactionBody) {
+  mutation addReaction($thoughtId: ID!, $reactionBody: String!, $parentId: ID) {
+    addReaction(thoughtId: $thoughtId, reactionBody: $reactionBody, parentId: $parentId) {
       _id
       reactionCount
       reactions {
@@ -137,6 +137,23 @@ export const ADD_REACTION = gql`
         reactionBody
         createdAt
         username
+        parent
+      }
+    }
+  }
+`;
+
+export const UPDATE_REACTION = gql`
+  mutation updateReaction($thoughtId: ID!, $reactionId: ID!, $reactionBody: String!) {
+    updateReaction(thoughtId: $thoughtId, reactionId: $reactionId, reactionBody: $reactionBody) {
+      _id
+      reactionCount
+      reactions {
+        _id
+        reactionBody
+        createdAt
+        username
+        parent
       }
     }
   }
@@ -152,6 +169,7 @@ export const DELETE_REACTION = gql`
         reactionBody
         createdAt
         username
+        parent
       }
     }
   }
