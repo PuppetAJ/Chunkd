@@ -324,7 +324,7 @@ export const resolvers = {
 
     updateThought: async (
       _parent: unknown,
-      args: { thoughtId: string; thoughtText: string },
+      args: { thoughtId: string; thoughtText: string; buildId?: string | null },
       context: GraphQLContext,
     ) => {
       const auth = requireAuth(context);
@@ -336,6 +336,19 @@ export const resolvers = {
       }
 
       thought.thoughtText = args.thoughtText;
+
+      // Absent means leave the attachment alone; null means take it off.
+      if ("buildId" in args) {
+        if (args.buildId) {
+          const buildId = toObjectId(args.buildId, "Build id");
+          const owned = await Build.findOne({ _id: buildId, owner: auth._id }).select("_id");
+          if (!owned) throw forbidden("You can only post a build that you own.");
+          thought.build = buildId;
+        } else {
+          thought.build = undefined;
+        }
+      }
+
       await thought.save();
       return thought;
     },

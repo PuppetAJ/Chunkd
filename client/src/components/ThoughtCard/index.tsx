@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { useMutation } from "@apollo/client/react";
+import { useMutation, useQuery } from "@apollo/client/react";
 import { Blocks, MessageSquare, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 
 import { UPDATE_THOUGHT, DELETE_THOUGHT } from "../../utils/mutations.ts";
 import { QUERY_THOUGHTS, QUERY_ME } from "../../utils/queries.ts";
 import { formatTimestamp } from "../../lib/formatTimestamp.ts";
 import { useAuthStore } from "../../lib/auth.ts";
-import type { Thought } from "../../lib/feedTypes.ts";
+import type { BuildSummary, Thought } from "../../lib/feedTypes.ts";
 import UserAvatar from "../UserAvatar.tsx";
 import { Button } from "../ui/button.tsx";
 import { Textarea } from "../ui/textarea.tsx";
@@ -29,6 +29,7 @@ import {
 } from "../ui/alert-dialog.tsx";
 
 const MAX_LENGTH = 280;
+const NO_BUILD = "";
 
 interface Props {
   thought: Thought;
@@ -55,21 +56,45 @@ export default function ThoughtCard({
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(thought.thoughtText);
+  const [draftBuildId, setDraftBuildId] = useState(thought.build?._id ?? NO_BUILD);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // Only while the editor is open: a feed of cards must not each fetch this.
+  const { data: mine } = useQuery(QUERY_ME, { skip: !editing });
+  const myBuilds: BuildSummary[] = (mine as { me?: { builds?: BuildSummary[] } })?.me?.builds ?? [];
 
   const [updateThought, { loading: saving }] = useMutation(UPDATE_THOUGHT);
   const [deleteThought, { loading: deleting }] = useMutation(DELETE_THOUGHT, {
     refetchQueries: [{ query: QUERY_THOUGHTS }, { query: QUERY_ME }],
   });
 
+  const startEditing = () => {
+    setDraft(thought.thoughtText);
+    setDraftBuildId(thought.build?._id ?? NO_BUILD);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditing(false);
+    setDraft(thought.thoughtText);
+    setDraftBuildId(thought.build?._id ?? NO_BUILD);
+  };
+
   const saveEdit = async () => {
     const text = draft.trim();
-    if (!text || text === thought.thoughtText) {
-      setEditing(false);
-      setDraft(thought.thoughtText);
+    const buildChanged = draftBuildId !== (thought.build?._id ?? NO_BUILD);
+    if (!text || (text === thought.thoughtText && !buildChanged)) {
+      cancelEditing();
       return;
     }
-    await updateThought({ variables: { thoughtId: thought._id, thoughtText: text } });
+    await updateThought({
+      variables: {
+        thoughtId: thought._id,
+        thoughtText: text,
+        // Null detaches; the server leaves the build alone when this is absent.
+        buildId: draftBuildId || null,
+      },
+    });
     setEditing(false);
   };
 
@@ -107,7 +132,7 @@ export default function ThoughtCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => setEditing(true)}>
+              <DropdownMenuItem onSelect={startEditing}>
                 <Pencil />
                 Edit post
               </DropdownMenuItem>
@@ -136,16 +161,36 @@ export default function ThoughtCard({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => {
-                  setEditing(false);
-                  setDraft(thought.thoughtText);
-                }}
+                onClick={cancelEditing}
               >
                 Cancel
               </Button>
               <span className="ml-auto text-xs text-muted-foreground">
                 {draft.length}/{MAX_LENGTH}
               </span>
+            </div>
+            <div className="space-y-1">
+              <label htmlFor={`build-${thought._id}`} className="text-xs text-muted-foreground">
+                Attached build
+              </label>
+              <select
+                id={`build-${thought._id}`}
+                value={draftBuildId}
+                onChange={(event) => setDraftBuildId(event.target.value)}
+                className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value={NO_BUILD}>No build attached</option>
+                {/* The attached build may have been deleted, or belong to a page
+                    of builds this account no longer lists. */}
+                {thought.build && !myBuilds.some((one) => one._id === thought.build?._id) && (
+                  <option value={thought.build._id}>{thought.build.name}</option>
+                )}
+                {myBuilds.map((build) => (
+                  <option key={build._id} value={build._id}>
+                    {build.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         ) : (
