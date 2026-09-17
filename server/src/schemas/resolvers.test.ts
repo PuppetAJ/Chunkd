@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import mongoose from "mongoose";
 import { Build } from "../models/index.ts";
 import {
   connectTestDatabase,
@@ -230,4 +231,23 @@ test("the showcase is the featured builds, whatever was posted after them", asyn
   const result = await run(`{ showcase { build { name } } }`);
   const rows = (result.data?.["showcase"] ?? []) as { build: { name: string } }[];
   assert.deepEqual(rows.map((one) => one.build.name), ["Featured"]);
+});
+
+test("a page of the feed costs a handful of queries, not one per row", async () => {
+  const author = await signUp();
+  for (let i = 0; i < 5; i += 1) await post(author, `Post ${i}`, await save(author));
+
+  // Mongoose reports every query it sends, which is the only honest way to
+  // check that the loaders batched rather than assuming it.
+  let queries = 0;
+  mongoose.set("debug", () => {
+    queries += 1;
+  });
+  const result = await run(
+    `{ thoughts(limit: 5) { username author { _id } build { name } } }`,
+  );
+  mongoose.set("debug", false);
+
+  assert.deepEqual(result.errors, []);
+  assert.ok(queries <= 3, `${queries} queries for five posts`);
 });

@@ -2,6 +2,7 @@ import jwt, { type SignOptions } from "jsonwebtoken";
 import { GraphQLError } from "graphql";
 import { env } from "../config/env.ts";
 import type { UserDocument } from "../models/index.ts";
+import type { Loaders } from "./loaders.ts";
 
 // What is signed into the auth token.
 export interface AuthUser {
@@ -14,6 +15,8 @@ export interface GraphQLContext {
   user: AuthUser | null;
   /** Where the request came from, for the per-address attempt limits. */
   ip: string;
+  /** Built fresh per request. See utils/loaders.ts for why that matters. */
+  loaders: Loaders;
 }
 
 export function signToken(user: UserDocument): string {

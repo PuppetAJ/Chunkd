@@ -12,6 +12,7 @@ import { env, isProduction } from "./config/env.ts";
 import { connectToDatabase } from "./config/db.ts";
 import { typeDefs, resolvers } from "./schemas/index.ts";
 import { getUserFromAuthHeader, type GraphQLContext } from "./utils/auth.ts";
+import { createLoaders } from "./utils/loaders.ts";
 import { queryLimits } from "./utils/queryLimits.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -84,6 +85,7 @@ async function start(): Promise<void> {
         user: getUserFromAuthHeader(req.headers.authorization),
         // Correct behind one proxy because of `trust proxy` above.
         ip: req.ip ?? "unknown",
+        loaders: createLoaders(),
       }),
     }),
   );

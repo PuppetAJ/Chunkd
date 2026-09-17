@@ -195,18 +195,20 @@ export const resolvers = {
     createdAt: (parent: UserDocument) => parent.createdAt.toISOString(),
   },
 
+  // These run once per row, so they go through the request's loaders. The id is
+  // stringified because a loader keys its cache by identity, and two ObjectIds
+  // for the same user are different objects.
   Thought: {
-    author: async (parent: ThoughtDocument) => User.findById(parent.author),
+    author: async (parent: ThoughtDocument, _args: unknown, context: GraphQLContext) =>
+      context.loaders.userById.load(String(parent.author)),
 
-    username: async (parent: ThoughtDocument) => {
-      const author = await User.findById(parent.author).select("username");
+    username: async (parent: ThoughtDocument, _args: unknown, context: GraphQLContext) => {
+      const author = await context.loaders.userById.load(String(parent.author));
       return author?.username ?? "[deleted]";
     },
 
-    build: async (parent: ThoughtDocument) =>
-      parent.build
-        ? Build.findById(parent.build).select("_id name thumbnail createdAt updatedAt")
-        : null,
+    build: async (parent: ThoughtDocument, _args: unknown, context: GraphQLContext) =>
+      parent.build ? context.loaders.buildSummaryById.load(String(parent.build)) : null,
 
     reactionCount: (parent: ThoughtDocument) => parent.reactions.length,
 
@@ -214,10 +216,11 @@ export const resolvers = {
   },
 
   Reaction: {
-    author: async (parent: ReactionSubdocument) => User.findById(parent.author),
+    author: async (parent: ReactionSubdocument, _args: unknown, context: GraphQLContext) =>
+      context.loaders.userById.load(String(parent.author)),
 
-    username: async (parent: ReactionSubdocument) => {
-      const author = await User.findById(parent.author).select("username");
+    username: async (parent: ReactionSubdocument, _args: unknown, context: GraphQLContext) => {
+      const author = await context.loaders.userById.load(String(parent.author));
       return author?.username ?? "[deleted]";
     },
 
@@ -225,7 +228,8 @@ export const resolvers = {
   },
 
   Build: {
-    owner: async (parent: BuildDocument) => User.findById(parent.owner),
+    owner: async (parent: BuildDocument, _args: unknown, context: GraphQLContext) =>
+      context.loaders.userById.load(String(parent.owner)),
     createdAt: (parent: BuildDocument) => parent.createdAt.toISOString(),
     updatedAt: (parent: BuildDocument) => parent.updatedAt.toISOString(),
   },
