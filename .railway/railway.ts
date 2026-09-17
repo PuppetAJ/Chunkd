@@ -1,7 +1,9 @@
 import { defineRailway, github, mongo, preserve, project, service } from "railway/iac";
 
 export default defineRailway(() => {
-  const repository = github("PuppetAJ/Chunkd");
+  // checkSuites waits for GitHub's checks before deploying a commit, so a red
+  // build never reaches the site.
+  const repository = github("PuppetAJ/Chunkd", { checkSuites: true });
 
   // Declared so it is not read as a resource to remove. The URLs pointing at
   // it are preserved rather than rewritten from here.
