@@ -7,6 +7,12 @@ export async function launch({ width = 1280, height = 800 } = {}) {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width, height } });
 
+  // The first action after a page with a 3D viewer loads can block for around
+  // ten seconds locally, and longer on a loaded CI runner, which overran the
+  // 30 second default and failed runs that were not actually broken.
+  page.setDefaultTimeout(60_000);
+  page.setDefaultNavigationTimeout(60_000);
+
   // The suite is written for a browser that refuses the pointer lock, which is
   // what a headless one does on a Mac. On Linux it grants it, and then every
   // synthetic mouse event turns the camera. So the harness refuses it
