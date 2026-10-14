@@ -38,9 +38,9 @@
     "lint:fix": "oxlint --fix"
   },
   "devDependencies": {
-    "axe-core": "^4.13.0",
-    "oxlint": "^1.82.0",
-    "playwright": "^1.63.0",
-    "railway": "^3.11.0"
+    "axe-core": "^4.14.0",
+    "oxlint": "^1.87.0",
+    "playwright": "^1.64.0",
+    "railway": "^3.13.1"
   }
 }
