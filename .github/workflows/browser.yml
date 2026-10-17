@@ -58,10 +58,14 @@ jobs:
           done
           echo "The app did not come up"; cat dev.log; exit 1
 
-      - run: node e2e/smoke.mjs
+      - run: pnpm exec playwright test --project=smoke
 
+      # The report and a failed test's trace and screenshot, to step through without rerunning.
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: dev-log
-          path: dev.log
+          name: smoke-failure
+          path: |
+            dev.log
+            playwright-report/
+            test-results/
