@@ -1,38 +1,64 @@
 /** Shared setup for the end-to-end suites and throwaway scripts. */
-import { chromium } from "playwright";
+import { expect, test as base } from "@playwright/test";
 
 export const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
-export async function launch({ width = 1280, height = 800 } = {}) {
-  const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width, height } });
+/**
+ * Playwright Test's `test`, with the page every suite expects: long timeouts, the pointer lock refused, and its
+ * uncaught errors failing the test.
+ */
+export const test = base.extend({
+  page: async ({ page }, use) => {
+    // The first action after a page with a 3D viewer loads can block for around
+    // ten seconds locally, and longer on a loaded CI runner, which overran the
+    // 30 second default and failed runs that were not actually broken.
+    page.setDefaultTimeout(60_000);
+    page.setDefaultNavigationTimeout(60_000);
 
-  // The first action after a page with a 3D viewer loads can block for around
-  // ten seconds locally, and longer on a loaded CI runner, which overran the
-  // 30 second default and failed runs that were not actually broken.
-  page.setDefaultTimeout(60_000);
-  page.setDefaultNavigationTimeout(60_000);
+    // The suite is written for a browser that refuses the pointer lock, which is
+    // what a headless one does on a Mac. On Linux it grants it, and then every
+    // synthetic mouse event turns the camera. So the harness refuses it
+    // everywhere and records who asked; the locked case has its own section.
+    await page.addInitScript(() => {
+      window.__lockRequests = [];
+      Element.prototype.requestPointerLock = function () {
+        window.__lockRequests.push(new Error().stack?.includes("drei") ? "drei" : "editor");
+        setTimeout(() => document.dispatchEvent(new Event("pointerlockerror")));
+        return undefined;
+      };
+    });
 
-  // The suite is written for a browser that refuses the pointer lock, which is
-  // what a headless one does on a Mac. On Linux it grants it, and then every
-  // synthetic mouse event turns the camera. So the harness refuses it
-  // everywhere and records who asked; the locked case has its own section.
-  await page.addInitScript(() => {
-    window.__lockRequests = [];
-    Element.prototype.requestPointerLock = function () {
-      window.__lockRequests.push(new Error().stack?.includes("drei") ? "drei" : "editor");
-      setTimeout(() => document.dispatchEvent(new Event("pointerlockerror")));
-      return undefined;
-    };
-  });
+    const pageErrors = [];
+    page.on("pageerror", (error) => {
+      if (!/pointer lock/i.test(error.message)) pageErrors.push(error.message);
+    });
 
-  const pageErrors = [];
-  page.on("pageerror", (error) => {
-    if (!/pointer lock/i.test(error.message)) pageErrors.push(error.message);
-  });
+    await use(page);
+    expect(pageErrors, "no uncaught errors on the page").toEqual([]);
+  },
+});
 
-  return { browser, page, pageErrors, close: () => browser.close() };
+export { expect };
+
+// The time since the previous check, so each figure covers the work between them; E2E_TIMING=1 lists the slowest.
+const timings = [];
+let lastCheckAt = Date.now();
+
+/** One check among many: a failure is recorded and the test carries on, so a run shows every failure, not the first. */
+export function check(name, ok, detail = "") {
+  const now = Date.now();
+  timings.push({ name, ms: now - lastCheckAt });
+  lastCheckAt = now;
+  expect.soft(ok, detail ? `${name}   (${String(detail).slice(0, 300)})` : name).toBeTruthy();
 }
+
+test.afterAll(() => {
+  if (!process.env.E2E_TIMING || !timings.length) return;
+  const slowest = [...timings].sort((a, b) => b.ms - a.ms).slice(0, 20);
+  const total = timings.reduce((sum, timing) => sum + timing.ms, 0);
+  console.log(`\nSlowest steps (${(total / 1000).toFixed(0)}s measured in total):`);
+  for (const timing of slowest) console.log(`  ${(timing.ms / 1000).toFixed(1)}s  ${timing.name}`);
+});
 
 /** Waits that never throw on a timeout: the check that follows is what fails. */
 export function helpers(page) {
@@ -92,43 +118,6 @@ export function helpers(page) {
   const blockCount = () => page.evaluate(() => window.__world.getState().blocks.size);
 
   return { until, frames, appears, goes, waitFor, rendererSettled, blockCount };
-}
-
-export function reporter() {
-  const results = [];
-  let lastCheckAt = Date.now();
-
-  function check(name, ok, detail = "") {
-    const now = Date.now();
-    results.push({ name, ok, ms: now - lastCheckAt });
-    lastCheckAt = now;
-    console.log(`  ${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : "   " + detail}`);
-  }
-
-  /** Returns the exit code rather than exiting, so the caller can close the browser first. */
-  function report(pageErrors = []) {
-    const failed = results.filter((r) => !r.ok);
-    console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
-
-    // Each figure is the time since the previous check, so it covers the work between them.
-    if (process.env.E2E_TIMING) {
-      const slowest = [...results].sort((a, b) => b.ms - a.ms).slice(0, 20);
-      const total = results.reduce((sum, r) => sum + r.ms, 0);
-      console.log(`\nSlowest steps (${(total / 1000).toFixed(0)}s measured in total):`);
-      for (const r of slowest) console.log(`  ${(r.ms / 1000).toFixed(1)}s  ${r.name}`);
-    }
-
-    if (pageErrors.length) {
-      console.log(`\nUncaught page errors (${pageErrors.length}):`);
-      for (const message of [...new Set(pageErrors)].slice(0, 10)) {
-        console.log("  - " + message.slice(0, 200));
-      }
-    }
-
-    return failed.length === 0 && pageErrors.length === 0 ? 0 : 1;
-  }
-
-  return { check, report, results };
 }
 
 /** The stamp keeps concurrent runs from colliding. */

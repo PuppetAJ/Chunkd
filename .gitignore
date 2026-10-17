@@ -47,3 +47,7 @@ docs/
 # their licences forbid redistributing the files, so they must not be committed.
 # Drop one here and point VITE_TEXTURE_PACK at it to use it locally.
 client/public/texturepack/
+
+# Playwright Test's output: traces, screenshots and the HTML report.
+test-results/
+playwright-report/

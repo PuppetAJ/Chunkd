@@ -26,7 +26,7 @@ Live at [chunkd-production.up.railway.app](https://chunkd-production.up.railway.
 | Data            | Apollo Client against a GraphQL API                                   |
 | Server          | Express 5, Apollo Server 5, Mongoose, TypeScript run directly by Node |
 | Database        | MongoDB                                                               |
-| Tooling         | oxlint, Playwright, `node --test`                                     |
+| Tooling         | oxlint, Playwright Test, `node --test`                                |
 
 Collision and terrain generation are written by hand rather than pulled from a
 physics library. They live in `client/src/lib/voxel/` and are covered by tests.
