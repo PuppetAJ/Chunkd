@@ -62,7 +62,7 @@ export default function Landing() {
           )}
         </div>
 
-        <p className="text-xs text-muted-foreground opacity-60 sm:text-sm lg:col-start-1 lg:row-start-2 lg:text-xs">
+        <p className="text-xs text-muted-foreground sm:text-sm lg:col-start-1 lg:row-start-2 lg:text-xs">
           <span className="sm:block">
             *The demo is a shared account, so anything you make in it is public.
           </span>{" "}
