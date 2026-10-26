@@ -9,7 +9,7 @@ import { ApolloServer } from "@apollo/server";
 import { expressMiddleware } from "@as-integrations/express5";
 
 import { env, isProduction } from "./config/env.ts";
-import { connectToDatabase } from "./config/db.ts";
+import { useDatabase } from "./config/db.ts";
 import { typeDefs, resolvers } from "./schemas/index.ts";
 import { getUserFromAuthHeader, type GraphQLContext } from "./utils/auth.ts";
 import { createLoaders } from "./utils/loaders.ts";
@@ -20,7 +20,7 @@ const clientBuildDir = path.resolve(here, "../../client/dist");
 
 async function start(): Promise<void> {
   // Connect first, so a database that never connects fails the boot instead of answering nothing.
-  await connectToDatabase();
+  await useDatabase();
 
   const apollo = new ApolloServer<GraphQLContext>({
     typeDefs,
@@ -80,6 +80,11 @@ async function start(): Promise<void> {
   app.use(
     "/graphql",
     graphqlLimiter,
+    // After the limiter, so a refused request never opens the connection.
+    async (_req, _res, next) => {
+      await useDatabase();
+      next();
+    },
     expressMiddleware(apollo, {
       context: async ({ req }): Promise<GraphQLContext> => ({
         user: getUserFromAuthHeader(req.headers.authorization),
