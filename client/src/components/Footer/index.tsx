@@ -1,12 +1,15 @@
 // lucide 1.x dropped brand marks, so the GitHub logo comes from react-icons.
 import { FaGithub } from "react-icons/fa";
 
+// Read once when the module loads: calling Date during render is impure.
+const YEAR = new Date().getFullYear();
+
 export default function Footer() {
   return (
     <footer className="mt-auto border-t border-border bg-card/40">
       <div className="page-gutter mx-auto flex w-full max-w-6xl flex-col gap-3 py-6 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="text-muted-foreground">
-          &copy; {new Date().getFullYear()} Adrian Jimenez
+          &copy; {YEAR} Adrian Jimenez
         </p>
 
         {/* CC BY-SA asks for credit and a licence link wherever the work is used. */}
