@@ -62,7 +62,7 @@ jobs:
 
       # The report and a failed test's trace and screenshot, to step through without rerunning.
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: smoke-failure
           path: |
