@@ -51,3 +51,10 @@ client/public/texturepack/
 # Playwright Test's output: traces, screenshots and the HTML report.
 test-results/
 playwright-report/
+
+# Agent tooling
+.agents/
+.claude/
+.worktreeinclude
+AGENTS.md
+CLAUDE.md
