@@ -1,7 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+const envFile = fileURLToPath(new URL("../.env", import.meta.url));
+if (existsSync(envFile)) process.loadEnvFile(envFile);
+
+const apiPort = process.env["API_PORT"] ?? process.env["PORT"] ?? 3001;
+const clientPort = Number(new URL(process.env["CLIENT_ORIGIN"] ?? "http://localhost:3000").port || 3000);
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -17,12 +24,12 @@ export default defineConfig({
   assetsInclude: ["**/*.glb", "**/*.gltf"],
 
   server: {
-    port: 3000,
+    port: clientPort,
+    strictPort: true,
     // Same-origin in development, so CORS and cookies behave as in production.
     proxy: {
       "/graphql": {
-        // API_PORT points a second client at a second API.
-        target: `http://localhost:${process.env["API_PORT"] ?? 3001}`,
+        target: `http://localhost:${apiPort}`,
         changeOrigin: true,
       },
     },

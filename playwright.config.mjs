@@ -1,4 +1,7 @@
+import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 const CI = Boolean(process.env.CI);
 
