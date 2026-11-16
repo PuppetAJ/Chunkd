@@ -35,8 +35,7 @@ function readToken(token: string | null): AuthUser | null {
 function forgetToken(): void {
   try {
     localStorage.removeItem(TOKEN_KEY);
-  } catch {
-  }
+  } catch {}
 }
 
 function loadFromStorage(): string | null {
@@ -62,8 +61,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (!user) return;
     try {
       localStorage.setItem(TOKEN_KEY, token);
-    } catch {
-    }
+    } catch {}
     set({ token, user, isLoggedIn: true, signedOutFrom: null, lastEmail: user.email });
   },
 

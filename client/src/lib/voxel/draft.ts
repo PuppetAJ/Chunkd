@@ -38,6 +38,5 @@ export function writeDraft(draft: Draft): void {
 export function clearDraft(): void {
   try {
     localStorage.removeItem(DRAFT_KEY);
-  } catch {
-  }
+  } catch {}
 }

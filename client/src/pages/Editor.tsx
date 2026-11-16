@@ -33,8 +33,7 @@ import type { Body } from "../lib/voxel/collision.ts";
 function requestPointerLock(): void {
   try {
     document.querySelector("#editor canvas")?.requestPointerLock?.();
-  } catch {
-  }
+  } catch {}
 }
 
 /**

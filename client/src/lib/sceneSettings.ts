@@ -41,8 +41,7 @@ function makeStore(storageKey: string, fallback: SceneSettings) {
       set({ settings });
       try {
         localStorage.setItem(storageKey, JSON.stringify(settings));
-      } catch {
-      }
+      } catch {}
     },
   }));
 }

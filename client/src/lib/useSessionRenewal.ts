@@ -23,8 +23,7 @@ export function useSessionRenewal(): void {
         const { data } = await renewToken();
         const fresh = (data as { renewToken?: { token?: string } } | null)?.renewToken?.token;
         if (fresh) logIn(fresh);
-      } catch {
-      }
+      } catch {}
     }, due);
 
     return () => window.clearTimeout(timer);
