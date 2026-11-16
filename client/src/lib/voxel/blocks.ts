@@ -107,14 +107,11 @@ import stoneBricksUrl from "../../assets/textures/stone_bricks.png";
 import stoneUrl from "../../assets/textures/stone.png";
 import tuffUrl from "../../assets/textures/tuff.png";
 
-/** `cutout` drops transparent pixels outright, so glass needs no draw ordering. */
 export type BlockDraw = "solid" | "cutout";
 
-/** Which drawer of the inventory a block appears in. */
 export type BlockGroup = "Ground" | "Stone" | "Worked stone" | "Wood" | "Other";
 
 export interface BlockType {
-  /** Stored in saved builds, so these numbers must never be reused. */
   readonly id: number;
   readonly name: string;
   readonly label: string;
@@ -122,14 +119,11 @@ export interface BlockType {
   readonly side: string;
   readonly bottom: string;
   readonly draw: BlockDraw;
-  /** True for blocks with a grain, which lie along the face they are placed against. */
   readonly directional: boolean;
-  /** Which shapes a block gets is decided in blockIds.ts. */
   readonly slab: boolean;
   readonly stairs: boolean;
   readonly fence: boolean;
   readonly wall: boolean;
-  /** Its trapdoor texture, or null. Minecraft draws a trapdoor as its own texture, not the block cut thin. */
   readonly trapdoor: string | null;
   readonly group: BlockGroup;
 }
@@ -139,7 +133,6 @@ interface BlockInput {
   name: string;
   label: string;
   group: BlockGroup;
-  /** Used on every face unless top, side or bottom overrides it. */
   texture?: string;
   top?: string;
   side?: string;
@@ -169,9 +162,7 @@ function define(input: BlockInput): BlockType {
   };
 }
 
-/** One entry per placeable block. Everything else reads from here. */
 export const BLOCKS: readonly BlockType[] = [
-  // Ground
   define({ id: BLOCK_IDS.grass, name: "grass", label: "Grass", group: "Ground", top: grassBlockTopUrl, side: grassBlockSideUrl, bottom: dirtUrl }),
   define({ id: BLOCK_IDS.dirt, name: "dirt", label: "Dirt", group: "Ground", texture: dirtUrl }),
   define({ id: BLOCK_IDS.sand, name: "sand", label: "Sand", group: "Ground", texture: sandUrl }),
@@ -184,7 +175,6 @@ export const BLOCKS: readonly BlockType[] = [
   define({ id: BLOCK_IDS.blueIce, name: "blue_ice", label: "Blue Ice", group: "Ground", texture: blueIceUrl }),
   define({ id: BLOCK_IDS.mossBlock, name: "moss_block", label: "Moss Block", group: "Ground", texture: mossBlockUrl }),
 
-  // Stone
   define({ id: BLOCK_IDS.stone, name: "stone", label: "Stone", group: "Stone", texture: stoneUrl }),
   define({ id: BLOCK_IDS.cobblestone, name: "cobblestone", label: "Cobblestone", group: "Stone", texture: cobblestoneUrl }),
   define({ id: BLOCK_IDS.mossyCobblestone, name: "mossy_cobblestone", label: "Mossy Cobblestone", group: "Stone", texture: mossyCobblestoneUrl }),
@@ -201,7 +191,6 @@ export const BLOCKS: readonly BlockType[] = [
   define({ id: BLOCK_IDS.amethyst, name: "amethyst", label: "Amethyst", group: "Stone", texture: amethystUrl }),
   define({ id: BLOCK_IDS.endStone, name: "end_stone", label: "End Stone", group: "Stone", texture: endStoneUrl }),
 
-  // Worked stone
   define({ id: BLOCK_IDS.stoneBricks, name: "stone_bricks", label: "Stone Bricks", group: "Worked stone", texture: stoneBricksUrl }),
   define({ id: BLOCK_IDS.bricks, name: "bricks", label: "Bricks", group: "Worked stone", texture: bricksUrl }),
   define({ id: BLOCK_IDS.mudBricks, name: "mud_bricks", label: "Mud Bricks", group: "Worked stone", texture: mudBricksUrl }),
@@ -219,7 +208,6 @@ export const BLOCKS: readonly BlockType[] = [
   define({ id: BLOCK_IDS.smoothSandstone, name: "smooth_sandstone", label: "Smooth Sandstone", group: "Worked stone", texture: sandstoneTopUrl }),
   define({ id: BLOCK_IDS.oxidizedCutCopper, name: "oxidized_cut_copper", label: "Oxidized Cut Copper", group: "Worked stone", texture: oxidizedCutCopperUrl }),
 
-  // Wood
   define({ id: BLOCK_IDS.oakLog, name: "oak_log", label: "Oak Log", group: "Wood", top: oakLogTopUrl, side: oakLogUrl, directional: true }),
   define({ id: BLOCK_IDS.oakPlanks, name: "oak_planks", label: "Oak Planks", group: "Wood", texture: oakPlanksUrl, trapdoor: oakTrapdoorUrl }),
   define({ id: BLOCK_IDS.oakLeaves, name: "oak_leaves", label: "Oak Leaves", group: "Wood", texture: oakLeavesUrl, draw: "cutout" }),
@@ -239,7 +227,6 @@ export const BLOCKS: readonly BlockType[] = [
   define({ id: BLOCK_IDS.strippedOakLog, name: "stripped_oak_log", label: "Stripped Oak Log", group: "Wood", top: strippedOakLogTopUrl, side: strippedOakLogUrl, directional: true }),
   define({ id: BLOCK_IDS.strippedBirchLog, name: "stripped_birch_log", label: "Stripped Birch Log", group: "Wood", top: strippedBirchLogTopUrl, side: strippedBirchLogUrl, directional: true }),
   define({ id: BLOCK_IDS.strippedJungleLog, name: "stripped_jungle_log", label: "Stripped Jungle Log", group: "Wood", top: strippedJungleLogTopUrl, side: strippedJungleLogUrl, directional: true }),
-  // Wood is bark on every face, so it has no grain to turn.
   define({ id: BLOCK_IDS.oakWood, name: "oak_wood", label: "Oak Wood", group: "Wood", texture: oakLogUrl }),
   define({ id: BLOCK_IDS.spruceWood, name: "spruce_wood", label: "Spruce Wood", group: "Wood", texture: spruceLogUrl }),
   define({ id: BLOCK_IDS.strippedSpruceWood, name: "stripped_spruce_wood", label: "Stripped Spruce Wood", group: "Wood", texture: strippedSpruceLogUrl }),
@@ -247,7 +234,6 @@ export const BLOCKS: readonly BlockType[] = [
   define({ id: BLOCK_IDS.acaciaPlanks, name: "acacia_planks", label: "Acacia Planks", group: "Wood", texture: acaciaPlanksUrl, trapdoor: acaciaTrapdoorUrl }),
   define({ id: BLOCK_IDS.junglePlanks, name: "jungle_planks", label: "Jungle Planks", group: "Wood", texture: junglePlanksUrl, trapdoor: jungleTrapdoorUrl }),
 
-  // Other
   define({ id: BLOCK_IDS.glass, name: "glass", label: "Glass", group: "Other", texture: glassUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.glassPane, name: "glass_pane", label: "Glass Pane", group: "Other", top: glassPaneTopUrl, side: glassUrl, bottom: glassPaneTopUrl, draw: "cutout" }),
   define({ id: BLOCK_IDS.hayBale, name: "hay_bale", label: "Hay Bale", group: "Other", top: hayBlockTopUrl, side: hayBlockSideUrl, directional: true }),
@@ -266,7 +252,6 @@ export function getBlock(id: number): BlockType | undefined {
   return BY_ID.get(id);
 }
 
-/** Every distinct texture the block table refers to, deduplicated. */
 export const TEXTURE_URLS: readonly string[] = [
   ...new Set(
     BLOCKS.flatMap((block) => [
@@ -280,7 +265,6 @@ export const TEXTURE_URLS: readonly string[] = [
 
 export const DEFAULT_BLOCK_ID = BLOCK_IDS.grass;
 
-/** The blocks a fresh hotbar starts with, left to right. */
 export const DEFAULT_HOTBAR: readonly number[] = [
   BLOCK_IDS.grass,
   BLOCK_IDS.dirt,

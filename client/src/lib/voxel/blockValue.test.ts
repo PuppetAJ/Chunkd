@@ -48,7 +48,6 @@ import {
 } from "./blockValue.ts";
 
 test("an upright block stores exactly its id", () => {
-  // Older saves store bare ids.
   assert.equal(packBlock(BLOCK_IDS.oakLog, AXIS_Y), BLOCK_IDS.oakLog);
   assert.equal(packBlock(BLOCK_IDS.grass), BLOCK_IDS.grass);
 });
@@ -127,7 +126,6 @@ test("isSlab is true for both halves and false for a cube", () => {
 });
 
 test("building on a top face lays the slab on it, and under a bottom face hangs it", () => {
-  // The height is ignored on a top or bottom face.
   assert.equal(slabShapeForPlacement(1, 0.5), SHAPE_SLAB_BOTTOM);
   assert.equal(slabShapeForPlacement(-1, -0.5), SHAPE_SLAB_TOP);
 });
@@ -135,7 +133,6 @@ test("building on a top face lays the slab on it, and under a bottom face hangs 
 test("building against a side splits the face down the middle", () => {
   assert.equal(slabShapeForPlacement(0, 0.3), SHAPE_SLAB_TOP);
   assert.equal(slabShapeForPlacement(0, -0.3), SHAPE_SLAB_BOTTOM);
-  // Exactly halfway has to land somewhere.
   assert.equal(slabShapeForPlacement(0, 0), SHAPE_SLAB_TOP);
 });
 
@@ -156,14 +153,12 @@ test("a plain cube is still stored as its bare id with a facing of zero", () => 
 });
 
 test("a stair's own extent is the whole cube it could fill", () => {
-  // From the value alone this is the most that can be said; collision narrows it per quarter.
   for (const shape of [SHAPE_STAIRS_BOTTOM, SHAPE_STAIRS_TOP]) {
     assert.deepEqual(verticalExtent(packBlock(BLOCK_IDS.stone, AXIS_Y, shape), 10), [9.5, 10.5]);
   }
 });
 
 test("a stair's low step faces the player who placed it", () => {
-  // At yaw 0 the camera looks along -Z, so the player is to the south.
   assert.equal(facingForYaw(0), FACING_SOUTH);
   assert.equal(facingForYaw(Math.PI / 2), FACING_EAST);
   assert.equal(facingForYaw(Math.PI), FACING_NORTH);
@@ -220,7 +215,6 @@ test("a trapdoor's facing, half and open state survive a round trip", () => {
 });
 
 test("the trapdoor bits are clear on every other shape", () => {
-  // No value saved before trapdoors existed sets these bits.
   for (const shape of [
     SHAPE_FULL,
     SHAPE_SLAB_BOTTOM,
@@ -262,7 +256,6 @@ test("a shut trapdoor is three sixteenths thick, in its own half", () => {
 });
 
 test("fences, walls and open trapdoors outline their whole cell", () => {
-  // Collision, not this, makes fences taller and open trapdoors passable.
   for (const value of [
     packBlock(BLOCK_IDS.oakPlanks, AXIS_Y, SHAPE_FENCE),
     packBlock(BLOCK_IDS.cobblestone, AXIS_Y, SHAPE_WALL),

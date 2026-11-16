@@ -12,29 +12,25 @@ import { env, isProduction } from "./config/env.ts";
 import { useDatabase } from "./config/db.ts";
 import { typeDefs, resolvers } from "./schemas/index.ts";
 import { getUserFromAuthHeader, type GraphQLContext } from "./utils/auth.ts";
-import { createLoaders } from "./utils/loaders.ts";
+import { createRequestLoaders } from "./utils/loaders.ts";
 import { queryLimits } from "./utils/queryLimits.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const clientBuildDir = path.resolve(here, "../../client/dist");
 
 async function start(): Promise<void> {
-  // Connect first, so a database that never connects fails the boot instead of answering nothing.
   await useDatabase();
 
   const apollo = new ApolloServer<GraphQLContext>({
     typeDefs,
     resolvers,
-    // Stack traces leak file paths and package versions. Keep them in dev only.
     includeStacktraceInErrorResponses: !isProduction,
-    // Refuse queries deep or wide enough to exhaust the process.
     validationRules: [queryLimits()],
   });
   await apollo.start();
 
   const app = express();
 
-  // Behind one proxy, so rate limiting sees the real client IP.
   app.set("trust proxy", 1);
 
   app.use(
@@ -57,19 +53,14 @@ async function start(): Promise<void> {
   // line up with Express 5's app.use even though the middleware itself is fine.
   app.use(compression() as unknown as express.RequestHandler);
 
-  // In development Vite proxies /graphql, so CORS never applies.
   app.use(cors({ origin: isProduction ? env.CLIENT_ORIGIN : true, credentials: true }));
 
-  // Must clear MAX_BUILD_BYTES plus a thumbnail plus the JSON around them, or
-  // the build ceiling would never be reachable.
   app.use(express.json({ limit: "4mb" }));
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
   });
 
-  // GraphQL puts everything on one URL, so the limit is per request and sized
-  // to be invisible in normal use.
   const graphqlLimiter = rateLimit({
     windowMs: 60_000,
     limit: 120,
@@ -80,7 +71,6 @@ async function start(): Promise<void> {
   app.use(
     "/graphql",
     graphqlLimiter,
-    // After the limiter, so a refused request never opens the connection.
     async (_req, _res, next) => {
       await useDatabase();
       next();
@@ -88,9 +78,8 @@ async function start(): Promise<void> {
     expressMiddleware(apollo, {
       context: async ({ req }): Promise<GraphQLContext> => ({
         user: getUserFromAuthHeader(req.headers.authorization),
-        // Correct behind one proxy because of `trust proxy` above.
         ip: req.ip ?? "unknown",
-        loaders: createLoaders(),
+        loaders: createRequestLoaders(),
       }),
     }),
   );
@@ -107,7 +96,6 @@ async function start(): Promise<void> {
       }),
     );
 
-    // Anything that is not an API route or a real file is a client-side route.
     app.get(/(.*)/, (_req, res) => {
       res.sendFile(path.join(clientBuildDir, "index.html"));
     });

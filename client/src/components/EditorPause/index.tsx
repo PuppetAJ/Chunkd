@@ -25,9 +25,7 @@ const CONTROLS: [string, string][] = [
 ];
 
 interface Props {
-  /** True the first time, so the copy can welcome rather than say "paused". */
   firstVisit: boolean;
-  /** The name of a saved build still being fetched, which holds play back. */
   loading?: string | null;
   onPlay: () => void;
 }
@@ -43,7 +41,6 @@ export default function EditorPause({ firstVisit, loading = null, onPlay }: Prop
       onClick={loading ? undefined : onPlay}
     >
       <div
-        // A test finds the pause screen by this.
         data-pause-card
         className="relative w-full max-w-lg rounded-xl border border-border bg-card p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}

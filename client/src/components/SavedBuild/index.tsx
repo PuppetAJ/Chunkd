@@ -14,22 +14,16 @@ import SceneSettingsMenu from "../SceneSettingsMenu.tsx";
 
 interface Props {
   buildId: string;
-  /** Off where the name is already on screen, such as a dialog header. */
   showName?: boolean;
-  /** Turn the build slowly on its own, for the landing page. */
   autoRotate?: boolean;
 }
 
-/** Where a build sits in space, and how far away the camera has to stay. */
 interface Bounds {
   centre: [number, number, number];
-  /** Radius of the sphere that contains every block. */
   radius: number;
-  /** The underside of the build, which is where the floor grid is drawn. */
   minY: number;
 }
 
-/** Frames the camera, and keeps zoom outside the blocks, where every face is culled. */
 function measure(blocks: Map<BlockKey, number>): Bounds {
   let minX = Infinity;
   let minY = Infinity;
@@ -53,7 +47,6 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
     return { centre: [half, half, half], radius: half, minY: 0 };
   }
 
-  // Blocks are placed by their centre, so the solid extends half a unit past the outermost.
   const half: [number, number, number] = [
     (maxX - minX) / 2 + 0.5,
     (maxY - minY) / 2 + 0.5,
@@ -67,9 +60,7 @@ function measure(blocks: Map<BlockKey, number>): Bounds {
   };
 }
 
-/** Read-only view of one saved world. It fetches its own block data. */
 export default function SavedBuild({ buildId, autoRotate = false, showName = true }: Props) {
-  // The chrome sits on the canvas, so its colours follow the sky.
   const settings = useViewerSettings((state) => state.settings);
   const setSettings = useViewerSettings((state) => state.setSettings);
   const onLightSky = settings.environment === "daylight";
@@ -96,7 +87,6 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
   }
 
   if (error || !payload) {
-    // Often an id from before the scheduled reset, which a reload fixes.
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-4 text-center text-sm text-muted-foreground">
         <p>This build is no longer available.</p>
@@ -117,12 +107,10 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
   const start = bounds.radius * 1.9;
 
   return (
-    // @container: the chrome responds to the viewer's width, not the window's.
     <div className="@container relative h-full w-full overflow-hidden rounded-lg border border-border bg-[#0d0c10]">
       <Canvas
         shadows
         dpr={[1, 2]}
-        // Same tone mapping as Editor.tsx, so a build looks the same here as it did there.
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -141,7 +129,6 @@ export default function SavedBuild({ buildId, autoRotate = false, showName = tru
       </Canvas>
 
       <div
-        // The thumbnail generator hides this, and a test finds it.
         data-viewer-chrome
         className="pointer-events-none absolute inset-0 p-3 @sm:p-4"
       >
@@ -214,7 +201,6 @@ function BuildScene({
         <Sky sunPosition={[100, 60, 100]} turbidity={3.1} rayleigh={1.558} />
       )}
 
-      {/* Face shading is in the vertex colours; the lights add cast shadows and a fill. */}
       <ambientLight intensity={ambient * scale} />
       <primitive object={lightTarget} position={[cx, cy, cz]} />
       <directionalLight
@@ -246,7 +232,6 @@ function BuildScene({
   );
 }
 
-/** A slow turn needs nothing like the refresh rate, and Firefox pays for every frame. */
 const PREVIEW_FRAMES_PER_SECOND = 30;
 
 /**
@@ -257,7 +242,6 @@ function PreviewFrameRate() {
   const lastDrawn = useRef(0);
   useFrame(({ gl, scene, camera }) => {
     const now = performance.now();
-    // A little under the interval, so a slightly early refresh still counts.
     if (now - lastDrawn.current < 1000 / PREVIEW_FRAMES_PER_SECOND - 2) return;
     lastDrawn.current = now;
     gl.render(scene, camera);
@@ -266,16 +250,12 @@ function PreviewFrameRate() {
 }
 
 /**
- * Orbit, zoom and pan, with the camera kept outside the build. Panning needs no
- * code: OrbitControls inverts the bound button while a modifier is down, so
- * rebinding it for shift cancels itself out.
+ * Panning needs no code: OrbitControls inverts the bound button while a modifier
+ * is down, so rebinding it for shift cancels itself out.
  */
 function BuildControls({ bounds, autoRotate }: { bounds: Bounds; autoRotate: boolean }) {
-  // ComponentRef avoids importing three's OrbitControls class, which lives in a
-  // package this app does not depend on directly.
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
 
-  // A test needs the controls to tell a pan from a rotate.
   useEffect(() => {
     if (import.meta.env.DEV) window.__viewer = controls.current ?? undefined;
   }, []);
@@ -285,7 +265,6 @@ function BuildControls({ bounds, autoRotate }: { bounds: Bounds; autoRotate: boo
       ref={controls}
       target={bounds.centre}
       autoRotate={autoRotate}
-      // Slow enough to read as a presentation rather than a spin.
       autoRotateSpeed={0.4}
       enablePan
       screenSpacePanning

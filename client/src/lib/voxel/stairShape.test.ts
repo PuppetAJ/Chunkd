@@ -23,7 +23,6 @@ const stair = (facing: number, upsideDown = false) =>
     facing,
   );
 
-/** How many quarters of the tall half are filled. */
 const filled = (mask: number) => [0, 1, 2, 3].filter((i) => mask & (1 << i)).length;
 
 const world = (entries: [number, number, number, number][]) => {
@@ -70,14 +69,12 @@ test("a turn against the low side makes an inner corner", () => {
 });
 
 test("a corner is made of quarters the neighbour's own shape reaches", () => {
-  // The quarter an outer corner keeps must be one the neighbour fills too, or the turn has a gap.
   const blocks = world([
     [0, 0, 0, stair(FACING_NORTH)],
     [0, 0, 1, stair(FACING_EAST)],
   ]);
   const here = stairQuadrants(blocks, 0, 0, 0);
   const next = stairQuadrants(blocks, 0, 0, 1);
-  // Both are on the west side of their cells, so the walls line up.
   const westQuarters = (1 << 0) | (1 << 2);
   assert.ok((here & westQuarters) !== 0, `here ${here.toString(2)}`);
   assert.ok((next & westQuarters) !== 0, `next ${next.toString(2)}`);

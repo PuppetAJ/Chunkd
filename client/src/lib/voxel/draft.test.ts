@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test, { beforeEach } from "node:test";
 
-/** Enough of localStorage for the draft to be exercised outside a browser. */
 class Storage {
   private items = new Map<string, string>();
   full = false;

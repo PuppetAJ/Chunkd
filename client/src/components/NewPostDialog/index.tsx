@@ -22,7 +22,6 @@ import { Textarea } from "../ui/textarea.tsx";
 const MAX_LENGTH = 280;
 const NO_BUILD = "";
 
-/** The part of cache.modify's toolkit that turns a cache id back into a link. */
 interface Helpers {
   toReference: (id: string) => Reference | undefined;
 }
@@ -32,10 +31,6 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-/**
- * The build picker is a plain <select> on purpose: a short list, correct on
- * every platform, and it opens the system picker on a phone.
- */
 export default function NewPostDialog({ open, onOpenChange }: Props) {
   const me = useAuthStore((state) => state.user);
   const [thoughtText, setThoughtText] = useState("");
@@ -45,9 +40,6 @@ export default function NewPostDialog({ open, onOpenChange }: Props) {
   const { loading, data } = useQuery(QUERY_ME);
   const builds: BuildSummary[] = (data as { me?: { builds?: BuildSummary[] } })?.me?.builds ?? [];
 
-  // The mutation returns every field the feed asks for, so the post can go
-  // straight into the lists that should hold it. Home pages by cache length,
-  // which counts this one, so the next page still starts in the right place.
   const [addThought, { loading: submitting }] = useMutation(ADD_THOUGHT, {
     update(cache, { data }) {
       const created = (data as { addThought?: { _id: string } } | undefined)?.addThought;
@@ -59,7 +51,6 @@ export default function NewPostDialog({ open, onOpenChange }: Props) {
         return ref ? [ref, ...existing] : existing;
       };
 
-      // Nothing asks Query.thoughts for one author, so the feed is stored once.
       cache.modify({ fields: { thoughts: prepend } });
       if (me) {
         cache.modify({

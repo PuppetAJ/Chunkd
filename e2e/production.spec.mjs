@@ -1,19 +1,8 @@
-/**
- * Critical-path check against a production build, where the CSP applies and
- * the editor's test handles are stripped. Fails on any console or page error.
- *
- *   pnpm build
- *   NODE_ENV=production PORT=4000 CLIENT_ORIGIN=http://localhost:4000 pnpm start
- *   pnpm test:prod
- *
- * Check the port is free first, or a leftover server gets tested instead.
- */
 import { test } from "@playwright/test";
 import { check } from "./lib.mjs";
 
 const BASE = process.env.BASE ?? "http://localhost:4000";
 
-// The plain page, not the suites' own: a production build is checked as a visitor's browser meets it.
 test("a production build, from signing up to commenting", async ({ page }) => {
   page.setDefaultTimeout(60_000);
   const errors = [];

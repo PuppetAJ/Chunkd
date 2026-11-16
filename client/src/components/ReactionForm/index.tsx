@@ -4,7 +4,7 @@ import { useMutation } from "@apollo/client/react";
 import { ADD_REACTION } from "../../utils/mutations.ts";
 import { requestErrorMessage } from "../../lib/credentials.ts";
 import { useAuthStore } from "../../lib/auth.ts";
-import { asReaction, type Reaction } from "../../lib/feedTypes.ts";
+import { asReaction, PENDING_ID_PREFIX, type Reaction } from "../../lib/feedTypes.ts";
 import { Button } from "../ui/button.tsx";
 import { Textarea } from "../ui/textarea.tsx";
 
@@ -12,13 +12,9 @@ const MAX_LENGTH = 280;
 
 interface Props {
   thoughtId: string;
-  /** The comments already on the post, which the optimistic reply has to repeat. */
   reactions: Reaction[];
-  /** Set when this form is a reply box under a comment. */
   parentId?: string | null;
-  /** Whose comment is being answered, when that is not obvious from position. */
   mention?: string | null;
-  /** Called once a reply has been sent, so the thread can close the box. */
   onDone?: () => void;
   onCancel?: () => void;
 }
@@ -47,8 +43,6 @@ export default function ReactionForm({
     try {
       await addReaction({
         variables: { reactionBody: body, thoughtId, parentId },
-        // The comment appears while the request is still in flight. Apollo
-        // rolls this back by itself if the mutation fails.
         optimisticResponse: {
           addReaction: {
             __typename: "Thought",
@@ -57,7 +51,7 @@ export default function ReactionForm({
             reactions: [
               ...reactions.map(asReaction),
               asReaction({
-                _id: `temp-${Date.now()}`,
+                _id: `${PENDING_ID_PREFIX}${Date.now()}`,
                 reactionBody: body,
                 createdAt: new Date().toISOString(),
                 username: me,

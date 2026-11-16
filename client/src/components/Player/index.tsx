@@ -14,17 +14,13 @@ import {
   type MoveInput,
 } from "../../lib/voxel/playerMotion.ts";
 
-/** Below this the player has fallen out of the world. */
 const VOID_HEIGHT = -20;
 
-/** How the tool sits in view. Raised and enlarged so the handle leaves frame. */
 const AXE_SCALE = 1.1;
 const AXE_OFFSET = { right: 0.34, up: -0.57, forward: -0.55 };
 
-/** Under the repeat delay, so a held button gives separate strikes. */
 const SWING_MS = 150;
 
-/** How far the head travels through the swing, in radians. */
 const SWING_REACH = 0.9;
 
 const KEYS = {
@@ -40,7 +36,6 @@ interface Props {
   body: Body;
 }
 
-/** The movement itself is in lib/voxel/playerMotion.ts, where it can be tested without a browser. */
 export default function Player({ body }: Props) {
   const { camera } = useThree();
   const held = useHeldKeys();
@@ -70,8 +65,6 @@ export default function Player({ body }: Props) {
     if (code === "Backquote") cycleBrush(shift ? -1 : 1);
   });
 
-  // A wheel sends one large event per notch, a trackpad a stream of small ones,
-  // so distance is accumulated. The threshold is one wheel notch.
   const scrolled = useRef(0);
   useEffect(() => {
     const NOTCH = 100;
@@ -80,7 +73,6 @@ export default function Player({ body }: Props) {
       if (event.ctrlKey) return;
       if (isEditorPaused()) return;
 
-      // Changing direction starts again, so leftover distance cannot make the first step back early.
       if (Math.sign(event.deltaY) !== Math.sign(scrolled.current)) scrolled.current = 0;
 
       scrolled.current += event.deltaY;
@@ -95,11 +87,8 @@ export default function Player({ body }: Props) {
   }, [cycleSelectedSlot]);
 
   useFrame((state, delta) => {
-    // The camera is still placed while paused, so the view behind the dialog holds.
     if (isEditorPaused()) {
-      // Releases while the dialog had focus never arrived, so the keys are cleared here.
       held.current.clear();
-      // Vertical speed is left alone on purpose, so pausing mid-fall resumes the fall.
       motion.jumpHeld = false;
       camera.position.set(body.x, body.y + EYE_HEIGHT, body.z);
       return;
@@ -124,7 +113,6 @@ export default function Player({ body }: Props) {
 
     stepPlayer(useWorldStore.getState().blocks, body, motion, input, delta);
 
-    // Only touches the store on a change, so this does not re-render per frame.
     if (useEditorUiStore.getState().flying !== motion.flying) {
       useEditorUiStore.getState().setFlying(motion.flying);
     }
@@ -144,8 +132,6 @@ export default function Player({ body }: Props) {
       const axeHead = axe.children[0];
       if (axeHead) {
         const walking = input.forward !== 0 || input.strafe !== 0 ? 1 : 0;
-        // Tracked apart from the swing: easing from rotation.x would drag the
-        // bob along with each swing.
         bob.current = THREE.MathUtils.lerp(
           bob.current,
           Math.sin(walking * state.clock.elapsedTime * 10) / 6,
@@ -156,7 +142,6 @@ export default function Player({ body }: Props) {
         const swing =
           elapsed < SWING_MS ? Math.sin((elapsed / SWING_MS) * Math.PI) * SWING_REACH : 0;
 
-        // Subtracted: positive tips the head back towards the player.
         axeHead.rotation.x = bob.current - swing;
       }
       axe.quaternion.copy(camera.quaternion);
@@ -167,7 +152,6 @@ export default function Player({ body }: Props) {
     }
   });
 
-  // For the tests.
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     window.__axe = axeRef.current ?? undefined;

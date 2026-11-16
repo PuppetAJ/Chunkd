@@ -1,5 +1,3 @@
-# The end-to-end suite, on pull requests only. It takes a while, so it is not
-# a required check and does not hold up a deploy: main is gated by CI alone.
 name: Browser suite
 
 on:
@@ -43,7 +41,6 @@ jobs:
 
       - run: pnpm exec playwright install --with-deps chromium
 
-      # The suite expects a populated feed, as a fresh install would not have.
       - run: pnpm seed --force
 
       # The server's dev script watches ../.env, and Node refuses to watch a
@@ -60,7 +57,6 @@ jobs:
 
       - run: pnpm exec playwright test --project=smoke
 
-      # The report and a failed test's trace and screenshot, to step through without rerunning.
       - if: failure()
         uses: actions/upload-artifact@v7
         with:

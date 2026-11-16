@@ -16,7 +16,6 @@ interface Props {
   onDiscard: () => void;
 }
 
-/** Offer back a world the editor kept in this browser but never saved. */
 export default function DraftRestore({ draft, onRestore, onDiscard }: Props) {
   return (
     <Dialog open>

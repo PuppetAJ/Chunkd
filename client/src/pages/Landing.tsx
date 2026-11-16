@@ -9,30 +9,24 @@ import { DEMO_USERNAME, type Thought } from "../lib/feedTypes.ts";
 import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 
-// The viewer drags in three.js; loading it separately lets the page paint the thumbnail first.
 const SavedBuild = lazy(() => import("../components/SavedBuild/index.tsx"));
 
-/** What a signed-out visitor sees at the root. */
 export default function Landing() {
   const { startDemo, loading: startingDemo, error } = useDemoLogin();
   const { loading, data } = useQuery(QUERY_SHOWCASE);
 
   const thoughts: Thought[] =
     (data as { showcase?: Thought[] } | undefined)?.showcase ?? [];
-  // Anyone can post as the demo account, so its posts stay off the front door.
   const withBuilds = thoughts.filter(
     (thought) => thought.build?.thumbnail && thought.username !== DEMO_USERNAME,
   );
   const hero = withBuilds[0] ?? null;
   const gallery = withBuilds.slice(1, 7);
 
-  // The hero splits at lg rather than md: a half column below that is too
-  // narrow for the two buttons to sit side by side.
   return (
     <div className="mx-auto max-w-2xl space-y-16 pb-8 lg:max-w-none">
       <section className="grid items-start gap-x-8 gap-y-6 pt-7 lg:grid-cols-2 lg:items-stretch lg:gap-x-14 lg:pt-11">
         <div>
-          {/* Broken by hand at the phrase; below sm the spans go inline and wrap wherever they fit. */}
           <h1 className="font-display text-4xl leading-tight sm:text-5xl md:text-6xl lg:text-5xl">
             <span className="sm:block">Build a world</span>{" "}
             <span className="sm:block">in your browser</span>

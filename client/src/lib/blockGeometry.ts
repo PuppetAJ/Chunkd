@@ -26,24 +26,13 @@ import {
 } from "./voxel/connectionShape.ts";
 import { QUADRANT_COUNT, quadrantSides } from "./voxel/stairShape.ts";
 
-/**
- * Face brightness, baked in as vertex colours because a shadow map stripes
- * axis-aligned ground under a low sun. Linear space: the familiar 1, 0.8, 0.6
- * and 0.5 are on-screen values, so these are raised for gamma and for the sun shading on top.
- */
 const FACE_BRIGHTNESS = {
   top: 1,
   bottom: 0.42,
   northSouth: 0.74,
-  /** Darker than northSouth so adjacent sides differ. */
   eastWest: 0.55,
 };
 
-/**
- * One box of a block, textured as though the texture were projected through the
- * cell. The offset is baked into the geometry so every instance sits at the
- * centre of its cell. `turnEdges` turns the top and bottom texture a quarter, for a pane's east-west arm.
- */
 function boxPart(
   min: [number, number, number],
   max: [number, number, number],
@@ -65,7 +54,6 @@ function boxPart(
     const ny = normal.getY(i);
     const nz = normal.getZ(i);
 
-    // The signs match BoxGeometry's own uv layout for a whole cube.
     let u: number;
     let v: number;
     let brightness: number;
@@ -102,13 +90,11 @@ function boxPart(
   return oneGroupPerMaterial(geometry);
 }
 
-/** BlockLayer builds its material list in this order. */
 export const MATERIAL_SIDE = 0;
 export const MATERIAL_TOP = 1;
 export const MATERIAL_BOTTOM = 2;
 const MATERIAL_COUNT = 3;
 
-/** Reorder the faces so each material is one group, and so one draw call. */
 function oneGroupPerMaterial(geometry: THREE.BufferGeometry): THREE.BufferGeometry {
   const index = geometry.index;
   if (!index) throw new Error("A block geometry must be indexed");
@@ -130,8 +116,7 @@ function oneGroupPerMaterial(geometry: THREE.BufferGeometry): THREE.BufferGeomet
   return geometry;
 }
 
-/** Join parts keeping faces grouped by material; mergeGeometries alone makes one group per part. */
-function fuse(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
+function mergeKeepingGroups(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const merged = mergeGeometries(parts);
   if (!merged) throw new Error("Could not build a block geometry");
   let offset = 0;
@@ -144,13 +129,11 @@ function fuse(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   return oneGroupPerMaterial(merged);
 }
 
-/** Shared by every block layer; the per-block difference is only the material. */
 export const BLOCK_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0.5, 0.5]);
 
 const SLAB_BOTTOM_GEOMETRY = boxPart([-0.5, -0.5, -0.5], [0.5, 0, 0.5]);
 const SLAB_TOP_GEOMETRY = boxPart([-0.5, 0, -0.5], [0.5, 0.5, 0.5]);
 
-/** The half-height part spanning the cell, then one box per filled quarter of the other half. */
 export function stairParts(
   quadrants: number,
   upsideDown: boolean,
@@ -174,20 +157,16 @@ export function stairParts(
   return parts;
 }
 
-/** One box of a shape, as two opposite corners inside the cell. */
 interface Box {
   min: [number, number, number];
   max: [number, number, number];
-  /** Turns the top and bottom texture a quarter. See boxPart. */
   turnEdges?: boolean;
 }
 
-/** A coordinate given in Minecraft's sixteenths of a block, as a cell offset. */
 function px(sixteenths: number): number {
   return sixteenths / 16 - 0.5;
 }
 
-/** A fence: a post and two rails to each side it joins. Sizes are Minecraft's, in sixteenths. */
 export function fenceParts(mask: number): Box[] {
   const parts: Box[] = [{ min: [px(6), -0.5, px(6)], max: [px(10), 0.5, px(10)] }];
   for (const [low, high] of [
@@ -202,7 +181,6 @@ export function fenceParts(mask: number): Box[] {
   return parts;
 }
 
-/** A wall: its post if it has one, and a side from the middle of the cell to each neighbour it joins. */
 export function wallParts(variant: number): Box[] {
   const parts: Box[] = [];
   if (variant & WALL_POST_BIT) {
@@ -216,7 +194,6 @@ export function wallParts(variant: number): Box[] {
   return parts;
 }
 
-/** A trapdoor: a thin panel across its half of the cell, or against its hinge when open. */
 export function trapdoorParts(variant: number): Box[] {
   const thick = TRAPDOOR_THICKNESS;
   if (!(variant & TRAPDOOR_VARIANT_OPEN)) {
@@ -225,7 +202,6 @@ export function trapdoorParts(variant: number): Box[] {
       : [{ min: [-0.5, -0.5, -0.5], max: [0.5, -0.5 + thick, 0.5] }];
   }
 
-  // The hinge is on the side the trapdoor faces away from.
   const [fx, fz] = facingOffset(variant & 0b11);
   if (fz < 0) return [{ min: [-0.5, -0.5, 0.5 - thick], max: [0.5, 0.5, 0.5] }];
   if (fz > 0) return [{ min: [-0.5, -0.5, -0.5], max: [0.5, 0.5, -0.5 + thick] }];
@@ -233,7 +209,6 @@ export function trapdoorParts(variant: number): Box[] {
   return [{ min: [-0.5, -0.5, -0.5], max: [-0.5 + thick, 0.5, 0.5] }];
 }
 
-/** A glass pane: its post and arms. An arm reaching east or west takes its edge texture turned. */
 export function paneParts(mask: number): Box[] {
   return paneRects(mask).map(([minX, maxX, minZ, maxZ]) => ({
     min: [minX, -0.5, minZ],
@@ -247,12 +222,11 @@ const partsCache = new Map<string, THREE.BufferGeometry>();
 function cachedParts(key: string, parts: () => Box[]): THREE.BufferGeometry {
   const cached = partsCache.get(key);
   if (cached) return cached;
-  const built = fuse(parts().map((part) => boxPart(part.min, part.max, part.turnEdges)));
+  const built = mergeKeepingGroups(parts().map((part) => boxPart(part.min, part.max, part.turnEdges)));
   partsCache.set(key, built);
   return built;
 }
 
-/** `variant` is the shape's extra bits: stair quarters, fence or wall sides, trapdoor facing and half. */
 export function geometryForShape(shape: number, variant = 0): THREE.BufferGeometry {
   if (shape === SHAPE_SLAB_BOTTOM) return SLAB_BOTTOM_GEOMETRY;
   if (shape === SHAPE_SLAB_TOP) return SLAB_TOP_GEOMETRY;
@@ -268,13 +242,11 @@ export function geometryForShape(shape: number, variant = 0): THREE.BufferGeomet
   return BLOCK_GEOMETRY;
 }
 
-/** A glass pane is a whole block by shape number; only its id says to draw it as a pane. */
 export function geometryForBlock(blockId: number, shape: number, variant = 0): THREE.BufferGeometry {
   if (PANE_BLOCK_IDS.has(blockId)) return cachedParts(`pane-${variant}`, () => paneParts(variant));
   return geometryForShape(shape, variant);
 }
 
-/** A log on its side is the same cube rotated. */
 const UPRIGHT = new THREE.Quaternion();
 const LYING_EAST_WEST = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2));
 const LYING_NORTH_SOUTH = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));

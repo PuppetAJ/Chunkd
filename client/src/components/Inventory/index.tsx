@@ -2,7 +2,6 @@ import { BLOCKS, type BlockGroup, type BlockType } from "../../lib/voxel/blocks.
 import { useWorldStore } from "../../lib/voxel/worldStore.ts";
 import BlockIcon from "../BlockIcon/index.tsx";
 
-/** Every block, grouped. Picking one writes it into the selected hotbar slot. */
 const GROUP_ORDER: BlockGroup[] = ["Ground", "Stone", "Worked stone", "Wood", "Other"];
 
 function groupsOf(blocks: readonly BlockType[]): [BlockGroup, BlockType[]][] {

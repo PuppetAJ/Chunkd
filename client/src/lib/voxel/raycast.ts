@@ -7,30 +7,23 @@ import { toKey, type BlockKey } from "./coords.ts";
 import { variantFor } from "./render.ts";
 
 export interface BlockHit {
-  /** The block the ray met. */
   cell: [number, number, number];
-  /** Where it met it, in world space. */
   point: THREE.Vector3;
-  /** That face's outward normal, in world space. */
   normal: THREE.Vector3;
 }
 
-/** Reused rather than allocated on every frame. */
 const point = new THREE.Vector3();
 const normal = new THREE.Vector3();
 const shapeMatrix = new THREE.Matrix4();
 const shapeCentre = new THREE.Vector3();
 const shapeScale = new THREE.Vector3(1, 1, 1);
 const shapeHits: THREE.Intersection[] = [];
-// Front faces only, like the block materials, so a block around the camera is not targeted.
-const shapeMesh = new THREE.Mesh(undefined, new THREE.MeshBasicMaterial());
+const shapeMesh = new THREE.Mesh(undefined, new THREE.MeshBasicMaterial({ side: THREE.FrontSide }));
 
-/** A block the walk can answer for on its own, without meeting its geometry. */
 function isWholeCube(value: number): boolean {
   return blockShapeOf(value) === SHAPE_FULL && !isPane(value);
 }
 
-/** Where the ray meets a partial block, tested against the geometry it is drawn with. */
 function meetShape(
   blocks: Map<BlockKey, number>,
   raycaster: THREE.Raycaster,
@@ -65,7 +58,6 @@ function meetShape(
   };
 }
 
-/** The first block within `reach`. Walks cells rather than raycasting the scene, whose cost grows with the world. */
 export function raycastBlocks(
   blocks: Map<BlockKey, number>,
   raycaster: THREE.Raycaster,
@@ -74,7 +66,6 @@ export function raycastBlocks(
   const origin = raycaster.ray.origin;
   const direction = raycaster.ray.direction;
 
-  // A block sits at the centre of its cell, so cell x covers x - 0.5 to x + 0.5.
   let x = Math.round(origin.x);
   let y = Math.round(origin.y);
   let z = Math.round(origin.z);
@@ -83,7 +74,6 @@ export function raycastBlocks(
   const stepY = direction.y < 0 ? -1 : 1;
   const stepZ = direction.z < 0 ? -1 : 1;
 
-  // Distance along the ray to the next face crossing on each axis, and the spacing after that.
   let tMaxX = direction.x === 0 ? Infinity : (x + stepX * 0.5 - origin.x) / direction.x;
   let tMaxY = direction.y === 0 ? Infinity : (y + stepY * 0.5 - origin.y) / direction.y;
   let tMaxZ = direction.z === 0 ? Infinity : (z + stepZ * 0.5 - origin.z) / direction.z;
@@ -92,12 +82,10 @@ export function raycastBlocks(
   const tDeltaZ = Math.abs(1 / direction.z);
 
   let distance = 0;
-  // The face the ray came in through; none in the starting cell.
   let faceX = 0;
   let faceY = 0;
   let faceZ = 0;
 
-  // The ray crosses at most one boundary per unit of reach on each axis.
   const limit = Math.ceil(reach) * 3 + 3;
   for (let taken = 0; taken <= limit; taken += 1) {
     const value = blocks.get(toKey(x, y, z));

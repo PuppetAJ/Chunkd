@@ -12,7 +12,6 @@ import { Label } from "../components/ui/label.tsx";
 import CampfireLogo from "../components/CampfireLogo.tsx";
 import DemoLoginButton from "../components/DemoLoginButton.tsx";
 
-/** One message per field, so a wrong password never looks like a bad email. */
 interface FieldErrors {
   email?: string | null;
   password?: string | null;
@@ -42,7 +41,6 @@ export default function Login() {
     event.preventDefault();
     setSubmitError("");
 
-    // Not the password rules: an account made before they changed still has to get in.
     const problems: FieldErrors = {
       email: emailError(formState.email),
       password: formState.password ? null : "Enter your password.",
@@ -56,13 +54,11 @@ export default function Login() {
       });
 
       logIn((data as { login: { token: string } }).login.token);
-      // Drop anything cached for the logged-out visitor.
       await apollo.resetStore();
       const from = (location.state as { from?: string } | null)?.from ?? "/";
       navigate(from, { replace: true });
     } catch (error) {
       setSubmitError(requestErrorMessage(error));
-      // Keep the email so a wrong password does not mean retyping both.
       setFormState((previous) => ({ ...previous, password: "" }));
     }
   };
@@ -137,7 +133,6 @@ export default function Login() {
   );
 }
 
-/** The card both auth pages sit in. */
 export function AuthShell({
   title,
   subtitle,
@@ -162,7 +157,6 @@ export function AuthShell({
   );
 }
 
-/** A password field with a show/hide button, shared by both auth pages. */
 export function PasswordInput({
   id,
   name,

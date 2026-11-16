@@ -41,11 +41,9 @@ export default function Profile() {
 
   const { loading, data } = useQuery(userParam ? QUERY_USER : QUERY_ME, {
     variables: { username: userParam },
-    // Skipped while the redirect below is about to fire.
     skip: viewingOwnProfile,
   });
 
-  // Whether the button says follow or unfollow is a question about your list, not the profile owner's.
   const { data: myData } = useQuery(QUERY_ME_BASIC, { skip: !userParam });
   const viewer = (myData as { me?: ProfileUser } | undefined)?.me;
   const iFollow: UserSummary[] = viewer?.following ?? [];
@@ -53,7 +51,6 @@ export default function Profile() {
   const [follow, { loading: following }] = useMutation(FOLLOW);
   const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW);
 
-  // Your own username lands on your own profile page, not the read-only view.
   if (viewingOwnProfile) return <Navigate to="/profile" replace />;
 
   if (loading) return <ProfileSkeleton />;
@@ -130,7 +127,6 @@ export default function Profile() {
           optimisticResponse: optimistic(true),
           update: (cache) => adjustProfile(cache, true),
         });
-        // Not "request sent": following is one-way.
         toast.success(`You are now following ${user.username}`);
       }
     } catch (error) {
@@ -250,7 +246,6 @@ export default function Profile() {
   );
 }
 
-/** Used by both the followers and the following tabs. */
 function PeopleGrid({ people, empty }: { people: UserSummary[]; empty: string }) {
   if (people.length === 0) {
     return (
@@ -277,7 +272,6 @@ function PeopleGrid({ people, empty }: { people: UserSummary[]; empty: string })
   );
 }
 
-/** An optimistic response is ignored, silently, unless every object carries its type. */
 function asUser(person: UserSummary) {
   return { __typename: "User", _id: person._id, username: person.username };
 }

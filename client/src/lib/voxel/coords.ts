@@ -1,4 +1,3 @@
-/** A string rather than a packed number: the map is small and stays readable when logged. */
 export type BlockKey = string;
 
 export function toKey(x: number, y: number, z: number): BlockKey {

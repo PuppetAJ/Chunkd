@@ -2,10 +2,6 @@ import { Link } from "react-router";
 import { ChevronLeft, Keyboard } from "lucide-react";
 import { Button } from "../ui/button.tsx";
 
-/**
- * Shown instead of the editor on a device with no mouse or trackpad. It sits
- * outside the site shell, so it carries its own way out.
- */
 export default function EditorUnavailable() {
   return (
     <div className="flex min-h-full w-full items-center justify-center bg-background p-4">

@@ -10,7 +10,6 @@ const envSchema = z.object({
   JWT_SECRET: z
     .string()
     .min(32, "JWT_SECRET must be at least 32 characters")
-    // The placeholder in .env.example passes the length check, so refuse it by name.
     .refine((value) => !/replace-me|changeme|change-me|example|secret-here/i.test(value), {
       message: "JWT_SECRET is still the placeholder from .env.example. Generate a real one.",
     }),
@@ -46,8 +45,6 @@ export const env = loadEnv();
 
 export const isProduction = env.NODE_ENV === "production";
 
-// A deploy without NODE_ENV=production runs with the CSP off, CORS open, stack
-// traces in responses and introspection on. Railway sets this on every deployment.
 if (process.env.RAILWAY_ENVIRONMENT && !isProduction) {
   console.error(
     `\nCannot start: this looks like a Railway deployment but NODE_ENV is ` +

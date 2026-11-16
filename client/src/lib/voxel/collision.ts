@@ -14,22 +14,14 @@ import { toKey, type BlockKey } from "./coords.ts";
 import { QUADRANT_COUNT, quadrantSides, stairQuadrants } from "./stairShape.ts";
 import { connectionMask, isPane, paneRects } from "./connectionShape.ts";
 
-/**
- * No physics engine: blocks fill their cell across X and Z and the player is an
- * upright box, so moving one axis at a time and snapping to what was hit is exact.
- */
-
 export const PLAYER_HALF_WIDTH = 0.3;
 export const PLAYER_HEIGHT = 1.8;
-/** How high above the feet the camera sits. */
 export const EYE_HEIGHT = 1.6;
 
-/** A block centred on integer b covers [b - 0.5, b + 0.5). */
 export function blockIndex(worldCoordinate: number): number {
   return Math.floor(worldCoordinate + 0.5);
 }
 
-/** Calls `visit` with the top and bottom of every block the player's box overlaps; true stops. */
 function forEachOverlap(
   blocks: Map<BlockKey, number>,
   x: number,
@@ -39,7 +31,6 @@ function forEachOverlap(
 ): boolean {
   const minX = blockIndex(x - PLAYER_HALF_WIDTH);
   const maxX = blockIndex(x + PLAYER_HALF_WIDTH);
-  // One cell below the feet too: a fence or wall there reaches up into this cell.
   const minY = blockIndex(y) - 1;
   const maxY = blockIndex(y + PLAYER_HEIGHT);
   const minZ = blockIndex(z - PLAYER_HALF_WIDTH);
@@ -54,7 +45,6 @@ function forEachOverlap(
         const extent = extentAt(blocks, value, bx, by, bz, x, z);
         if (!extent) continue;
         const [low, high] = extent;
-        // Touching is not overlapping, so both comparisons are strict.
         if (y < high && head > low && visit(low, high)) return true;
       }
     }
@@ -62,7 +52,6 @@ function forEachOverlap(
   return false;
 }
 
-/** Does the player's box at (x, z) cover any of the quarters of cell (bx, bz) in `quadrants`? */
 function overlapsQuadrant(
   quadrants: number,
   bx: number,
@@ -80,13 +69,11 @@ function overlapsQuadrant(
     const [sx, sz] = quadrantSides(index);
     const lowX = sx > 0 ? bx : bx - 0.5;
     const lowZ = sz > 0 ? bz : bz - 0.5;
-    // Touching is not overlapping, as everywhere else here.
     if (minX < lowX + 0.5 && maxX > lowX && minZ < lowZ + 0.5 && maxZ > lowZ) return true;
   }
   return false;
 }
 
-/** Does the player's box cover the strip an open trapdoor stands in, along its hinge edge? */
 function overlapsHinge(facing: number, bx: number, bz: number, x: number, z: number): boolean {
   const [fx, fz] = facingOffset(facing);
   let minX = bx - 0.5;
@@ -106,7 +93,6 @@ function overlapsHinge(facing: number, bx: number, bz: number, x: number, z: num
   );
 }
 
-/** Rects are min x, max x, min z, max z, relative to the cell centre. */
 function overlapsRects(
   rects: [number, number, number, number][],
   bx: number,
@@ -124,7 +110,6 @@ function overlapsRects(
   );
 }
 
-/** A block's vertical span where the player stands. Only stairs vary across their cell. */
 function extentAt(
   blocks: Map<BlockKey, number>,
   value: number,
@@ -137,20 +122,15 @@ function extentAt(
   if (isStairs(value)) {
     const overTall = overlapsQuadrant(stairQuadrants(blocks, bx, by, bz), bx, bz, x, z);
     if (overTall) return [by - 0.5, by + 0.5];
-    // Off the tall half, a stair is the half of the cell its solid part fills.
     return isUpsideDown(value) ? [by, by + 0.5] : [by - 0.5, by];
   }
 
-  // Open, a trapdoor is a full-height panel along its hinge edge.
   if (isTrapdoor(value) && isTrapdoorOpen(value)) {
     return overlapsHinge(blockFacingOf(value), bx, bz, x, z) ? [by - 0.5, by + 0.5] : null;
   }
 
-  // A block tall to look at and a block and a half to bump into, so neither can
-  // be jumped: a jump peaks at about 1.35.
   if (isFence(value) || isWall(value)) return [by - 0.5, by + 1];
 
-  // A pane collides as the shape it is drawn with, as in the game.
   if (isPane(value)) {
     const rects = paneRects(connectionMask(blocks, bx, by, bz));
     return overlapsRects(rects, bx, bz, x, z) ? [by - 0.5, by + 0.5] : null;
@@ -159,7 +139,6 @@ function extentAt(
   return verticalExtent(value, by);
 }
 
-/** Is the player's box, with its feet at (x, y, z), inside any block? */
 export function collides(
   blocks: Map<BlockKey, number>,
   x: number,
@@ -169,7 +148,6 @@ export function collides(
   return forEachOverlap(blocks, x, y, z, () => true);
 }
 
-/** The highest top and lowest bottom among the blocks the player overlaps. */
 function surfacesAt(
   blocks: Map<BlockKey, number>,
   x: number,
@@ -193,19 +171,14 @@ export interface Body {
   onGround: boolean;
 }
 
-/** Gap left against a surface stopped at, so touching never counts as overlapping. */
 const SKIN = 0.001;
 
-/** How fast the player rises out of a block they are stuck inside, per step. */
 const PUSH_OUT_SPEED = 0.08;
 
-/** Largest move per sub-step. Anything faster is split so it cannot skip a block. */
 const MAX_STEP = 0.4;
 
-/** Largest rise walked up rather than jumped: above a slab, well below a whole block. */
 const STEP_HEIGHT = 0.55;
 
-/** Bisect the step to the point of contact, which for a thin shape is not the cell edge. */
 function slide(blocks: Map<BlockKey, number>, body: Body, stepX: number, stepZ: number): void {
   let clear = 0;
   let blocked = 1;
@@ -218,7 +191,6 @@ function slide(blocks: Map<BlockKey, number>, body: Body, stepX: number, stepZ: 
   body.z += stepZ * clear;
 }
 
-/** Walk up a small rise. Only from the ground, or jumping at a wall climbs it. */
 function tryStepUp(
   blocks: Map<BlockKey, number>,
   body: Body,
@@ -233,7 +205,6 @@ function tryStepUp(
   const rise = highestTop - body.y;
   if (rise <= 0 || rise > STEP_HEIGHT) return false;
 
-  // Without headroom the push-out branch would shove the player up through the block above.
   if (collides(blocks, nextX, highestTop, nextZ)) return false;
 
   body.x = nextX;
@@ -243,7 +214,6 @@ function tryStepUp(
   return true;
 }
 
-/** Move `body`, stopping at whatever it hits. Mutates in place. */
 export function moveBody(
   blocks: Map<BlockKey, number>,
   body: Body,
@@ -253,7 +223,6 @@ export function moveBody(
 ): void {
   body.onGround = false;
 
-  // Already inside something, likely a block placed on the player: rise out rather than fall through.
   if (collides(blocks, body.x, body.y, body.z)) {
     body.x += dx;
     body.z += dz;
@@ -273,7 +242,6 @@ export function moveBody(
       const { highestTop, lowestBottom } = surfacesAt(blocks, body.x, nextY, body.z);
       if (highestTop !== -Infinity) {
         if (stepY < 0) {
-          // Rest on the surface underfoot, which is not always the cell's top.
           body.y = highestTop;
           body.onGround = true;
         } else {
@@ -303,18 +271,15 @@ export function moveBody(
     }
   }
 
-  // Standing still gives no downward step to set onGround, so probe under the feet.
   if (!body.onGround) {
     body.onGround = isSupported(blocks, body);
   }
 }
 
-/** True when a block sits directly under the player's feet. */
 export function isSupported(blocks: Map<BlockKey, number>, body: Body): boolean {
   return collides(blocks, body.x, body.y - 0.02, body.z);
 }
 
-/** Exact rather than generous: placing a block under your own feet is how you build up. */
 export function blockOverlapsPlayer(
   body: Body,
   x: number,

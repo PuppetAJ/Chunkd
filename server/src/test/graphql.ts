@@ -3,21 +3,14 @@ import mongoose from "mongoose";
 import { env } from "../config/env.ts";
 import { typeDefs, resolvers } from "../schemas/index.ts";
 import type { GraphQLContext } from "../utils/auth.ts";
-import { createLoaders } from "../utils/loaders.ts";
+import { createRequestLoaders } from "../utils/loaders.ts";
 
-/**
- * Runs operations through the real schema against a real database, minus HTTP.
- * The signed-in user is passed straight in, since that is all a token carries.
- */
-
-/** Who the request is from: the same fields a token carries. */
 export interface Identity {
   _id: string;
   username: string;
   email: string;
 }
 
-/** A response, flattened. `data` is read by hand in the tests, so it is left loosely typed. */
 export interface Result {
   data: Record<string, any> | null;
   errors: { message: string; code: string }[];
@@ -35,7 +28,7 @@ export async function run(
   await started;
   const response = await server.executeOperation(
     { query, variables },
-    { contextValue: { user, ip: "test", loaders: createLoaders() } },
+    { contextValue: { user, ip: "test", loaders: createRequestLoaders() } },
   );
   if (response.body.kind !== "single") throw new Error("Unexpected streamed response");
   const { data, errors } = response.body.singleResult;
@@ -49,7 +42,6 @@ export async function run(
 }
 
 export async function connectTestDatabase(): Promise<void> {
-  // Every test run drops the database, so it must never be a real one.
   if (!/\/chunkd_test(\?|$)/.test(env.MONGODB_URI)) {
     throw new Error(`Tests only run against a database called chunkd_test, not ${env.MONGODB_URI}`);
   }
@@ -65,7 +57,6 @@ export async function disconnectTestDatabase(): Promise<void> {
 
 let accounts = 0;
 
-/** A fresh account each time, so no test depends on another's data. */
 export async function signUp(): Promise<Identity> {
   accounts += 1;
   const username = `tester${accounts}`;
@@ -77,9 +68,7 @@ export async function signUp(): Promise<Identity> {
     { username, email, password: PASSWORD },
   );
   if (result.errors.length > 0) throw new Error(result.errors[0]?.message);
-  // Not read back from the response, which hides it from anyone not signed in.
   return { _id: result.data?.["addUser"].user._id, username, email };
 }
 
-/** The password `signUp` uses. */
 export const PASSWORD = "supersecret1";

@@ -1,24 +1,15 @@
-/** Shared setup for the end-to-end suites and throwaway scripts. */
 import { expect, test as base } from "@playwright/test";
 
 export const BASE = process.env.E2E_BASE_URL ?? "http://localhost:3000";
 
-/**
- * Playwright Test's `test`, with the page every suite expects: long timeouts, the pointer lock refused, and its
- * uncaught errors failing the test.
- */
 export const test = base.extend({
   page: async ({ page }, use) => {
-    // The first action after a page with a 3D viewer loads can block for around
-    // ten seconds locally, and longer on a loaded CI runner, which overran the
-    // 30 second default and failed runs that were not actually broken.
     page.setDefaultTimeout(60_000);
     page.setDefaultNavigationTimeout(60_000);
 
     // The suite is written for a browser that refuses the pointer lock, which is
     // what a headless one does on a Mac. On Linux it grants it, and then every
-    // synthetic mouse event turns the camera. So the harness refuses it
-    // everywhere and records who asked; the locked case has its own section.
+    // synthetic mouse event turns the camera.
     await page.addInitScript(() => {
       window.__lockRequests = [];
       Element.prototype.requestPointerLock = function () {
@@ -40,11 +31,9 @@ export const test = base.extend({
 
 export { expect };
 
-// The time since the previous check, so each figure covers the work between them; E2E_TIMING=1 lists the slowest.
 const timings = [];
 let lastCheckAt = Date.now();
 
-/** One check among many: a failure is recorded and the test carries on, so a run shows every failure, not the first. */
 export function check(name, ok, detail = "") {
   const now = Date.now();
   timings.push({ name, ms: now - lastCheckAt });
@@ -60,7 +49,6 @@ test.afterAll(() => {
   for (const timing of slowest) console.log(`  ${(timing.ms / 1000).toFixed(1)}s  ${timing.name}`);
 });
 
-/** Waits that never throw on a timeout: the check that follows is what fails. */
 export function helpers(page) {
   const until = async (probe, arg = null, timeout = 15000) => {
     try {
@@ -71,7 +59,6 @@ export function helpers(page) {
     }
   };
 
-  /** For state sampled per frame, and for when the expected outcome is that nothing happens. */
   const frames = (count = 2) =>
     page.evaluate(
       (n) =>
@@ -93,7 +80,6 @@ export function helpers(page) {
   const goes = (locator, timeout = 15000) =>
     locator.first().waitFor({ state: "detached", timeout }).catch(() => {});
 
-  /** Poll here rather than in the page, for things only this script can see. */
   const waitFor = async (predicate, timeout = 15000, interval = 100) => {
     const deadline = Date.now() + timeout;
     while (Date.now() < deadline) {
@@ -120,7 +106,6 @@ export function helpers(page) {
   return { until, frames, appears, goes, waitFor, rendererSettled, blockCount };
 }
 
-/** The stamp keeps concurrent runs from colliding. */
 export function newUser() {
   const stamp = Date.now();
   return {
@@ -146,7 +131,6 @@ export async function signInAsDemo(page) {
   await page.waitForURL(`${BASE}/`, { timeout: 20000 });
 }
 
-/** Pass a seed to pin the world: a fresh editor seeds itself at random. */
 export async function openEditor(page, wait, seed) {
   await page.goto(`${BASE}/editor`, { waitUntil: "domcontentloaded" });
   const ready = await wait.rendererSettled();

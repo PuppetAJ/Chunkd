@@ -2,12 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildSchema, validate, type DocumentNode } from "graphql";
 
+import { DEMO_USERNAME as SERVER_DEMO_USERNAME } from "../../../server/src/config/demo.ts";
 import { typeDefs } from "../../../server/src/schemas/typeDefs.ts";
+import { DEMO_USERNAME } from "../lib/feedTypes.ts";
 import * as mutations from "./mutations.ts";
 import * as queries from "./queries.ts";
 
-// Checks every document the client sends against the server's schema, so a
-// field that no longer exists fails here instead of in the browser.
 const schema = buildSchema(typeDefs);
 
 for (const [name, document] of Object.entries({ ...queries, ...mutations })) {
@@ -19,3 +19,7 @@ for (const [name, document] of Object.entries({ ...queries, ...mutations })) {
     );
   });
 }
+
+test("the client and the server name the same demo account", () => {
+  assert.equal(DEMO_USERNAME, SERVER_DEMO_USERNAME);
+});

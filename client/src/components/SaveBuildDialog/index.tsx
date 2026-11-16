@@ -24,7 +24,6 @@ import { Label } from "../ui/label.tsx";
 
 const MAX_NAME_LENGTH = 60;
 
-/** Names the world captured when P was pressed, and asks before a name is reused. */
 export default function SaveBuildDialog() {
   const pending = useEditorUiStore((state) => state.pendingSave);
   const setPendingSave = useEditorUiStore((state) => state.setPendingSave);
@@ -34,7 +33,6 @@ export default function SaveBuildDialog() {
 
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  // The existing build a typed name collides with, while the player decides.
   const [conflict, setConflict] = useState<BuildSummary | null>(null);
 
   const { data: me } = useQuery(QUERY_ME);
@@ -43,9 +41,6 @@ export default function SaveBuildDialog() {
   const [saveBuild, { loading: saving }] = useMutation(SAVE_BUILD, { refetchQueries: [QUERY_ME] });
   const [updateBuild, { loading: updating }] = useMutation(UPDATE_BUILD, {
     refetchQueries: [QUERY_ME],
-    // The mutation does not return the world, so a cached copy of this build
-    // would still hold the one it replaced, and reopening it in the editor would
-    // load that back over what is on screen.
     update(cache, _result, { variables }) {
       cache.modify({
         id: cache.identify({ __typename: "Build", _id: variables?.["buildId"] }),
@@ -58,7 +53,6 @@ export default function SaveBuildDialog() {
   });
   const loading = saving || updating;
 
-  // A world opened from a saved build starts from that build's name.
   useEffect(() => {
     if (pending) {
       setName(source?.name ?? "");

@@ -1,4 +1,3 @@
-/* Tailwind v4 is configured here rather than in a tailwind.config.js. */
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -6,14 +5,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Design tokens. `:root` holds the hex values; `@theme inline` maps each one to
-   a Tailwind name that shadcn's components are written against. To restyle,
-   change the hex values in `:root`. */
-
 @theme inline {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
-  /* The pixel font is a separate token because it is unreadable in paragraphs. */
   --font-display: Minecraft, var(--font-sans);
 
   --color-sidebar-ring: var(--sidebar-ring);
@@ -43,7 +37,6 @@
   --color-foreground: var(--foreground);
   --color-background: var(--background);
 
-  /* Not a shadcn token: the green used for success states. */
   --color-grass: var(--grass);
 
   --radius-sm: calc(var(--radius) * 0.6);
@@ -55,13 +48,10 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* The site is dark only. `.dark` repeats `:root` because shadcn's components
-   carry `dark:` variants that only fire inside an element with that class. */
 :root,
 .dark {
   color-scheme: dark;
 
-  /* Surfaces, darkest first. */
   --background: #17161a;
   --card: #1f1e24;
   --popover: #24232a;
@@ -78,7 +68,6 @@
   --accent-foreground: #ecebef;
   --secondary-foreground: #ecebef;
 
-  /* The project's #736bdd accent, lightened so text reads on top of it. */
   --primary: #8f83f5;
   --primary-foreground: #16141f;
   --ring: #8f83f5;
@@ -122,7 +111,6 @@
 
   html {
     @apply font-sans;
-    /* Drops double-tap zoom, which is easy to trigger while building. */
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
   }
@@ -144,7 +132,6 @@
     text-decoration: none;
   }
 
-  /* The editor canvas handles its own input; no browser gesture should reach it. */
   canvas {
     touch-action: none;
     user-select: none;
@@ -162,8 +149,6 @@
     }
   }
 }
-
-/* Editor and saved-build canvases */
 
 #editor {
   width: 100%;
@@ -185,8 +170,6 @@
   position: relative;
   z-index: 50;
 }
-
-/* Page gutter. Header, main and footer share it so their edges line up. */
 
 @utility page-gutter {
   padding-inline: 1rem;

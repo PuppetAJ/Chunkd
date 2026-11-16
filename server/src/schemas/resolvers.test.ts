@@ -237,8 +237,6 @@ test("a page of the feed costs a handful of queries, not one per row", async () 
   const author = await signUp();
   for (let i = 0; i < 5; i += 1) await post(author, `Post ${i}`, await save(author));
 
-  // Mongoose reports every query it sends, which is the only honest way to
-  // check that the loaders batched rather than assuming it.
   let queries = 0;
   mongoose.set("debug", () => {
     queries += 1;
@@ -310,7 +308,6 @@ test("a reply hangs off the comment it answers, and threads stay one deep", asyn
   const reply = afterReply.find((one) => one.reactionBody === "The reply")!;
   assert.equal(reply.parent, root._id);
 
-  // Replying to a reply joins the same thread rather than nesting further.
   const afterDeep = await add("The reply to the reply", reply._id);
   const deep = afterDeep.find((one) => one.reactionBody === "The reply to the reply")!;
   assert.equal(deep.parent, root._id);
@@ -375,7 +372,6 @@ test("editing a post can attach, swap and remove its build", async () => {
   const swapped = await edit({ buildId: second });
   assert.equal(swapped.data?.["updateThought"].build.name, "Second world");
 
-  // Leaving the argument out keeps whatever is attached.
   const textOnly = await run(
     `mutation ($id: ID!, $text: String!) {
       updateThought(thoughtId: $id, thoughtText: $text) { build { name } }

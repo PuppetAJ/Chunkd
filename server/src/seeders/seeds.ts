@@ -7,7 +7,6 @@ import { DEMO_EMAIL, DEMO_USERNAME } from "../config/demo.ts";
 import { isProduction } from "../config/env.ts";
 import { Build, Thought, User, type UserDocument } from "../models/index.ts";
 
-/** Worlds someone actually built, committed with their thumbnails so seeding needs no browser. */
 interface ShowcaseBuild {
   name: string;
   caption: string;
@@ -20,13 +19,10 @@ const showcaseBuilds: ShowcaseBuild[] = JSON.parse(
   readFileSync(new URL("./showcaseBuilds.json", import.meta.url), "utf8"),
 );
 
-// Shared by every seeded account in development. On the live site the seeded
-// authors own the landing page builds, so the password is random and thrown away.
 const SEED_PASSWORD = isProduction
   ? randomBytes(24).toString("base64url")
   : "chunkd-dev-password";
 
-// Pass --force to reset even when nothing has changed since the last one.
 const FORCE = process.argv.includes("--force");
 
 const USER_COUNT = 25;
@@ -39,7 +35,6 @@ function pickRandom<T>(items: T[]): T {
   return item;
 }
 
-/** Has anyone used the site since the last reset? If not, the scheduled reset leaves it alone. */
 async function somebodyUsedIt(demo: HydratedDocument<UserDocument>): Promise<boolean> {
   const [others, posts] = await Promise.all([
     User.countDocuments({ isDemo: { $ne: true } }),
@@ -56,7 +51,6 @@ async function somebodyUsedIt(demo: HydratedDocument<UserDocument>): Promise<boo
 }
 
 async function seed(): Promise<void> {
-  // This deletes everything, so production needs an explicit opt-in.
   if (isProduction && process.env.SEED_ALLOW_PRODUCTION !== "1") {
     console.error(
       "Refusing to reset a production database. Set SEED_ALLOW_PRODUCTION=1 if you mean it.",
@@ -66,7 +60,6 @@ async function seed(): Promise<void> {
 
   await connectToDatabase();
 
-  // Reserved up front so the name cannot be taken by anyone else.
   const demo =
     (await User.findOne({ username: DEMO_USERNAME })) ??
     (await User.create({
@@ -83,20 +76,16 @@ async function seed(): Promise<void> {
   }
 
   console.log("Clearing existing data...");
-  // The demo account survives so a token issued before the reset keeps working.
   await Promise.all([
     User.deleteMany({ isDemo: { $ne: true } }),
     Thought.deleteMany({}),
     Build.deleteMany({}),
   ]);
-  // Not demo.save(): that re-validates the whole document, and an invalid demo
-  // row would make every scheduled reset fail here, after the wipe.
   await User.updateOne({ _id: demo._id }, { $set: { following: [] } });
 
   console.log(`Creating ${USER_COUNT} users...`);
   const users: HydratedDocument<UserDocument>[] = [];
   for (let i = 0; i < USER_COUNT; i += 1) {
-    // User.create rather than insertMany, so the password hook runs. The index keeps names unique.
     const username = `${faker.internet
       .username()
       .toLowerCase()
@@ -140,7 +129,6 @@ async function seed(): Promise<void> {
     });
   }
 
-  // Spread across accounts so profiles have something in them too.
   console.log(`Creating ${showcaseBuilds.length} builds...`);
   for (let i = 0; i < showcaseBuilds.length; i += 1) {
     const showcase = showcaseBuilds[i];

@@ -21,7 +21,6 @@ import { generateTerrain } from "./terrain.ts";
 
 const REACH = 7;
 
-/** The same instanced meshes the editor draws, so three can raycast them. */
 function sceneFor(blocks: Map<BlockKey, number>): THREE.Object3D[] {
   const matrix = new THREE.Matrix4();
   const position = new THREE.Vector3();
@@ -44,7 +43,6 @@ function sceneFor(blocks: Map<BlockKey, number>): THREE.Object3D[] {
   });
 }
 
-/** What three answers for the same ray, in the same terms. */
 function raycastScene(
   scene: THREE.Object3D[],
   raycaster: THREE.Raycaster,
@@ -64,7 +62,6 @@ function raycastScene(
   };
 }
 
-/** Repeatable pseudo-random numbers, so a failure can be reproduced. */
 function random(seed: number): () => number {
   let state = seed;
   return () => {

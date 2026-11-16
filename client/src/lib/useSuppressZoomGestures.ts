@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 
 /**
- * Stop trackpad and touch gestures zooming the page while the editor is open.
  * A trackpad pinch is a wheel event with `ctrlKey` set and needs a non-passive
  * listener; Safari has its own gesture events. `touch-action` does not help, a trackpad reports as a mouse.
  */
