@@ -1,18 +1,14 @@
-# Dependencies
 node_modules/
 .pnpm-store/
 
-# Build output
 dist/
 build/
 *.tsbuildinfo
 
-# Environment - .env.example is the only env file that belongs in git
 .env
 .env.*
 !.env.example
 
-# Logs
 logs/
 *.log
 npm-debug.log*
@@ -20,39 +16,30 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Test and coverage output
 coverage/
 .nyc_output/
 playwright-report/
 test-results/
 
-# Editor and OS noise
 .DS_Store
 .idea/
 .vscode/*
 !.vscode/extensions.json
 *.swp
 
-# Caches
 .cache/
 .vite/
 .eslintcache
 
-# Working notes: the refactor plan, the redesign write-up, the security notes
-# and its screenshots. These document the rebuild for me rather than for anyone
-# using the project.
 docs/
 
 # Texture packs such as Sphax PureBDCraft or Ashen are free to download but
 # their licences forbid redistributing the files, so they must not be committed.
-# Drop one here and point VITE_TEXTURE_PACK at it to use it locally.
 client/public/texturepack/
 
-# Playwright Test's output: traces, screenshots and the HTML report.
 test-results/
 playwright-report/
 
-# Agent tooling
 .agents/
 .claude/
 .worktreeinclude

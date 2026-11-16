@@ -1,6 +1,3 @@
-# Keeps dependencies and the workflow's actions current without anyone having
-# to remember. Grouped so that a week of minor bumps arrives as one pull
-# request rather than twenty.
 version: 2
 updates:
   - package-ecosystem: npm

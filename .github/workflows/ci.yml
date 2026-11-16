@@ -1,13 +1,10 @@
 name: CI
 
-# A pull request run covers a branch; the push trigger is for main only, so a
-# branch push does not run twice. Railway waits for the main run before deploying.
 on:
   push:
     branches: [main]
   pull_request:
 
-# A newer push to the same pull request stops the run in progress.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -16,7 +13,6 @@ jobs:
   check:
     runs-on: ubuntu-latest
 
-    # The server tests run against a real database, on a name of their own.
     services:
       mongo:
         image: mongo:7
@@ -38,8 +34,6 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
 
-      # Fails if the lockfile disagrees with any package.json, which catches a
-      # dependency added locally but never committed.
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm lint
