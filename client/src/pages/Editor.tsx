@@ -36,6 +36,12 @@ function requestPointerLock(): void {
   } catch {}
 }
 
+// The gesture that closed it is what lets the browser hand the mouse back.
+function closeInventory(): void {
+  useEditorUiStore.getState().setInventoryOpen(false);
+  if (useEditorUiStore.getState().playing) requestPointerLock();
+}
+
 /**
  * `selector` keeps drei's click-to-lock on the canvas instead of the whole document.
  * `domElement` pins the lock to the canvas; otherwise drei locks the canvas's wrapper
@@ -61,8 +67,8 @@ export default function Editor() {
   const buildId = params.get("build");
   const source = useWorldStore((state) => state.source);
   const loadBuild = useWorldStore((state) => state.loadBuild);
-  const [held, setHeld] = useState<string | null>(null);
-  const wanted = buildId !== null && buildId !== held;
+  const [loadedBuildId, setLoadedBuildId] = useState<string | null>(null);
+  const wanted = buildId !== null && buildId !== loadedBuildId;
   const { data: fetchedData, error: fetchError } = useQuery(QUERY_BUILD, {
     variables: { id: buildId ?? "" },
     skip: !wanted,
@@ -72,12 +78,12 @@ export default function Editor() {
   useEffect(() => {
     if (!wanted) return;
     if (fetchError) {
-      setHeld(buildId);
+      setLoadedBuildId(buildId);
       toast.error("That build could not be loaded.");
       return;
     }
     if (!fetched) return;
-    setHeld(buildId);
+    setLoadedBuildId(buildId);
     if (!loadBuild(fetched.data, { id: fetched._id, name: fetched.name })) {
       toast.error("That build was saved in a format this version cannot read.");
     }
@@ -88,7 +94,7 @@ export default function Editor() {
     if (wanted) return;
     const id = source?.id ?? null;
     if (id === buildId) return;
-    setHeld(id);
+    setLoadedBuildId(id);
     setParams(
       (previous) => {
         const next = new URLSearchParams(previous);
@@ -114,7 +120,7 @@ export default function Editor() {
     if (!draft) return;
     if (loadBuild(draft.data, draft.source ?? undefined)) {
       useWorldStore.getState().setEdited(true);
-      setHeld(draft.source?.id ?? null);
+      setLoadedBuildId(draft.source?.id ?? null);
     } else {
       toast.error("That unsaved world could not be read.");
       clearDraft();
@@ -138,12 +144,6 @@ export default function Editor() {
   const inventoryOpen = useEditorUiStore((state) => state.inventoryOpen);
 
   useSuppressZoomGestures(true);
-
-  // The gesture that closed it is what lets the browser hand the mouse back.
-  const closeInventory = () => {
-    useEditorUiStore.getState().setInventoryOpen(false);
-    if (useEditorUiStore.getState().playing) requestPointerLock();
-  };
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

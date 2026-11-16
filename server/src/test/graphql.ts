@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { env } from "../config/env.ts";
 import { typeDefs, resolvers } from "../schemas/index.ts";
 import type { GraphQLContext } from "../utils/auth.ts";
-import { createLoaders } from "../utils/loaders.ts";
+import { createRequestLoaders } from "../utils/loaders.ts";
 
 export interface Identity {
   _id: string;
@@ -28,7 +28,7 @@ export async function run(
   await started;
   const response = await server.executeOperation(
     { query, variables },
-    { contextValue: { user, ip: "test", loaders: createLoaders() } },
+    { contextValue: { user, ip: "test", loaders: createRequestLoaders() } },
   );
   if (response.body.kind !== "single") throw new Error("Unexpected streamed response");
   const { data, errors } = response.body.singleResult;

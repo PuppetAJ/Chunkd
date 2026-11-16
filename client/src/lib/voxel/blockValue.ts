@@ -18,10 +18,10 @@ export const FACING_EAST = 1;
 export const FACING_SOUTH = 2;
 export const FACING_WEST = 3;
 
-const ID_BITS = 8;
+const AXIS_SHIFT = 8;
 const ID_MASK = 0xff;
-const AXIS_BITS = 10;
-const SHAPE_BITS = 13;
+const SHAPE_SHIFT = 10;
+const FACING_SHIFT = 13;
 const AXIS_MASK = 0b11;
 const SHAPE_MASK = 0b111;
 const FACING_MASK = 0b11;
@@ -34,7 +34,7 @@ export function packBlock(
   shape: number = SHAPE_FULL,
   facing: number = FACING_NORTH,
 ): number {
-  return id | (axis << ID_BITS) | (shape << AXIS_BITS) | (facing << SHAPE_BITS);
+  return id | (axis << AXIS_SHIFT) | (shape << SHAPE_SHIFT) | (facing << FACING_SHIFT);
 }
 
 export function blockIdOf(value: number): number {
@@ -42,15 +42,15 @@ export function blockIdOf(value: number): number {
 }
 
 export function blockAxisOf(value: number): number {
-  return (value >> ID_BITS) & AXIS_MASK;
+  return (value >> AXIS_SHIFT) & AXIS_MASK;
 }
 
 export function blockShapeOf(value: number): number {
-  return (value >> AXIS_BITS) & SHAPE_MASK;
+  return (value >> SHAPE_SHIFT) & SHAPE_MASK;
 }
 
 export function blockFacingOf(value: number): number {
-  return (value >> SHAPE_BITS) & FACING_MASK;
+  return (value >> FACING_SHIFT) & FACING_MASK;
 }
 
 export function isSlab(value: number): boolean {

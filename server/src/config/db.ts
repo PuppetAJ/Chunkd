@@ -19,23 +19,23 @@ export async function disconnectFromDatabase(): Promise<void> {
 export const IDLE_MS = 5 * 60_000;
 
 let idleTimer: NodeJS.Timeout | undefined;
-let turn: Promise<unknown> = Promise.resolve();
-const inTurn = <T>(step: () => Promise<T>): Promise<T> => {
-  const next = turn.then(step, step);
-  turn = next.catch(() => {});
+let lastConnectionChange: Promise<unknown> = Promise.resolve();
+const queueConnectionChange = <T>(step: () => Promise<T>): Promise<T> => {
+  const next = lastConnectionChange.then(step, step);
+  lastConnectionChange = next.catch(() => {});
   return next;
 };
 
 export async function useDatabase(): Promise<void> {
   clearTimeout(idleTimer);
   idleTimer = setTimeout(() => {
-    void inTurn(async () => {
+    void queueConnectionChange(async () => {
       await disconnectFromDatabase();
       console.log("Closed the idle MongoDB connection");
     });
   }, IDLE_MS).unref();
   if (isOpen()) return;
-  await inTurn(async () => {
+  await queueConnectionChange(async () => {
     if (!isOpen()) await connectToDatabase();
   });
 }

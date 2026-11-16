@@ -116,7 +116,7 @@ function oneGroupPerMaterial(geometry: THREE.BufferGeometry): THREE.BufferGeomet
   return geometry;
 }
 
-function fuse(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
+function mergeKeepingGroups(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   const merged = mergeGeometries(parts);
   if (!merged) throw new Error("Could not build a block geometry");
   let offset = 0;
@@ -222,7 +222,7 @@ const partsCache = new Map<string, THREE.BufferGeometry>();
 function cachedParts(key: string, parts: () => Box[]): THREE.BufferGeometry {
   const cached = partsCache.get(key);
   if (cached) return cached;
-  const built = fuse(parts().map((part) => boxPart(part.min, part.max, part.turnEdges)));
+  const built = mergeKeepingGroups(parts().map((part) => boxPart(part.min, part.max, part.turnEdges)));
   partsCache.set(key, built);
   return built;
 }

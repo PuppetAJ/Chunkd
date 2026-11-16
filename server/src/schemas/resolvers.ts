@@ -40,7 +40,7 @@ const limitLogin = attemptLimiter("sign-in", 20, 15 * 60_000);
 const limitSignup = attemptLimiter("sign-up", 60, 60 * 60_000);
 const limitDemo = attemptLimiter("demo sign-in", 30, 60 * 60_000);
 
-const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
+const TIMING_DECOY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 
 const MAX_BUILDS_PER_USER = 50;
 
@@ -258,7 +258,7 @@ export const resolvers = {
 
       const failure = badRequest("Incorrect email address or password.");
       if (!user) {
-        await bcrypt.compare(args.password, DUMMY_HASH);
+        await bcrypt.compare(args.password, TIMING_DECOY_HASH);
         throw failure;
       }
       if (!(await user.isCorrectPassword(args.password))) throw failure;

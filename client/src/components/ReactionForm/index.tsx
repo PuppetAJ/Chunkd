@@ -4,7 +4,7 @@ import { useMutation } from "@apollo/client/react";
 import { ADD_REACTION } from "../../utils/mutations.ts";
 import { requestErrorMessage } from "../../lib/credentials.ts";
 import { useAuthStore } from "../../lib/auth.ts";
-import { asReaction, type Reaction } from "../../lib/feedTypes.ts";
+import { asReaction, PENDING_ID_PREFIX, type Reaction } from "../../lib/feedTypes.ts";
 import { Button } from "../ui/button.tsx";
 import { Textarea } from "../ui/textarea.tsx";
 
@@ -51,7 +51,7 @@ export default function ReactionForm({
             reactions: [
               ...reactions.map(asReaction),
               asReaction({
-                _id: `temp-${Date.now()}`,
+                _id: `${PENDING_ID_PREFIX}${Date.now()}`,
                 reactionBody: body,
                 createdAt: new Date().toISOString(),
                 username: me,

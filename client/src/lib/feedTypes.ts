@@ -44,8 +44,10 @@ export function asReaction(reaction: Reaction) {
   };
 }
 
+export const PENDING_ID_PREFIX = "temp-";
+
 export function isPending(reaction: Reaction): boolean {
-  return reaction._id.startsWith("temp-");
+  return reaction._id.startsWith(PENDING_ID_PREFIX);
 }
 
 export const FEED_PAGE_SIZE = 10;

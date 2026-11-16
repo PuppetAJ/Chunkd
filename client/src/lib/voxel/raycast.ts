@@ -18,7 +18,7 @@ const shapeMatrix = new THREE.Matrix4();
 const shapeCentre = new THREE.Vector3();
 const shapeScale = new THREE.Vector3(1, 1, 1);
 const shapeHits: THREE.Intersection[] = [];
-const shapeMesh = new THREE.Mesh(undefined, new THREE.MeshBasicMaterial());
+const shapeMesh = new THREE.Mesh(undefined, new THREE.MeshBasicMaterial({ side: THREE.FrontSide }));
 
 function isWholeCube(value: number): boolean {
   return blockShapeOf(value) === SHAPE_FULL && !isPane(value);

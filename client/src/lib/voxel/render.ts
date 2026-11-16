@@ -32,7 +32,7 @@ function coversFace(
   x: number,
   y: number,
   z: number,
-  dy: number,
+  heightAboveAsker: number,
 ): boolean {
   const value = blocks.get(toKey(x, y, z));
   if (value === undefined) return false;
@@ -40,11 +40,11 @@ function coversFace(
 
   const shape = blockShapeOf(value);
   if (shape === SHAPE_FULL) return true;
-  if (shape === SHAPE_SLAB_BOTTOM) return dy === 1;
-  if (shape === SHAPE_SLAB_TOP) return dy === -1;
+  if (shape === SHAPE_SLAB_BOTTOM) return heightAboveAsker === 1;
+  if (shape === SHAPE_SLAB_TOP) return heightAboveAsker === -1;
 
-  if (shape === SHAPE_STAIRS_BOTTOM) return dy === 1;
-  if (shape === SHAPE_STAIRS_TOP) return dy === -1;
+  if (shape === SHAPE_STAIRS_BOTTOM) return heightAboveAsker === 1;
+  if (shape === SHAPE_STAIRS_TOP) return heightAboveAsker === -1;
 
   if (shape === SHAPE_FENCE || shape === SHAPE_WALL || shape === SHAPE_TRAPDOOR) return false;
 

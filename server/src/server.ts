@@ -12,7 +12,7 @@ import { env, isProduction } from "./config/env.ts";
 import { useDatabase } from "./config/db.ts";
 import { typeDefs, resolvers } from "./schemas/index.ts";
 import { getUserFromAuthHeader, type GraphQLContext } from "./utils/auth.ts";
-import { createLoaders } from "./utils/loaders.ts";
+import { createRequestLoaders } from "./utils/loaders.ts";
 import { queryLimits } from "./utils/queryLimits.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -79,7 +79,7 @@ async function start(): Promise<void> {
       context: async ({ req }): Promise<GraphQLContext> => ({
         user: getUserFromAuthHeader(req.headers.authorization),
         ip: req.ip ?? "unknown",
-        loaders: createLoaders(),
+        loaders: createRequestLoaders(),
       }),
     }),
   );

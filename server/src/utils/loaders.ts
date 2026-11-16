@@ -9,7 +9,7 @@ function inOrder<T extends { _id: { toString(): string } }>(
   return ids.map((id) => byId.get(id) ?? null);
 }
 
-export function createLoaders() {
+export function createRequestLoaders() {
   return {
     userById: new DataLoader<string, UserDocument | null>(async (ids) =>
       inOrder(ids, await User.find({ _id: { $in: ids } }).exec()),
@@ -26,4 +26,4 @@ export function createLoaders() {
   };
 }
 
-export type Loaders = ReturnType<typeof createLoaders>;
+export type Loaders = ReturnType<typeof createRequestLoaders>;
