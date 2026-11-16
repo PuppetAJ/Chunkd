@@ -287,7 +287,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(3, 9);
+    const STONE_BRICKS = 9;
+    store.setHotbarBlock(3, STONE_BRICKS);
     store.setSelectedSlot(3);
   });
   check("a slot places whole blocks to begin with", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
@@ -295,7 +296,10 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await frames();
   check("R turns the slot over to slabs", (await shapeOfSlot()) === 1, `shape ${await shapeOfSlot()}`);
 
-  await page.evaluate(() => window.__world.getState().setHotbarBlock(3, 5));
+  await page.evaluate(() => {
+    const OAK_LOG = 5;
+    window.__world.getState().setHotbarBlock(3, OAK_LOG);
+  });
   check("choosing a block with no slab clears the slot's shape", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
   await page.keyboard.press("KeyR");
   await frames();
@@ -303,7 +307,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(3, 9);
+    const STONE_BRICKS = 9;
+    store.setHotbarBlock(3, STONE_BRICKS);
     store.setSelectedSlot(3);
   });
   await page.keyboard.press("KeyR");
@@ -326,9 +331,10 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     const store = window.__world.getState();
 
     const x = 12, y = 40, z = 12;
-    store.placeBlock(x, y, z, 0, 0);
-    store.placeBlock(x + 2, y, z, 0, 1);
-    store.placeBlock(x + 4, y, z, 0, 2);
+    const SHAPE_FULL = 0, SHAPE_SLAB_BOTTOM = 1, SHAPE_SLAB_TOP = 2;
+    store.placeBlock(x, y, z, 0, SHAPE_FULL);
+    store.placeBlock(x + 2, y, z, 0, SHAPE_SLAB_BOTTOM);
+    store.placeBlock(x + 4, y, z, 0, SHAPE_SLAB_TOP);
 
     const read = (bx) => {
       const value = window.__world.getState().blocks.get(`${bx},${y},${z}`);
@@ -408,7 +414,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const afterStep = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
   await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(4, 9);
+    const STONE_BRICKS = 9;
+    store.setHotbarBlock(4, STONE_BRICKS);
     store.setSelectedSlot(4);
   });
   const shapeOfFour = () =>
@@ -429,7 +436,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(5, 33);
+    const CUT_SANDSTONE = 33;
+    store.setHotbarBlock(5, CUT_SANDSTONE);
     store.setSelectedSlot(5);
   });
   const shapeOfFive = () => page.evaluate(() => window.__world.getState().hotbarShape[4]);
@@ -442,13 +450,14 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   const stairs = await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(4, 9);
+    const STONE_BRICKS = 9, SHAPE_STAIRS_BOTTOM = 3, SHAPE_STAIRS_TOP = 4;
+    store.setHotbarBlock(4, STONE_BRICKS);
     store.setSelectedSlot(4);
     const y = 44, z = 16;
     for (let facing = 0; facing < 4; facing += 1) {
-      store.placeBlock(14 + facing * 2, y, z, 0, 3, facing);
+      store.placeBlock(14 + facing * 2, y, z, 0, SHAPE_STAIRS_BOTTOM, facing);
     }
-    store.placeBlock(14, y, z + 2, 0, 4, 0);
+    store.placeBlock(14, y, z + 2, 0, SHAPE_STAIRS_TOP, 0);
     const read = (x, zz) => {
       const value = window.__world.getState().blocks.get(`${x},${y},${zz}`);
       return { id: value & 0xff, shape: (value >> 10) & 0b111, facing: (value >> 13) & 0b11 };
@@ -466,7 +475,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const STAIR_LANE_Z = 34;
   await page.evaluate(([y, z]) => {
     const store = window.__world.getState();
-    store.setHotbarBlock(4, 9);
+    const STONE_BRICKS = 9;
+    store.setHotbarBlock(4, STONE_BRICKS);
     store.setSelectedSlot(4);
 
     for (let dx = 0; dx <= 10; dx += 1) {
@@ -621,7 +631,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   await page.evaluate((y) => {
     const store = window.__world.getState();
-    store.setHotbarBlock(6, 9);
+    const STONE_BRICKS = 9;
+    store.setHotbarBlock(6, STONE_BRICKS);
     store.setSelectedSlot(6);
     const body = window.__player;
     body.x = 30;
@@ -650,7 +661,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const CORNER_AT = { x: 40, y: 48, z: 40 };
   await page.evaluate(({ x, y, z }) => {
     const store = window.__world.getState();
-    store.setHotbarBlock(7, 9);
+    const STONE_BRICKS = 9;
+    store.setHotbarBlock(7, STONE_BRICKS);
     store.setSelectedSlot(7);
 
     for (let i = 0; i < 3; i += 1) store.placeBlock(x + i, y, z, 0, 3, 2);
