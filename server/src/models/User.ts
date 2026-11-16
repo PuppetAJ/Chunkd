@@ -8,9 +8,7 @@ export interface UserDocument {
   username: string;
   email: string;
   password: string;
-  /** The people this user follows. Followers are the reverse lookup. */
   following: Types.ObjectId[];
-  /** True only for the shared demo account, which refuses password and email changes. */
   isDemo: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -26,7 +24,6 @@ const userSchema = new Schema<UserDocument>(
       trim: true,
       minlength: [3, "Username must be at least 3 characters"],
       maxlength: [24, "Username must be at most 24 characters"],
-      // Keeps out control characters and look-alike letters from other scripts.
       match: [/^[A-Za-z0-9_.-]+$/, "Username may only use letters, numbers, dots, dashes and underscores"],
     },
     email: {
@@ -50,7 +47,6 @@ const userSchema = new Schema<UserDocument>(
       {
         type: Schema.Types.ObjectId,
         ref: "User",
-        // Finding someone's followers is a query against this array.
         index: true,
       },
     ],

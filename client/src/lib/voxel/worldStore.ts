@@ -35,43 +35,29 @@ import {
 
 export const HOTBAR_SLOTS = 9;
 
-/** What a new world can be asked for, beyond its seed. */
 export interface WorldOptions {
   size?: number;
   trees?: boolean;
 }
 
-/** The saved build a world was opened from, so saving can offer to overwrite it. */
 export interface BuildSource {
   id: string;
   name: string;
 }
 
 interface WorldState {
-  /** Null for a world that has never been saved, or was made fresh. */
   source: BuildSource | null;
   seed: number;
-  /** Width of the world in blocks. One of WORLD_SIZES. */
   size: number;
-  /** Whether this world was grown with trees. */
   trees: boolean;
-  /** Edited in place rather than copied; `revision` is what tells a component it changed. */
   blocks: Map<BlockKey, number>;
-  /** The subset of `blocks` that is drawn. */
   visible: VisibleBlocks;
-  /** The drawn blocks grouped into meshes. A new list on every edit, with untouched layers kept. */
   layers: RenderLayer[];
-  /** Goes up by one whenever the world changes, including a new or loaded world. */
   revision: number;
-  /** How `layers` is kept up to date. For the store's own use. */
   index: LayerIndex;
-  /** Hotbar slot, 1 to HOTBAR_SLOTS. */
   selectedSlot: number;
-  /** The block in each slot; the inventory writes into it. */
   hotbar: number[];
-  /** The shape each slot places, kept apart from the block. */
   hotbarShape: number[];
-  /** How many cells across one break or place covers. One of BRUSH_SIZES. */
   brush: number;
 
   newWorld: (seed?: number, options?: WorldOptions) => void;
@@ -86,11 +72,9 @@ interface WorldState {
     axis?: number,
     shape?: number,
     facing?: number,
-    /** For a trapdoor, whether it goes across the upper half of the cell. */
     top?: boolean,
   ) => void;
   removeBlock: (x: number, y: number, z: number) => void;
-  /** The same over many cells at once, for the brush. */
   placeBlocks: (
     cells: Cell[],
     axis?: number,
@@ -99,29 +83,22 @@ interface WorldState {
     top?: boolean,
   ) => void;
   removeBlocks: (cells: Cell[]) => void;
-  /** Join a slab with a second of the same block, making a whole one. */
   fillSlab: (x: number, y: number, z: number) => void;
   toggleTrapdoor: (x: number, y: number, z: number) => void;
   setSelectedSlot: (slot: number) => void;
-  /** Move along the hotbar, wrapping at both ends. Used by the scroll wheel. */
   cycleSelectedSlot: (delta: number) => void;
   setHotbarBlock: (slot: number, blockId: number) => void;
-  /** Step the selected slot on to the next shape it can place. */
   cycleSelectedShape: () => void;
-  /** Step the brush up a size, or down for a negative direction. */
   cycleBrush: (direction: number) => void;
-  /** Put the block being looked at into the hotbar, or select it if it is there. */
   pickBlock: (blockId: number, shape: number) => void;
   selectedBlockId: () => number;
   selectedShape: () => number;
   spawnPoint: () => [number, number, number];
 
-  /** Whether anything was built since generate, load or save: what decides if a draft is worth keeping. */
   edited: boolean;
   setEdited: (edited: boolean) => void;
 }
 
-/** The shapes a block can take, in the order R steps through them. Slabs and stairs are listed by their lower half. */
 export function shapesFor(block: BlockType | undefined): number[] {
   const shapes = [SHAPE_FULL];
   if (!block) return shapes;
@@ -133,7 +110,6 @@ export function shapesFor(block: BlockType | undefined): number[] {
   return shapes;
 }
 
-/** The nearest shape this block can take: a stair asked of a slab-only block becomes a slab. */
 function shapeFor(block: BlockType | undefined, shape: number): number {
   const listedAs =
     shape === SHAPE_SLAB_TOP ? SHAPE_SLAB_BOTTOM : shape === SHAPE_STAIRS_TOP ? SHAPE_STAIRS_BOTTOM : shape;
@@ -142,18 +118,15 @@ function shapeFor(block: BlockType | undefined, shape: number): number {
   return SHAPE_FULL;
 }
 
-/** Everything worked out from a block map, for a world just generated or loaded. */
 function derive(blocks: Map<BlockKey, number>) {
   const visible = computeVisible(blocks);
   const index = createLayerIndex(visible, blocks);
   return { blocks, visible, index, layers: layersFromIndex(index, blocks) };
 }
 
-/** After cells changed: bring what is drawn up to date and tell the components. */
 function commitEdit(cells: Cell[]): void {
   const { blocks, visible, index } = useWorldStore.getState();
   for (const [x, y, z] of cells) refreshVisibleAround(blocks, visible, x, y, z);
-  // Layers only after every cell is in the visible map: a shape depends on whether its neighbour is drawn.
   for (const [x, y, z] of cells) refreshLayersAround(index, visible, blocks, x, y, z);
   useWorldStore.setState((state) => ({
     layers: layersFromIndex(index, blocks),
@@ -227,7 +200,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   ) => {
     const blockId = get().selectedBlockId();
     const block = getBlock(blockId);
-    // Only a whole block with a grain is turned by the face built against.
     const cut = shapeFor(block, shape);
     const upright = cut !== SHAPE_FULL || !block?.directional;
     const value =
@@ -277,7 +249,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   cycleSelectedSlot: (delta) => {
     set((state) => {
-      // Positive remainder, so scrolling up off slot 1 wraps to the last slot.
       const zeroBased = (state.selectedSlot - 1 + delta) % HOTBAR_SLOTS;
       const wrapped = (zeroBased + HOTBAR_SLOTS) % HOTBAR_SLOTS;
       return { selectedSlot: wrapped + 1 };
@@ -290,7 +261,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const hotbar = [...state.hotbar];
       hotbar[slot - 1] = blockId;
-      // A slot left on a shape the new block cannot take is unplaceable.
       const hotbarShape = [...state.hotbarShape];
       const index = slot - 1;
       hotbarShape[index] = shapeFor(getBlock(blockId), hotbarShape[index] ?? SHAPE_FULL);
@@ -304,7 +274,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     set((state) => {
       const hotbarShape = [...state.hotbarShape];
       const index = state.selectedSlot - 1;
-      // Which half, which way and what it joins all come from aim, not from here.
       const at = order.indexOf(hotbarShape[index] ?? SHAPE_FULL);
       hotbarShape[index] = order[(at + 1) % order.length]!;
       return { hotbarShape };
@@ -318,7 +287,6 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   pickBlock: (blockId, shape) => {
     const block = getBlock(blockId);
     if (!block) return;
-    // Listed by the lower half, so an upside-down stair picks up as the stair already in the bar.
     const listed =
       shape === SHAPE_SLAB_TOP
         ? SHAPE_SLAB_BOTTOM
@@ -346,5 +314,4 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   spawnPoint: () => spawnPointFor(get().blocks),
 }));
 
-/** Every block, in the order the inventory shows them. */
 export const INVENTORY_BLOCKS = BLOCKS;

@@ -1,15 +1,9 @@
 import { DataTexture, NearestFilter, SRGBColorSpace, TextureLoader, type Texture } from "three";
 import { TEXTURE_URLS } from "./voxel/blocks.ts";
 
-/**
- * Loads the block textures without ever throwing: a throw inside the Canvas
- * unmounts the editor and loses the world, so a missing image retries and then falls back to a blank texture.
- */
-
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 250;
 
-/** The only way back from a build's fingerprinted URL to the file name, which the pack override needs. */
 const SOURCE_FILES = import.meta.glob("../assets/textures/*.png", {
   eager: true,
   query: "?url",
@@ -23,7 +17,6 @@ const NAME_BY_URL = new Map(
   ]),
 );
 
-/** Set VITE_TEXTURE_PACK to a folder to prefer its images over the bundled ones. */
 const PACK_BASE: string = import.meta.env["VITE_TEXTURE_PACK"] ?? "";
 
 function overrideUrlFor(url: string): string | null {
@@ -32,10 +25,6 @@ function overrideUrlFor(url: string): string | null {
   return name ? `${PACK_BASE.replace(/\/$/, "")}/${name}.png` : null;
 }
 
-/**
- * sRGB because these are colour images. NearestFilter and no mipmaps keep
- * pixel art crisp; mipmaps bleed a block's edge pixels into its neighbours.
- */
 export function applyBlockTextureSettings(textures: Texture[]): void {
   for (const texture of textures) {
     texture.colorSpace = SRGBColorSpace;
@@ -46,7 +35,6 @@ export function applyBlockTextureSettings(textures: Texture[]): void {
   }
 }
 
-/** A single white pixel, so a block whose image is missing still renders. */
 function blankTexture(): Texture {
   const texture = new DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
   texture.needsUpdate = true;
@@ -65,7 +53,6 @@ function loadOnce(url: string): Promise<Texture | null> {
 }
 
 async function loadTexture(url: string): Promise<Texture> {
-  // A pack only has to supply the textures it replaces, so a miss is ordinary.
   const override = overrideUrlFor(url);
   if (override) {
     const replaced = await loadOnce(override);
@@ -84,7 +71,6 @@ async function loadTexture(url: string): Promise<Texture> {
   return blankTexture();
 }
 
-/** Texture URL to the loaded texture. */
 export type BlockTextures = Map<string, Texture>;
 
 let pending: Promise<BlockTextures> | null = null;

@@ -31,11 +31,6 @@ const TREE_BLOCK_IDS = new Set<number>([
   BLOCK_IDS.cherryLog,
 ]);
 
-/**
- * Different terrain from the same seed makes every older build load as a
- * different world. If a change is intended, raise BUILD_FORMAT_VERSION and
- * record the new hashes here.
- */
 const TERRAIN_HASHES: Record<number, string> = {
   1: "4cc5becfc119f0b5",
   42: "d8040069f2cb3a59",
@@ -43,7 +38,6 @@ const TERRAIN_HASHES: Record<number, string> = {
   99999: "d6a2dbc4ed8953b7",
 };
 
-/** A stable fingerprint of a world; keys are sorted so insertion order does not matter. */
 function fingerprint(blocks: Map<BlockKey, number>): string {
   const hash = createHash("sha256");
   for (const key of [...blocks.keys()].sort()) hash.update(`${key}=${blocks.get(key)};`);
@@ -75,7 +69,6 @@ test("a world grown without trees has no vegetation and no trunks", () => {
 });
 
 test("turning trees off leaves the ground exactly as it was", () => {
-  // Trees draw from their own random stream, so skipping them must not shift the ground.
   const bare = generateTerrain(1337, WORLD_SIZE, { trees: false });
   const treed = generateTerrain(1337);
 
@@ -100,7 +93,6 @@ test("a size the editor does not offer is refused", () => {
 });
 
 test("a larger world round-trips at its own size", () => {
-  // Reloading at the default size would rebuild against a different landscape.
   const size = WORLD_SIZE * 2;
   const blocks = generateTerrain(7, size);
   const loaded = deserializeWorld(serializeWorld(7, blocks, size));
@@ -111,7 +103,6 @@ test("a larger world round-trips at its own size", () => {
 });
 
 test("a build saved before the canopy changed loses only leaves", () => {
-  // Version 4 clipped canopy corners; old builds use the current generator, so only leaves may go.
   const seed = 1337;
   const blocks = generateTerrain(seed);
   const stone = toKey(10, 40, 10);
@@ -127,7 +118,6 @@ test("a build saved before the canopy changed loses only leaves", () => {
   assert.equal(loaded.trees, true, "a payload with no trees field means the world had them");
   assert.equal(loaded.blocks.get(stone), BLOCK_IDS.stone, "placed blocks should survive");
 
-  // Anything the older world had that this one does not must be a leaf.
   for (const [key, value] of edited) {
     if (loaded.blocks.has(key)) continue;
     assert.ok(
@@ -169,7 +159,6 @@ test("an edited world round-trips exactly", () => {
 });
 
 test("a saved build is small", () => {
-  // The server refuses anything over 512 KB.
   const blocks = generateTerrain(7);
   const edited = new Map(blocks);
   for (let i = 0; i < 1000; i += 1) edited.set(toKey(i % 40, 45 + Math.floor(i / 40), i % 31), 3);
@@ -190,13 +179,11 @@ test("builds from an unreadable format are refused rather than misread", () => {
     added: [],
   });
 
-  // Null is what shows the "older format" message.
   assert.equal(deserializeWorld(ancient), null);
   assert.equal(deserializeWorld(future), null);
 });
 
 test("builds saved before slabs existed still load", () => {
-  // Version 2 has no shape bits, and no shape bits is a full cube.
   const seed = 42;
   const version2 = JSON.stringify({
     v: 2,

@@ -1,9 +1,4 @@
-/**
- * Kept apart from blocks.ts and its texture imports so this loads in Node.
- * These ids appear in saved builds and must never be reused or renumbered.
- */
 export const BLOCK_IDS = {
-  // The original nine.
   dirt: 1,
   grass: 2,
   glass: 3,
@@ -14,7 +9,6 @@ export const BLOCK_IDS = {
   mudBricks: 8,
   stoneBricks: 9,
 
-  // Ground.
   sand: 10,
   gravel: 11,
   mud: 12,
@@ -24,7 +18,6 @@ export const BLOCK_IDS = {
   snowyGrass: 16,
   blueIce: 17,
 
-  // Stone.
   stone: 18,
   granite: 19,
   diorite: 20,
@@ -40,7 +33,6 @@ export const BLOCK_IDS = {
   endStone: 30,
   mossyCobblestone: 31,
 
-  // Worked stone.
   sandstone: 32,
   cutSandstone: 33,
   chiseledSandstone: 34,
@@ -50,7 +42,6 @@ export const BLOCK_IDS = {
   polishedDiorite: 38,
   deepslateTiles: 39,
 
-  // Wood.
   spruceLog: 40,
   sprucePlanks: 41,
   spruceLeaves: 42,
@@ -61,20 +52,16 @@ export const BLOCK_IDS = {
   cherryPlanks: 47,
   cherryLeaves: 48,
 
-  // Farm.
   hayBale: 49,
 
-  // Glass.
   glassPane: 50,
 
-  // Added for the imported showcase builds.
   strippedSpruceLog: 51,
   strippedDarkOakLog: 52,
   darkOakPlanks: 53,
   lightGrayConcrete: 54,
   grayConcrete: 55,
   redConcrete: 56,
-  // "Wood" is a log with bark on all six faces.
   oakWood: 57,
   strippedSpruceWood: 58,
   strippedDarkOakWood: 59,
@@ -100,10 +87,6 @@ export const BLOCK_IDS = {
 
 export type BlockId = (typeof BLOCK_IDS)[keyof typeof BLOCK_IDS];
 
-/**
- * The blocks Minecraft cuts into slabs. Plain deepslate is out: only its
- * cobbled, polished, brick and tile variants are cut.
- */
 export const SLAB_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.stone,
   BLOCK_IDS.cobblestone,
@@ -137,16 +120,10 @@ export const SLAB_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.oxidizedCutCopper,
 ]);
 
-/** Everything with a slab except cut sandstone, which has no stairs. */
 export const STAIR_BLOCK_IDS: ReadonlySet<number> = new Set(
   [...SLAB_BLOCK_IDS].filter((id) => id !== BLOCK_IDS.cutSandstone),
 );
 
-/**
- * Fences and trapdoors exist for every wood. Walls are Minecraft's uneven set:
- * none of plain stone, cut or chiseled sandstone, or polished granite, diorite
- * or andesite, and its deepslate wall is cobbled deepslate, which we lack.
- */
 export const FENCE_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.oakPlanks,
   BLOCK_IDS.sprucePlanks,
@@ -194,5 +171,4 @@ export const SEE_THROUGH_BLOCK_IDS: ReadonlySet<number> = new Set([
   BLOCK_IDS.cherryLeaves,
 ]);
 
-/** A pane is its own block in Minecraft, not a shape of glass, so it is known by id. */
 export const PANE_BLOCK_IDS: ReadonlySet<number> = new Set([BLOCK_IDS.glassPane]);

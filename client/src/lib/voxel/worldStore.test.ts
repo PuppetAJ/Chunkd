@@ -9,7 +9,6 @@ import { useWorldStore } from "./worldStore.ts";
 
 const store = () => useWorldStore.getState();
 
-/** A cell in the air above the middle of the world. */
 function openCell(): [number, number, number] {
   const { size, blocks } = store();
   const x = Math.floor(size / 2);
@@ -31,7 +30,6 @@ test("placing and removing a block changes the world and says so", () => {
   assert.equal(blockIdOf(store().blocks.get(toKey(x, y, z)) ?? 0), BLOCK_IDS.stoneBricks);
   assert.equal(store().edited, true);
   assert.equal(store().revision, revision + 1);
-  // The map is the same object, changed in place, so the revision is the signal.
   assert.equal(store().blocks, blocks);
 
   store().removeBlock(x, y, z);

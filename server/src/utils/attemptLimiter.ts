@@ -1,9 +1,5 @@
 import { GraphQLError } from "graphql";
 
-/**
- * A per-address limit on how often something can be tried, tighter than the
- * general rate limiter. In memory, so it assumes one API process.
- */
 export function attemptLimiter(what: string, maxAttempts: number, windowMs: number) {
   const recent = new Map<string, number[]>();
 
@@ -23,7 +19,6 @@ export function attemptLimiter(what: string, maxAttempts: number, windowMs: numb
     attempts.push(now);
     recent.set(address, attempts);
 
-    // Drop addresses that have gone quiet, so the map does not grow forever.
     if (recent.size > 10_000) {
       for (const [key, times] of recent) {
         if (times.every((at) => at <= cutoff)) recent.delete(key);

@@ -5,14 +5,11 @@ import { buildSchema, parse, validate } from "graphql";
 import { typeDefs } from "../schemas/typeDefs.ts";
 import { queryLimits } from "./queryLimits.ts";
 
-// typeDefs is imported directly rather than through schemas/index, which would
-// drag in the resolvers and with them a database connection.
 const schema = buildSchema(typeDefs);
 
 const errorsFor = (query: string, limits?: { maxDepth: number; maxFields: number }) =>
   validate(schema, parse(query), [queryLimits(limits)]).map((error) => error.message);
 
-/** following and followers nested n deep. */
 function nested(levels: number): string {
   let inner = "username";
   for (let i = 0; i < levels; i += 1) {
@@ -22,7 +19,6 @@ function nested(levels: number): string {
 }
 
 test("the queries the client actually sends are allowed", () => {
-  // The deepest query in client/src/utils/queries.ts.
   const me = `{
     me { _id username email followerCount
       builds { _id name thumbnail createdAt }
@@ -44,13 +40,11 @@ test("the query that crashed the process is refused", () => {
 });
 
 test("the limit is on depth, not on how many blocks the world has", () => {
-  // nested(4) is 6 levels, the limit; one more is refused.
   assert.deepEqual(errorsFor(nested(4)), []);
   assert.equal(errorsFor(nested(5)).length, 1);
 });
 
 test("nesting cannot be hidden inside fragments", () => {
-  // Counted flat the query looks shallow; followed, the spreads chain.
   const query = `
     { users { ...a } }
     fragment a on User { following { ...b } }
@@ -65,7 +59,6 @@ test("nesting cannot be hidden inside fragments", () => {
 });
 
 test("a wide query of aliases is refused even when each copy is shallow", () => {
-  // Depth alone would let this through.
   const aliases = Array.from({ length: 100 }, (_, i) => `a${i}: users { username }`).join(" ");
   const errors = errorsFor(`{ ${aliases} }`);
   assert.equal(errors.length, 1, errors.join("\n"));
@@ -74,8 +67,8 @@ test("a wide query of aliases is refused even when each copy is shallow", () => 
 
 test("the width limit is exact at the boundary", () => {
   const copies = (n: number) => `{ ${Array.from({ length: n }, (_, i) => `a${i}: users { username }`).join(" ")} }`;
-  assert.deepEqual(errorsFor(copies(75)), []); // 150 fields
-  assert.equal(errorsFor(copies(76)).length, 1); // 152 fields
+  assert.deepEqual(errorsFor(copies(75)), []);
+  assert.equal(errorsFor(copies(76)).length, 1);
 });
 
 test("fields are counted through fragments too", () => {
@@ -85,7 +78,6 @@ test("fields are counted through fragments too", () => {
 });
 
 test("a fragment that includes itself does not loop the rule forever", () => {
-  // graphql-js has its own rule that rejects this. Ours just has to terminate.
   const query = `{ users { ...loop } } fragment loop on User { username following { ...loop } }`;
   const errors = errorsFor(query);
   assert.ok(Array.isArray(errors));

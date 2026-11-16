@@ -88,7 +88,6 @@ test("a wall has a post at its end and at a corner", () => {
 });
 
 test("a wall has no post on a straight run or at a crossing", () => {
-  // The wiki's rule: joined on exactly two opposite sides, or on all four.
   const straight = world([[0, 0, 0, WALL], [1, 0, 0, WALL], [-1, 0, 0, WALL]]);
   assert.equal(post(straight, 0, 0, 0), false);
   const crossing = world([
@@ -139,7 +138,6 @@ test("a pane does not join a fence, leaves or a slab", () => {
 });
 
 test("a pane joins the solid back of a stair but not its step", () => {
-  // Facing north, a stair's tall half is on its south side.
   const stair = packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH);
   assert.equal(connectionMask(world([[0, 0, 0, stair], [0, 0, 1, PANE]]), 0, 0, 1), SIDE_NORTH);
   assert.equal(connectionMask(world([[0, 0, 0, stair], [0, 0, -1, PANE]]), 0, 0, -1), 0);

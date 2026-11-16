@@ -9,11 +9,6 @@ import fire64Still from "../assets/Campfire_64_still.webp";
 import fire96 from "../assets/Campfire_96.webp";
 import fire96Still from "../assets/Campfire_96_still.webp";
 
-/**
- * The campfire mark, which cross-fades from soul fire to fire on hover.
- * `group-hover` follows the whole wordmark link rather than the icon alone.
- */
-
 type LogoSize = "sm" | "lg";
 
 const ART: Record<LogoSize, { soul: Flames; fire: Flames }> = {
@@ -33,9 +28,7 @@ interface Flames {
 }
 
 interface Props {
-  /** "sm" for the 28px header mark, "lg" for the 48px one on the auth pages. */
   size: LogoSize;
-  /** Must set the drawn size, for example "size-7". Both flames fill it. */
   className?: string;
 }
 
@@ -47,8 +40,6 @@ export default function CampfireLogo({ size, className }: Props) {
         flames={art.soul}
         className="transition-opacity duration-200 group-hover:opacity-0"
       />
-      {/* Fetched up front at low priority, so the first hover is instant without
-          competing with the first paint. */}
       <Flame
         flames={art.fire}
         priority="low"

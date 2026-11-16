@@ -32,7 +32,6 @@ const NAV_LINKS = [
   { to: "/profile", label: "My builds", icon: Boxes },
 ];
 
-/** The editor needs a mouse and keyboard, so a device without them is not offered it. */
 function navLinksFor(hasFinePointer: boolean) {
   if (hasFinePointer) return NAV_LINKS;
   return NAV_LINKS.filter((link) => link.to !== "/editor");
@@ -69,7 +68,6 @@ export default function Header() {
 
   const handleLogout = async () => {
     closeMenu();
-    // The page lets RequireAuth tell a deliberate sign-out from an expired session.
     logOut(location.pathname);
 
     // resetStore rather than clearStore, which leaves mounted queries showing stale data.
@@ -82,7 +80,6 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-sm">
       <div className="page-gutter mx-auto flex h-14 w-full max-w-6xl items-center gap-2">
-        {/* "group" lets the campfire react to a hover anywhere on the brand. */}
         <Link
           to="/"
           className="group flex items-center gap-2 rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
@@ -114,7 +111,6 @@ export default function Header() {
               )}
 
               <DropdownMenu>
-                {/* Below md the slide-out menu carries these items instead. */}
                 <DropdownMenuTrigger
                   aria-label="Account menu"
                   className="hidden rounded-full focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:block"
@@ -151,7 +147,6 @@ export default function Header() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="gap-0 p-0">
-                  {/* pr-12 keeps the name clear of the close button. */}
                   <div className="flex items-center gap-3 border-b border-border p-4 pr-12">
                     <UserAvatar username={username} size="md" />
                     <SheetTitle className="min-w-0 truncate text-base">{username}</SheetTitle>

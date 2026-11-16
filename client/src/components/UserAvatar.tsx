@@ -1,10 +1,5 @@
 import { cn } from "cn";
 
-/**
- * A stand-in avatar: the username hashed to a hue, so each person has a
- * consistent colour without storing anything.
- */
-
 type AvatarSize = "sm" | "md" | "lg";
 
 interface Props {
@@ -37,7 +32,6 @@ export default function UserAvatar({ username, size = "md", className }: Props) 
         SIZE_CLASSES[size],
         className,
       )}
-      // Fixed saturation and lightness keep the dark initial readable on any hue.
       style={{ backgroundColor: `hsl(${hueFor(name)} 45% 68%)` }}
     >
       {name.charAt(0).toUpperCase()}

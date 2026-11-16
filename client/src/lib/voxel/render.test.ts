@@ -33,7 +33,6 @@ import {
 import { straightQuadrants } from "./stairShape.ts";
 import { generateTerrain } from "./terrain.ts";
 
-/** A 3x3x3 cube of one block type, centred on the origin. */
 function solidCube(id: number): Map<BlockKey, number> {
   const blocks = new Map<BlockKey, number>();
   for (let x = -1; x <= 1; x++)
@@ -134,7 +133,6 @@ test("updating around a change matches working the whole world out again", () =>
 });
 
 test("a slab does not hide the block underneath it", () => {
-  // Half covered is not covered.
   const blocks = solidCube(BLOCK_IDS.dirt);
   blocks.set(toKey(0, 1, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_TOP));
   const drawn = drawnPositions(blocks);
@@ -154,7 +152,6 @@ test("a slab is always drawn, however buried", () => {
 });
 
 test("cubes and slabs of one block are drawn as separate layers", () => {
-  // Every instance in a mesh shares one geometry.
   const blocks = new Map<BlockKey, number>([
     [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone)],
     [toKey(2, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_SLAB_BOTTOM)],
@@ -190,7 +187,6 @@ test("a stair does not hide the block its step half is missing from", () => {
 });
 
 test("a stair does not hide what is beside it, even where it is solid", () => {
-  // Deliberately conservative: a stair's side fill depends on cells two away, which an edit's refresh does not visit.
   for (const facing of [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST]) {
     for (const at of [
       [0, 0, -1],
@@ -219,7 +215,6 @@ test("a stair is always drawn, however buried", () => {
 });
 
 test("stairs of one block facing different ways are separate layers", () => {
-  // Spaced so none is a neighbour of another and they all stay straight.
   const blocks = new Map<BlockKey, number>([
     [toKey(0, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_NORTH)],
     [toKey(4, 0, 0), packBlock(BLOCK_IDS.stone, AXIS_Y, SHAPE_STAIRS_BOTTOM, FACING_EAST)],
@@ -285,7 +280,6 @@ test("a fence is drawn by the sides it joins", () => {
     [toKey(2, 0, 0), fence],
   ]);
   const layers = buildRenderLayers(blocks).filter((layer) => layer.shape === SHAPE_FENCE);
-  // East 2 and west 8: the middle one joins both.
   const middle = layers.find((layer) => layer.variant === 10);
   assert.ok(middle, `variants drawn: ${layers.map((layer) => layer.variant).join(",")}`);
   assert.deepEqual([...middle.positions], [1, 0, 0]);
@@ -347,7 +341,6 @@ test("an edit hands back the layers it did not touch", () => {
   assert.equal(kept.length + fresh.length, second.length);
 });
 
-/** A layer's blocks in a fixed order, so two groupings can be compared. */
 function summarise(layers: ReturnType<typeof groupVisible>): string[] {
   return layers.map((layer) => {
     const cells: string[] = [];

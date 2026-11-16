@@ -5,7 +5,6 @@ import { CombinedGraphQLErrors, ServerError } from "@apollo/client/errors";
 import { isUnauthenticated } from "./auth.ts";
 import { requestErrorMessage } from "./credentials.ts";
 
-/** A failure shaped the way Apollo 4 hands one to a caller. */
 function graphQLFailure(code: string, message = "No.") {
   const errors = [{ message, extensions: { code } }];
   return new CombinedGraphQLErrors({ data: null, errors }, errors);

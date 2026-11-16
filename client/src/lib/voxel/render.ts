@@ -19,23 +19,14 @@ import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
 export interface RenderLayer {
   blockId: number;
-  /** Whole block, slab or stairs. One mesh is one id, shape and facing. */
   shape: number;
-  /** What the shape number leaves out: stair quarters, joined sides, or trapdoor facing, half and open. */
   variant: number;
-  /** Flat x, y, z triples. */
   positions: Float32Array;
-  /** Which way each of those blocks is turned, one entry per position. */
   axes: Uint8Array;
 }
 
-/** The blocks not boxed in on all six sides. Kept up to date around each edit rather than recomputed. */
 export type VisibleBlocks = Map<BlockKey, number>;
 
-/**
- * Does the block here cover the whole face it shares with the neighbour asking?
- * `dy` is the step from that neighbour: +1 means this block is above it.
- */
 function coversFace(
   blocks: Map<BlockKey, number>,
   x: number,
@@ -52,19 +43,15 @@ function coversFace(
   if (shape === SHAPE_SLAB_BOTTOM) return dy === 1;
   if (shape === SHAPE_SLAB_TOP) return dy === -1;
 
-  // A stair's sides are never counted: their fill depends on cells two away,
-  // which the refresh after an edit does not visit.
   if (shape === SHAPE_STAIRS_BOTTOM) return dy === 1;
   if (shape === SHAPE_STAIRS_TOP) return dy === -1;
 
-  // Fences and walls fill no face, and a shut trapdoor's is full of holes.
   if (shape === SHAPE_FENCE || shape === SHAPE_WALL || shape === SHAPE_TRAPDOOR) return false;
 
   return true;
 }
 
 function isHidden(blocks: Map<BlockKey, number>, x: number, y: number, z: number): boolean {
-  // A cut block's exposed surface is inside its own cell, so it is never hidden.
   const self = blocks.get(toKey(x, y, z));
   if (self !== undefined && blockShapeOf(self) !== SHAPE_FULL) return false;
 
@@ -78,7 +65,6 @@ function isHidden(blocks: Map<BlockKey, number>, x: number, y: number, z: number
   );
 }
 
-/** Work the whole thing out from scratch. Used when a world is first built. */
 export function computeVisible(blocks: Map<BlockKey, number>): VisibleBlocks {
   const visible: VisibleBlocks = new Map();
   for (const [key, value] of blocks) {
@@ -88,7 +74,6 @@ export function computeVisible(blocks: Map<BlockKey, number>): VisibleBlocks {
   return visible;
 }
 
-/** After one cell changed, only it and its six neighbours can change visibility. */
 export function refreshVisibleAround(
   blocks: Map<BlockKey, number>,
   visible: VisibleBlocks,
@@ -114,11 +99,9 @@ export function refreshVisibleAround(
   }
 }
 
-/** Only used to combine an id, a shape and a variant into one map key. */
 const SHAPE_SLOTS = 8;
 const VARIANT_SLOTS = 32;
 
-/** The part of a block's shape that comes from its neighbours or its state. */
 export function variantFor(
   blocks: Map<BlockKey, number>,
   value: number,
@@ -140,7 +123,6 @@ export function variantFor(
   return 0;
 }
 
-/** Id, shape and variant folded into one number: which layer a block is drawn in. */
 function layerTypeFor(blocks: Map<BlockKey, number>, value: number, x: number, y: number, z: number): number {
   const variant = variantFor(blocks, value, x, y, z);
   return (blockIdOf(value) * SHAPE_SLOTS + blockShapeOf(value)) * VARIANT_SLOTS + variant;
@@ -163,24 +145,12 @@ function layerFor(type: number, keys: Iterable<BlockKey>, blocks: Map<BlockKey, 
   };
 }
 
-/**
- * Which layer each drawn block is in, so an edit rebuilds only the layers it
- * touched and every other layer is handed back as the same object.
- */
 export interface LayerIndex {
-  /** The layer type of every visible block. */
   typeByKey: Map<BlockKey, number>;
-  /** The blocks in each layer. */
   keysByType: Map<number, Set<BlockKey>>;
-  /** The layer last built for each type. A type missing here is rebuilt on the next read. */
   layerByType: Map<number, RenderLayer>;
 }
 
-/**
- * One layer per id, shape and variant. Shapes are baked into geometry rather than
- * rotated per instance, so faces keep the shading of the way they point.
- * `blocks` is the whole world because a shape depends on its neighbours.
- */
 export function createLayerIndex(visible: VisibleBlocks, blocks: Map<BlockKey, number> = visible): LayerIndex {
   const index: LayerIndex = { typeByKey: new Map(), keysByType: new Map(), layerByType: new Map() };
   for (const [key, value] of visible) {
@@ -210,7 +180,6 @@ function removeFromIndex(index: LayerIndex, key: BlockKey, type: number): void {
   index.layerByType.delete(type);
 }
 
-/** After one cell changed, only it and its six neighbours can change layer. */
 export function refreshLayersAround(
   index: LayerIndex,
   visible: VisibleBlocks,
@@ -235,14 +204,12 @@ export function refreshLayersAround(
     const value = visible.get(key);
     const was = index.typeByKey.get(key);
     const now = value === undefined ? undefined : layerTypeFor(blocks, value, cx, cy, cz);
-    // A neighbour whose layer is unchanged is untouched; the edited cell is always rebuilt.
     if (was === now && key !== centre) continue;
     if (was !== undefined) removeFromIndex(index, key, was);
     if (now !== undefined) addToIndex(index, key, now);
   }
 }
 
-/** Sorted by type so layer order is stable, or React rebuilds the meshes on every edit. */
 export function layersFromIndex(index: LayerIndex, blocks: Map<BlockKey, number>): RenderLayer[] {
   return [...index.keysByType.keys()]
     .sort((a, b) => a - b)
@@ -256,12 +223,10 @@ export function layersFromIndex(index: LayerIndex, blocks: Map<BlockKey, number>
     });
 }
 
-/** The grouping in one step, for a world that is not going to be edited. */
 export function groupVisible(visible: VisibleBlocks, blocks: Map<BlockKey, number> = visible): RenderLayer[] {
   return layersFromIndex(createLayerIndex(visible, blocks), blocks);
 }
 
-/** The whole job in one step. Convenient for tests and for the build viewer. */
 export function buildRenderLayers(blocks: Map<BlockKey, number>): RenderLayer[] {
   return groupVisible(computeVisible(blocks), blocks);
 }

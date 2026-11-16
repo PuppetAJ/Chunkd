@@ -22,7 +22,6 @@ import {
 
 interface Props {
   builds: BuildSummary[];
-  /** Only the owner of a profile may delete its builds. */
   canManage: boolean;
   emptyBody: string;
 }
@@ -35,8 +34,6 @@ export default function BuildGallery({ builds, canManage, emptyBody }: Props) {
   const [openBuild, setOpenBuild] = useState<BuildSummary | null>(null);
   const [buildToDelete, setBuildToDelete] = useState<BuildSummary | null>(null);
 
-  // A build is cached under two type names: lists hold a BuildSummary, the
-  // viewer fetches the full Build. Both have to go.
   const [deleteBuild, { loading: deleting }] = useMutation(DELETE_BUILD, {
     update(cache, _result, { variables }) {
       const buildId = variables?.["buildId"];

@@ -19,11 +19,6 @@ interface Props {
   reactions: Reaction[];
 }
 
-/**
- * The comments under a post, one level of replies deep. Every mutation returns
- * the post with its remaining comments, which Apollo matches on `_id`, so none
- * of them needs a refetch.
- */
 export default function ReactionList({ thoughtId, reactions }: Props) {
   const me = useAuthStore((state) => state.user?.username ?? "");
   const [editing, setEditing] = useState<string | null>(null);
@@ -43,15 +38,12 @@ export default function ReactionList({ thoughtId, reactions }: Props) {
   const roots = reactions.filter((one) => !one.parent);
   const repliesTo = (id: string) => reactions.filter((one) => one.parent === id);
 
-  // Replies all sit at one level, so answering one only reads as a reply to it
-  // if the name is in the text. Answering the comment at the top needs no name.
   const mentionFor = (id: string | null) => {
     const target = reactions.find((one) => one._id === id);
     return target?.parent ? target.username : null;
   };
 
   const remove = (reaction: Reaction) => {
-    // The server takes a comment's replies with it, so the optimistic copy must too.
     const gone = new Set([reaction._id, ...repliesTo(reaction._id).map((one) => one._id)]);
     const left = reactions.filter((one) => !gone.has(one._id));
     return deleteReaction({
@@ -104,7 +96,6 @@ export default function ReactionList({ thoughtId, reactions }: Props) {
     <ul className="divide-y divide-border">
       {roots.map((root) => {
         const replies = repliesTo(root._id);
-        // A reply box opened under a reply belongs to the thread, not to that reply.
         const openHere = replyingTo === root._id || replies.some((one) => one._id === replyingTo);
         return (
           <li key={root._id} className="py-3">
@@ -118,7 +109,6 @@ export default function ReactionList({ thoughtId, reactions }: Props) {
                 {openHere && (
                   <li className="pt-1">
                     <ReactionForm
-                      // Remounts when the target changes, so the mention follows it.
                       key={replyingTo}
                       thoughtId={thoughtId}
                       reactions={reactions}
@@ -150,7 +140,6 @@ interface CommentProps {
   onDelete: () => void;
 }
 
-/** One comment, whether it sits at the top of a thread or inside one. */
 function Comment({
   reaction,
   mine,
@@ -163,7 +152,6 @@ function Comment({
   onDelete,
 }: CommentProps) {
   const [draft, setDraft] = useState(reaction.reactionBody);
-  // Nothing can be done to a comment the server has not acknowledged yet.
   const pending = isPending(reaction);
 
   return (

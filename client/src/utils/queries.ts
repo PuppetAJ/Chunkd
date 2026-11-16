@@ -1,8 +1,5 @@
 import { gql } from "@apollo/client";
 
-// Every query here fetches build metadata only; world data is behind QUERY_BUILD.
-
-// Paged. lib/apollo.ts stitches the windows together in the cache.
 export const QUERY_SHOWCASE = gql`
   query showcase {
     showcase {
@@ -157,7 +154,6 @@ export const QUERY_ME_BASIC = gql`
   }
 `;
 
-/** The only query that returns a world's block data. Ask for it on demand. */
 export const QUERY_BUILD = gql`
   query build($id: ID!) {
     build(_id: $id) {

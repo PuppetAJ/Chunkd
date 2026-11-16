@@ -7,7 +7,6 @@ import { generateTerrain, spawnPointFor, WORLD_SIZE } from "./terrain.ts";
 import { BLOCK_IDS } from "./blockIds.ts";
 import { blockIdOf } from "./blockValue.ts";
 
-/** Enough seeds to catch a fault that only some worlds trigger. */
 const SEEDS = Array.from({ length: 40 }, (_, i) => i + 1);
 
 test("the player never spawns inside a block", () => {
@@ -61,14 +60,12 @@ const LEAVES = new Set<number>([
 const LOGS = new Set<number>([BLOCK_IDS.oakLog, BLOCK_IDS.birchLog, BLOCK_IDS.cherryLog]);
 
 test("a canopy finishes in a cross rather than a flat square", () => {
-  // Minecraft's oak clips the four corners off the top layer of leaves.
   const blocks = generateTerrain(1337);
 
   let checked = 0;
   for (const [key, value] of blocks) {
     if (!LOGS.has(blockIdOf(value))) continue;
     const [x, y, z] = key.split(",").map(Number) as [number, number, number];
-    // The top of a trunk is a log with no log above it.
     if (LOGS.has(blockIdOf(blocks.get(toKey(x, y + 1, z)) ?? 0))) continue;
 
     const top = y + 1;

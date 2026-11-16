@@ -23,12 +23,10 @@ import {
   type GraphQLContext,
 } from "../utils/auth.ts";
 
-// A save is a few kilobytes, a few hundred at most. A safety net, not a design limit.
 const MAX_BUILD_BYTES = 2 * 1024 * 1024;
 const MAX_THUMBNAIL_BYTES = 256 * 1024;
 
 const DEFAULT_FEED_LIMIT = 10;
-/** The hero plus two rows of three. */
 const SHOWCASE_SIZE = 7;
 const MAX_FEED_LIMIT = 50;
 
@@ -38,16 +36,12 @@ function feedWindow(args: { limit?: number | null; offset?: number | null }) {
   return { limit, offset };
 }
 
-// Per-address limits on the ways to obtain a token, on top of the general limiter in server.ts.
 const limitLogin = attemptLimiter("sign-in", 20, 15 * 60_000);
 const limitSignup = attemptLimiter("sign-up", 60, 60 * 60_000);
 const limitDemo = attemptLimiter("demo sign-in", 30, 60 * 60_000);
 
-// Compared against when the email is unknown, so timing does not reveal which
-// addresses are registered.
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", 10);
 
-// Stops one script filling the database between resets.
 const MAX_BUILDS_PER_USER = 50;
 
 interface BuildPayload {
@@ -64,23 +58,19 @@ function checkBuildPayload(args: BuildPayload): void {
   if (args.thumbnail && Buffer.byteLength(args.thumbnail, "utf8") > MAX_THUMBNAIL_BYTES) {
     throw badRequest("That build's preview image is too large.");
   }
-  // Rendered straight into an <img>, and the content security policy is only on in production.
   if (args.thumbnail && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(args.thumbnail)) {
     throw badRequest("That build's preview is not an image.");
   }
 }
 
-// Lists are capped; the counts stay exact.
 const MAX_LIST = 100;
 
 const DEMO_IS_READ_ONLY =
   "The demo account's sign-in details cannot be changed, because everyone shares it. Sign up for an account of your own to change these.";
 
-/** The demo account, made on first use. */
 async function demoAccount(): Promise<HydratedDocument<UserDocument>> {
   const existing = await User.findOne({ username: DEMO_USERNAME }).exec();
   if (existing) {
-    // An account made before this flag existed still needs the protection.
     if (!existing.isDemo) {
       existing.isDemo = true;
       await existing.save();
@@ -96,7 +86,6 @@ async function demoAccount(): Promise<HydratedDocument<UserDocument>> {
       isDemo: true,
     });
   } catch (error) {
-    // Two visitors can press the button at once; the unique index decides who creates it.
     if (isDuplicateKeyError(error)) {
       const created = await User.findOne({ username: DEMO_USERNAME }).exec();
       if (created) return created;
@@ -105,7 +94,6 @@ async function demoAccount(): Promise<HydratedDocument<UserDocument>> {
   }
 }
 
-/** Mongo reports a unique-index collision as error code 11000. */
 function isDuplicateKeyError(error: unknown): boolean {
   return (
     error !== null && typeof error === "object" && "code" in error && error.code === 11000
@@ -161,14 +149,9 @@ export const resolvers = {
       Build.findById(toObjectId(args._id, "Build id")),
   },
 
-  // ---- Field resolvers -------------------------------------------------
-
   User: {
     followingCount: (parent: UserDocument) => parent.following.length,
 
-    // Followers are everyone whose `following` holds this user. `.exec()` matters,
-    // or GraphQL gets a thenable Query and a Query refuses to run twice.
-    // isDemo is coerced: accounts from before the field existed have nothing stored.
     isDemo: (parent: UserDocument) => Boolean(parent.isDemo),
     followerCount: async (parent: UserDocument) =>
       User.countDocuments({ following: parent._id }).exec(),
@@ -188,16 +171,12 @@ export const resolvers = {
         .sort({ createdAt: -1 })
         .limit(MAX_LIST),
 
-    // Only the owner sees their email address.
     email: (parent: UserDocument, _args: unknown, context: GraphQLContext) =>
       context.user && context.user._id === parent._id.toString() ? parent.email : null,
 
     createdAt: (parent: UserDocument) => parent.createdAt.toISOString(),
   },
 
-  // These run once per row, so they go through the request's loaders. The id is
-  // stringified because a loader keys its cache by identity, and two ObjectIds
-  // for the same user are different objects.
   Thought: {
     author: async (parent: ThoughtDocument, _args: unknown, context: GraphQLContext) =>
       context.loaders.userById.load(String(parent.author)),
@@ -242,8 +221,6 @@ export const resolvers = {
     updatedAt: (parent: BuildDocument) => parent.updatedAt.toISOString(),
   },
 
-  // ---- Mutations -------------------------------------------------------
-
   Mutation: {
     addUser: async (
       _parent: unknown,
@@ -251,12 +228,10 @@ export const resolvers = {
       context: GraphQLContext,
     ) => {
       limitSignup(context.ip);
-      // demoAccount() adopts an existing user of this name, so nobody may register it.
       if (args.username.trim().toLowerCase() === DEMO_USERNAME) {
         throw badRequest("That username is reserved.");
       }
       try {
-        // Named one by one, so a field added to the mutation later cannot land in the document.
         const user = await User.create({
           username: args.username,
           email: args.email,
@@ -281,8 +256,6 @@ export const resolvers = {
       limitLogin(context.ip);
       const user = await User.findOne({ email: args.email.toLowerCase() });
 
-      // The same message and the same amount of work (see DUMMY_HASH) for an unknown
-      // email and a wrong password, so the endpoint cannot reveal which emails exist.
       const failure = badRequest("Incorrect email address or password.");
       if (!user) {
         await bcrypt.compare(args.password, DUMMY_HASH);
@@ -293,7 +266,6 @@ export const resolvers = {
       return { token: signToken(user), user };
     },
     demoLogin: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
-      // Without this a script could mint tokens faster than the site resets.
       limitDemo(context.ip);
       const user = await demoAccount();
       return { token: signToken(user), user };
@@ -301,7 +273,6 @@ export const resolvers = {
 
     renewToken: async (_parent: unknown, _args: unknown, context: GraphQLContext) => {
       const auth = requireAuth(context);
-      // Read the account back, so a deleted account cannot keep extending its session.
       const user = await User.findById(auth._id);
       if (!user) throw notFound("That account no longer exists.");
       return { token: signToken(user), user };
@@ -344,7 +315,6 @@ export const resolvers = {
 
       thought.thoughtText = args.thoughtText;
 
-      // Absent means leave the attachment alone; null means take it off.
       if ("buildId" in args) {
         if (args.buildId) {
           const buildId = toObjectId(args.buildId, "Build id");
@@ -390,7 +360,6 @@ export const resolvers = {
       if (args.parentId) {
         const replyingTo = thought.reactions.id(args.parentId);
         if (!replyingTo) throw notFound("That comment no longer exists.");
-        // Threads stay one level deep: a reply to a reply joins the same thread.
         parent = replyingTo.parent ?? replyingTo._id;
       }
 
@@ -414,7 +383,6 @@ export const resolvers = {
 
       const reaction = thought.reactions.id(args.reactionId);
       if (!reaction) throw notFound("That comment no longer exists.");
-      // Unlike deleting, the post's owner does not get to edit what others wrote.
       if (reaction.author.toString() !== auth._id) {
         throw forbidden("You can only edit your own comments.");
       }
@@ -442,7 +410,6 @@ export const resolvers = {
         throw forbidden("You can only delete your own comments.");
       }
 
-      // A reply whose parent is gone would have nothing to sit under.
       for (const reply of thought.reactions.filter(
         (other) => other.parent?.toString() === reaction._id.toString(),
       )) {
@@ -469,14 +436,12 @@ export const resolvers = {
       try {
         await user.save();
       } catch (error) {
-        // A duplicate username or email arrives as a key error, not a validation error.
         if (isDuplicateKeyError(error)) {
           throw badRequest("That username or email is already taken.");
         }
         throw asUserInputError(error) ?? error;
       }
 
-      // The name and email live inside the token, so the old one is now wrong.
       return { token: signToken(user), user };
     },
 
@@ -490,7 +455,6 @@ export const resolvers = {
       if (!user) throw notFound("Your account no longer exists.");
       if (user.isDemo) throw forbidden(DEMO_IS_READ_ONLY);
 
-      // Stops a stolen token being enough to take an account over permanently.
       if (!(await user.isCorrectPassword(args.currentPassword))) {
         throw badRequest("That is not your current password.");
       }
@@ -498,7 +462,6 @@ export const resolvers = {
         throw badRequest("Your new password must be different from the old one.");
       }
 
-      // The model hashes on save, so this is assigned in the clear on purpose.
       user.password = args.newPassword;
       try {
         await user.save();
@@ -558,14 +521,12 @@ export const resolvers = {
       return Build.create({
         owner: new Types.ObjectId(auth._id),
         name: args.name?.trim() || "Untitled build",
-        // The client owns the encoding, so it reports its own version.
         format: args.format ?? CURRENT_BUILD_FORMAT,
         data: args.data,
         thumbnail: args.thumbnail ?? undefined,
       });
     },
 
-    // Overwriting is not subject to the cap: it makes no new build.
     updateBuild: async (
       _parent: unknown,
       args: BuildPayload & { buildId: string },
@@ -601,7 +562,6 @@ export const resolvers = {
         throw forbidden("You can only delete your own builds.");
       }
 
-      // Posts that showed this build keep their text but lose the attachment.
       await Thought.updateMany({ build: buildId }, { $unset: { build: "" } });
       await build.deleteOne();
       return args.buildId;

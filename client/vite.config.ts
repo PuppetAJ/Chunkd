@@ -13,20 +13,17 @@ const clientPort = Number(new URL(process.env["CLIENT_ORIGIN"] ?? "http://localh
 export default defineConfig({
   plugins: [react(), tailwindcss()],
 
-  // Mirrors the "@/*" alias in tsconfig.json for shadcn/ui's components.
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
 
-  // 3D models are not on Vite's default asset list.
   assetsInclude: ["**/*.glb", "**/*.gltf"],
 
   server: {
     port: clientPort,
     strictPort: true,
-    // Same-origin in development, so CORS and cookies behave as in production.
     proxy: {
       "/graphql": {
         target: `http://localhost:${apiPort}`,
@@ -36,8 +33,6 @@ export default defineConfig({
   },
 
   build: {
-    // The repository is public, so source maps give away nothing and make
-    // production stack traces readable.
     sourcemap: true,
   },
 });

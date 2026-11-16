@@ -6,11 +6,6 @@ import {
   type ValidationContext,
 } from "graphql";
 
-/**
- * How deep and how wide a query may be. `User.following` and `User.followers`
- * refer back to `User`, so nesting multiplies, and aliases run one query many
- * times over. Both limits sit well above anything the client sends.
- */
 export interface QueryLimits {
   maxDepth: number;
   maxFields: number;
@@ -18,7 +13,6 @@ export interface QueryLimits {
 
 export const DEFAULT_QUERY_LIMITS: QueryLimits = { maxDepth: 6, maxFields: 150 };
 
-/** What one walk over a selection set found. */
 interface Measurement {
   depth: number;
   fields: number;
@@ -33,8 +27,6 @@ export function queryLimits(limits: QueryLimits = DEFAULT_QUERY_LIMITS) {
       }
     }
 
-    // Fragments are followed so they cannot hide nesting. `expanding` stops a
-    // fragment that includes itself from looping forever.
     function measure(
       selectionSet: SelectionSetNode | undefined,
       depth: number,

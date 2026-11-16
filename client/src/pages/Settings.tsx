@@ -26,7 +26,6 @@ interface MeBasic {
   isDemo: boolean;
 }
 
-/** The two forms are separate on purpose: changing a password asks for the current one. */
 export default function Settings() {
   const logIn = useAuthStore((state) => state.logIn);
   const apollo = useApolloClient();
@@ -65,7 +64,6 @@ export default function Settings() {
   );
 }
 
-/** Shown to the demo account instead of the forms, which the server would refuse. */
 function DemoNotice() {
   return (
     <div className="rounded-xl border border-border bg-card p-6">
@@ -99,7 +97,6 @@ function ProfileForm({
   const [email, setEmail] = useState(me.email);
   const [errors, setErrors] = useState<{ username?: string | null; email?: string | null }>({});
 
-  // The fields start as whatever the server last said, including after a save.
   useEffect(() => {
     setUsername(me.username);
     setEmail(me.email);
@@ -119,9 +116,7 @@ function ProfileForm({
         variables: { username: username.trim(), email: email.trim() },
       });
       const result = data as { updateAccount: { token: string } };
-      // The name inside the old token is now stale.
       logIn(result.updateAccount.token);
-      // Usernames appear on every post, so everything cached is now suspect.
       await apollo.refetchQueries({ include: "active" });
       toast.success("Your details were saved");
     } catch (error) {

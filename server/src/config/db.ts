@@ -19,7 +19,6 @@ export async function disconnectFromDatabase(): Promise<void> {
 export const IDLE_MS = 5 * 60_000;
 
 let idleTimer: NodeJS.Timeout | undefined;
-// Opening and closing take turns, so a request never meets a half-closed connection.
 let turn: Promise<unknown> = Promise.resolve();
 const inTurn = <T>(step: () => Promise<T>): Promise<T> => {
   const next = turn.then(step, step);
@@ -27,10 +26,8 @@ const inTurn = <T>(step: () => Promise<T>): Promise<T> => {
   return next;
 };
 
-/** Opens the connection if it is closed, and starts the idle countdown over. */
 export async function useDatabase(): Promise<void> {
   clearTimeout(idleTimer);
-  // Unref'd, so a pending close never holds the process open.
   idleTimer = setTimeout(() => {
     void inTurn(async () => {
       await disconnectFromDatabase();

@@ -13,7 +13,6 @@ const STILL: MoveInput = {
   headingZ: -1,
 };
 
-/** Flat ground at y = 0, so its top surface is y = 0.5. */
 function ground(): Map<BlockKey, number> {
   const blocks = new Map<BlockKey, number>();
   for (let x = -8; x <= 8; x += 1) {
@@ -22,7 +21,6 @@ function ground(): Map<BlockKey, number> {
   return blocks;
 }
 
-/** Ground plus a single-block step at z >= 3, its top surface at y = 1.5. */
 function withStep(): Map<BlockKey, number> {
   const blocks = ground();
   for (let x = -8; x <= 8; x += 1) {
@@ -173,7 +171,6 @@ test("at the top of a jump there is room to place a block underfoot", () => {
   let framesWithRoom = 0;
   for (let i = 0; i < 60; i += 1) {
     stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
-    // Standing on the block at y = 0, the cell to build into is y = 1.
     if (!blockOverlapsPlayer(body, 0, 1, 0)) framesWithRoom += 1;
   }
 
@@ -211,7 +208,6 @@ test("two slow taps jump twice rather than starting flight", () => {
 
   stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
   stepPlayer(blocks, body, motion, STILL, 1 / 60);
-  // Wait out the double-tap window, and let the jump finish.
   for (let i = 0; i < 60; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
   stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
 
@@ -228,7 +224,6 @@ test("flying holds height with no keys, and rises and falls with them", () => {
   for (let i = 0; i < 60; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
   assert.equal(body.y, startY, "should hover rather than fall");
 
-  // A held jump's first frame is a fresh press, which inside the double-tap window would toggle flight off.
   for (let i = 0; i < 30; i += 1) stepPlayer(blocks, body, motion, STILL, 1 / 60);
   for (let i = 0; i < 30; i += 1) {
     stepPlayer(blocks, body, motion, { ...STILL, jump: true }, 1 / 60);
@@ -258,7 +253,6 @@ test("turning flight off mid-air drops the player", () => {
 
 test("flying does not pass through blocks", () => {
   const blocks = ground();
-  // A ceiling at y = 4, underside at 3.5.
   for (let x = -8; x <= 8; x += 1) for (let z = -8; z <= 8; z += 1) blocks.set(toKey(x, 4, z), 1);
   const body = standing();
   const motion = createMotionState();

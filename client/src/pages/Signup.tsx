@@ -30,7 +30,6 @@ export default function Signup() {
 
   const [formState, setFormState] = useState({ username: "", email: "", password: "" });
 
-  // One message per field, plus one for whatever the server says.
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [showPassword, setShowPassword] = useState(false);

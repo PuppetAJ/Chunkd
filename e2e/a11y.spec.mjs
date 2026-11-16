@@ -1,12 +1,3 @@
-/**
- * Runs axe-core against every page and fails on anything at WCAG 2.1 A or AA.
- * Needs the app running.
- *
- *   pnpm test:a11y
- *
- * The editor is audited on its pause screen: in world it is a locked canvas
- * with no accessibility tree.
- */
 import { createRequire } from "node:module";
 import { BASE, check, test } from "./lib.mjs";
 
@@ -38,7 +29,6 @@ test("every page, signed in and out", async ({ page }) => {
     check(`${label} (${path}) has no violations`, found.length === 0, found.join("\n"));
   }
 
-  // Sign in first so the signed-in pages get audited too.
   const username = `a11y${Date.now().toString().slice(-8)}`;
   await page.goto(`${BASE}/signup`, { waitUntil: "networkidle" });
   await page.fill("#username", username);
@@ -53,10 +43,8 @@ test("every page, signed in and out", async ({ page }) => {
   await audit("login", "/login");
   await audit("signup", "/signup");
   await audit("not found", "/definitely-not-a-page");
-  // The world has to finish generating before the pause screen settles.
   await audit("editor pause screen", "/editor", 9000);
 
-  // The root is a different page when nobody is signed in.
   await page.evaluate(() => localStorage.clear());
   await audit("landing (signed out)", "/", 4000);
 });

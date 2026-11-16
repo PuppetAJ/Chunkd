@@ -15,12 +15,10 @@ import {
 interface Props {
   settings: SceneSettings;
   onChange: (settings: SceneSettings) => void;
-  /** True over the daylight sky, where the button has to switch to dark-on-light. */
   onLightSky?: boolean;
   className?: string;
 }
 
-/** Takes and returns settings rather than using a store, so the viewer and the editor keep separate preferences. */
 export default function SceneSettingsMenu({
   settings,
   onChange,
@@ -53,7 +51,6 @@ export default function SceneSettingsMenu({
         </DropdownMenuRadioGroup>
 
         <DropdownMenuSeparator />
-        {/* A grid floating in the daylight sky reads as a bug. */}
         <DropdownMenuCheckboxItem
           checked={settings.grid}
           disabled={settings.environment !== "studio"}

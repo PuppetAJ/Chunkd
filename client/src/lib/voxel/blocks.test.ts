@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-// blocks.ts imports textures, which Node cannot load, so the sets live in blockIds.ts.
 import { existsSync } from "node:fs";
 import {
   BLOCK_IDS,
@@ -35,14 +34,12 @@ test("cut sandstone has a slab but no stairs", () => {
 });
 
 test("anything that can be stairs can also be a slab", () => {
-  // The shape picker steps from block to slab to stairs and assumes this.
   for (const id of STAIR_BLOCK_IDS) {
     assert.equal(SLAB_BLOCK_IDS.has(id), true, `${nameOf(id)} has stairs but no slab`);
   }
 });
 
 test("blocks the game does not cut are excluded", () => {
-  // Plain deepslate and basalt have none either: only their worked variants are cut.
   const excluded = [
     BLOCK_IDS.oakLog, BLOCK_IDS.spruceLog, BLOCK_IDS.birchLog, BLOCK_IDS.cherryLog,
     BLOCK_IDS.hayBale, BLOCK_IDS.grass, BLOCK_IDS.dirt, BLOCK_IDS.sand,
@@ -58,7 +55,6 @@ test("blocks the game does not cut are excluded", () => {
 });
 
 test("every eligible id is a real block", () => {
-  // BLOCK_IDS is const, so without the annotation the set would only accept its literal ids.
   const ids: Set<number> = new Set(Object.values(BLOCK_IDS));
   for (const id of SLAB_BLOCK_IDS) assert.equal(ids.has(id), true, `unknown id ${id}`);
 });
@@ -97,9 +93,7 @@ test("the blocks that can be walls are the ones Minecraft gives walls to", () =>
 });
 
 test("every block with a trapdoor has its trapdoor texture", () => {
-  // blocks.ts cannot be loaded here, so this checks the files themselves.
   for (const id of TRAPDOOR_BLOCK_IDS) {
-    // darkOakPlanks -> dark_oak, the way the files are named.
     const wood = nameOf(id).replace("Planks", "").replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
     const file = new URL(`../../assets/textures/${wood}_trapdoor.png`, import.meta.url);
     assert.ok(existsSync(file), `missing ${wood}_trapdoor.png`);

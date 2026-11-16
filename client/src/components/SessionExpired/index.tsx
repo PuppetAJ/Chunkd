@@ -16,7 +16,6 @@ import {
 import { Input } from "../ui/input.tsx";
 import { Label } from "../ui/label.tsx";
 
-/** Sign back in without leaving the editor, so the world behind the dialog is never unmounted. */
 export default function SessionExpired() {
   const logIn = useAuthStore((state) => state.logIn);
   const lastEmail = useAuthStore((state) => state.lastEmail);
@@ -40,7 +39,6 @@ export default function SessionExpired() {
   };
 
   return (
-    // Nothing dismisses this on purpose.
     <Dialog open>
       <DialogContent
         showCloseButton={false}

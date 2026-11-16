@@ -12,7 +12,6 @@ export const LOGIN_USER = gql`
   }
 `;
 
-// Takes no arguments on purpose: the demo password stays on the server.
 export const DEMO_LOGIN = gql`
   mutation demoLogin {
     demoLogin {
@@ -37,7 +36,6 @@ export const ADD_USER = gql`
   }
 `;
 
-// Both hand back a fresh token, since the username and email are baked into the old one.
 export const UPDATE_ACCOUNT = gql`
   mutation updateAccount($username: String, $email: String) {
     updateAccount(username: $username, email: $email) {

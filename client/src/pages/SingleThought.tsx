@@ -60,7 +60,6 @@ export default function SingleThought() {
       <ThoughtCard
         thought={thought}
         showCommentsLink={false}
-        // The world is already on screen above.
         showBuild={false}
         onDeleted={() => navigate("/", { replace: true })}
       />
@@ -69,8 +68,6 @@ export default function SingleThought() {
         <h2 className="text-sm font-semibold">
           {reactions.length} {reactions.length === 1 ? "comment" : "comments"}
         </h2>
-        {/* The box to type in comes first, so a long thread does not mean
-            scrolling past everything to say anything. */}
         {isLoggedIn ? (
           <div className="py-3">
             <ReactionForm thoughtId={thought._id} reactions={reactions} />

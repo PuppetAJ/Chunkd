@@ -1,8 +1,3 @@
-/**
- * End-to-end smoke test. Needs both servers up: `pnpm dev`, then `pnpm test:e2e`.
- * One scenario rather than independent tests: later checks depend on what
- * earlier ones leave behind. E2E_TIMING=1 shows where the time goes.
- */
 import { BASE, check, helpers, newUser, test } from "./lib.mjs";
 
 test("the site, from signing up to the demo account and back", async ({ page }) => {
@@ -10,7 +5,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   const user = newUser();
 
-  // ---------------------------------------------------------------- public pages
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await appears(page.getByRole("heading", { name: /Build a world in your browser/ }));
   check(
@@ -19,7 +13,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   );
   check("signed-out header offers Log in", (await page.getByRole("link", { name: "Log in" }).count()) > 0);
 
-  // The campfire cross-fades two images, so read the opacities rather than pixels.
   const flameOpacity = () =>
     page.$$eval("header a img", (images) =>
       // Round rather than slice the string: a finished fade can report "1.3e-7".
@@ -48,8 +41,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await page.waitForURL("**/login", { timeout: 15000 }).catch(() => {});
   check("signed-out /editor redirects to login", page.url().endsWith("/login"), page.url());
 
-  // ------------------------------------------------------- sign-up form errors
-  // Field problems and request failures are both rendered as destructive text.
   const formErrors = async () =>
     (await page.locator("p.text-destructive").allTextContents()).join(" | ");
 
@@ -71,7 +62,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("signup names a username that is too short", shortUsername.includes("3 characters"), shortUsername);
   check("signup names a malformed email", shortUsername.includes("email address"), shortUsername);
 
-  // ---------------------------------------------------------------------- signup
   await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
   await page.fill("#username", user.username);
   await page.fill("#email", user.email);
@@ -81,7 +71,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("signup signs the user in without reloading the page", page.url() === `${BASE}/`);
   check("header switches to the signed-in menu", (await page.getByRole("link", { name: "Editor" }).first().count()) > 0);
 
-  // --------------------------------------------------------------- login errors
   await page.goto(`${BASE}/signup`, { waitUntil: "domcontentloaded" });
   await page.fill("#username", `${user.username}b`.slice(0, 20));
   await page.fill("#email", user.email);
@@ -111,13 +100,11 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await page.waitForURL(`${BASE}/`, { timeout: 15000 });
   check("login succeeds with the right password", page.url() === `${BASE}/`);
 
-  // ---------------------------------------------------------------------- editor
   await page.getByRole("link", { name: "Editor" }).first().click();
   await page.waitForURL("**/editor", { timeout: 15000 });
   check("the editor finishes generating and drawing a world", await rendererSettled(),
     "the renderer never caught up with the world");
 
-  // The editor is routed outside the site shell so the header cannot eat the canvas.
   check("the editor renders no site header", (await page.locator("header").count()) === 0);
   check("the editor renders no site footer", (await page.locator("footer").count()) === 0);
   const editorCanvas = await page.locator("#editor canvas").boundingBox();
@@ -130,7 +117,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await goes(page.getByRole("button", { name: "Click to play" }));
   check("clicking to play dismisses the pause screen", (await page.getByRole("button", { name: "Click to play" }).count()) === 0);
 
-  // Pin the world: where the player lands decides whether a camera angle can place a block.
   await page.evaluate(() => window.__world.getState().newWorld(20260905));
   check("the pinned world finishes drawing", await rendererSettled(),
     "the renderer never caught up with the world");
@@ -146,7 +132,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
         else if (object.isMesh) meshes++;
       });
       return {
-        // Fewer than blocks, because buried blocks are skipped.
         drawn,
         blocks: window.__world.getState().blocks.size,
         meshes,
@@ -163,7 +148,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("the scene is actually being drawn", (before?.triangles ?? 0) > 1000, JSON.stringify(before));
   check("buried blocks are not drawn", before.drawn < before.blocks, `${before.drawn} drawn of ${before.blocks}`);
 
-  // Aim straight down so the block underfoot is inside the player's reach.
   await page.evaluate(() => window.__r3f.camera.rotation.set(-Math.PI / 2, 0, 0));
   const box = await page.locator("canvas").boundingBox();
   const cx = Math.round(box.x + box.width / 2);
@@ -177,14 +161,11 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("left click breaks a block", afterBreak.blocks === before.blocks - 1,
     `${before.blocks} -> ${afterBreak.blocks}`);
 
-  // Sweep angles until one can place a block. The angle that works goes first:
-  // a failed attempt waits out its whole timeout.
   let afterPlace = afterBreak;
   for (const [pitch, yaw] of [[0, 2.4], [-0.6, 0], [-0.35, 0], [-0.85, 0], [-0.6, 1.6], [-0.6, 3.1], [-0.2, 0.8]]) {
     await page.evaluate(([p, y]) => window.__r3f.camera.rotation.set(p, y, 0), [pitch, yaw]);
     await frames();
     await page.mouse.click(cx, cy, { button: "right" });
-    // Short on purpose: most of these angles are meant to fail.
     await until((want) => window.__world.getState().blocks.size > want, afterBreak.blocks, 2000);
     afterPlace = await scene();
     if (afterPlace.blocks > afterBreak.blocks) break;
@@ -192,8 +173,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("right click places a block", afterPlace.blocks === afterBreak.blocks + 1,
     `${afterBreak.blocks} -> ${afterPlace.blocks}`);
 
-  // ------------------------------------------------ repeated clicks keep working
-  // Each click has to re-aim after the edit before it, not keep the target it broke.
   await page.evaluate(() => {
     const store = window.__world.getState();
     const camera = window.__r3f.camera;
@@ -202,7 +181,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     const z = Math.round(camera.position.z);
     store.setHotbarBlock(1, 4);
     store.setSelectedSlot(1);
-    // Stone several deep straight ahead, so breaking one always leaves another in reach.
     for (let depth = 2; depth <= 7; depth += 1) {
       for (let dy = -1; dy <= 1; dy += 1) {
         for (let dx = -1; dx <= 1; dx += 1) store.placeBlock(x + dx, y + dy, z - depth);
@@ -215,8 +193,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const wallBefore = await blockCount();
   for (let i = 0; i < 5; i += 1) {
     const at = await blockCount();
-    // Nothing between press and release. The editor acts on pointerdown, and
-    // holding past REPEAT_MS starts digging again, so a wait here breaks this.
     await page.mouse.down({ button: "left" });
     await page.mouse.up({ button: "left" });
     await until((want) => window.__world.getState().blocks.size === want, at - 1, 5000);
@@ -225,8 +201,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("five clicks in a row break five blocks", wallBefore - wallAfter === 5,
     `${wallBefore} -> ${wallAfter}`);
 
-  // --------------------------------------------------------------- zoom gestures
-  // Zooming moves the crosshair off where the player is aiming.
   const zoomProbe = await page.evaluate(() => {
     const pinch = new WheelEvent("wheel", { deltaY: -120, ctrlKey: true, cancelable: true, bubbles: true });
     document.body.dispatchEvent(pinch);
@@ -244,7 +218,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("a Safari zoom gesture does not zoom the editor", zoomProbe.gesture);
   check("ordinary scrolling still gets through", !zoomProbe.scroll);
 
-  // ------------------------------------------------------- hotbar and inventory
   const selectedSlot = () => page.evaluate(() => window.__world.getState().selectedSlot);
 
   const scrollTo = async (delta, expected) => {
@@ -268,7 +241,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
       new WheelEvent("wheel", { deltaY: 400, ctrlKey: true, cancelable: true, bubbles: true }),
     ),
   );
-  // Nothing should change, so there is no condition to wait for.
   await frames(3);
   check("a pinch does not scrub through the hotbar", (await selectedSlot()) === beforePinch,
     `slot ${beforePinch} -> ${await selectedSlot()}`);
@@ -287,14 +259,11 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await goes(page.getByRole("heading", { name: "Blocks" }));
   check("Escape closes the inventory", (await page.getByRole("heading", { name: "Blocks" }).count()) === 0);
 
-  // ------------------------------------------------------- directional placing
-  // Orientation lives in the stored value above the block id's low byte.
   const axisAt = await page.evaluate(() => {
     const store = window.__world.getState();
     const OAK_LOG = 5;
     store.setHotbarBlock(1, OAK_LOG);
     store.setSelectedSlot(1);
-    // Somewhere empty and well clear of the player.
     const x = 5, y = 40, z = 5;
     store.placeBlock(x, y, z, 0);
     store.placeBlock(x + 2, y, z, 1);
@@ -310,18 +279,15 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("a log placed against a north face lies north to south", axisAt[2].axis === 2, JSON.stringify(axisAt[2]));
   check("orientation does not disturb the block id", axisAt.every((one) => one.id === 5), JSON.stringify(axisAt));
 
-  // --------------------------------------------------------------------- slabs
-  // The shape belongs to the slot and is stored above the id and the orientation.
   const shapeOfSlot = () =>
     page.evaluate(() => {
       const state = window.__world.getState();
       return state.hotbarShape[state.selectedSlot - 1];
     });
 
-  // Stone bricks explicitly: only blocks with a slab in Minecraft can be cut.
   await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(3, 9); // stone bricks
+    store.setHotbarBlock(3, 9);
     store.setSelectedSlot(3);
   });
   check("a slot places whole blocks to begin with", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
@@ -329,8 +295,7 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await frames();
   check("R turns the slot over to slabs", (await shapeOfSlot()) === 1, `shape ${await shapeOfSlot()}`);
 
-  // Otherwise the slot would be left unplaceable.
-  await page.evaluate(() => window.__world.getState().setHotbarBlock(3, 5)); // oak log
+  await page.evaluate(() => window.__world.getState().setHotbarBlock(3, 5));
   check("choosing a block with no slab clears the slot's shape", (await shapeOfSlot()) === 0, `shape ${await shapeOfSlot()}`);
   await page.keyboard.press("KeyR");
   await frames();
@@ -350,7 +315,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await page.keyboard.press("KeyR");
   await frames();
   check("R steps on from a slab rather than toggling back", (await shapeOfSlot()) === 3, `shape ${await shapeOfSlot()}`);
-  // Stone bricks have a wall in Minecraft, so one more step comes after stairs.
   await page.keyboard.press("KeyR");
   await frames();
   check("R steps on from stairs to a wall", (await shapeOfSlot()) === 6, `shape ${await shapeOfSlot()}`);
@@ -361,11 +325,10 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const slabs = await page.evaluate(() => {
     const store = window.__world.getState();
 
-    // Somewhere empty and well clear of the player.
     const x = 12, y = 40, z = 12;
-    store.placeBlock(x, y, z, 0, 0);       // a whole block
-    store.placeBlock(x + 2, y, z, 0, 1);   // a slab in the lower half of its cell
-    store.placeBlock(x + 4, y, z, 0, 2);   // a slab in the upper half
+    store.placeBlock(x, y, z, 0, 0);
+    store.placeBlock(x + 2, y, z, 0, 1);
+    store.placeBlock(x + 4, y, z, 0, 2);
 
     const read = (bx) => {
       const value = window.__world.getState().blocks.get(`${bx},${y},${z}`);
@@ -378,13 +341,10 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("a top slab stores shape 2", slabs[2].shape === 2, JSON.stringify(slabs));
   check("the shape does not disturb the block id", slabs.every((one) => one.id === 9), JSON.stringify(slabs));
 
-  // A slab has an exposed surface inside its own cell, so nothing can bury it.
   const buried = await page.evaluate(() => {
     const store = window.__world.getState();
     const x = 20, y = 30, z = 20;
 
-    // Enclose the cell at y - 1 on all six sides, with a bottom slab as its lid.
-    // Culling needs every face covered, not only the interesting one.
     store.placeBlock(x, y - 1, z, 0, 0);
     store.placeBlock(x, y - 2, z, 0, 0);
     store.placeBlock(x + 1, y - 1, z, 0, 0);
@@ -396,7 +356,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     const state = window.__world.getState();
     return {
       slabDrawn: state.visible.has(`${x},${y},${z}`),
-      // A bottom slab's underside covers the block below, so that one stays culled.
       belowDrawn: state.visible.has(`${x},${y - 1},${z}`),
     };
   });
@@ -415,7 +374,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
       }
     }
 
-    // The frame loop does the falling.
     const body = window.__player;
     body.x = x;
     body.y = y + 4;
@@ -427,16 +385,13 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const feet = await page.evaluate(() => window.__player.y);
   check(
     "the player stands on a slab's surface, not on top of its cell",
-    // The slab's surface is at y + 1; the cell top would be y + 1.5.
     landed && Math.abs(feet - (SLAB_PAD_Y + 1)) < 0.01,
     `landed ${landed}, feet ${feet}, expected ${SLAB_PAD_Y + 1}`,
   );
 
-  // Step assist: a slab is half a block up, and should not need a jump.
   await page.evaluate((y) => {
     const store = window.__world.getState();
     const x = 30, z = 30;
-    // Whole blocks at y + 1 top out at y + 1.5, a half block above the slab surface.
     for (let dx = 2; dx <= 7; dx += 1) {
       for (let dz = -1; dz <= 1; dz += 1) store.placeBlock(x + dx, y + 1, z + dz, 0, 0);
     }
@@ -451,10 +406,9 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const steppedUp = await until((want) => window.__player?.y >= want, SLAB_PAD_Y + 1.5, 15000);
   await page.keyboard.up("w");
   const afterStep = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
-  // -------------------------------------------------------------------- stairs
   await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(4, 9); // stone bricks
+    store.setHotbarBlock(4, 9);
     store.setSelectedSlot(4);
   });
   const shapeOfFour = () =>
@@ -473,10 +427,9 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await frames();
   check("R comes back round to a whole block", (await shapeOfFour()) === 0, `shape ${await shapeOfFour()}`);
 
-  // Cut sandstone has a slab in Minecraft but no stairs.
   await page.evaluate(() => {
     const store = window.__world.getState();
-    store.setHotbarBlock(5, 33); // cut sandstone
+    store.setHotbarBlock(5, 33);
     store.setSelectedSlot(5);
   });
   const shapeOfFive = () => page.evaluate(() => window.__world.getState().hotbarShape[4]);
@@ -492,11 +445,10 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     store.setHotbarBlock(4, 9);
     store.setSelectedSlot(4);
     const y = 44, z = 16;
-    // Facings 0 to 3 are north, east, south and west.
     for (let facing = 0; facing < 4; facing += 1) {
       store.placeBlock(14 + facing * 2, y, z, 0, 3, facing);
     }
-    store.placeBlock(14, y, z + 2, 0, 4, 0); // upside down
+    store.placeBlock(14, y, z + 2, 0, 4, 0);
     const read = (x, zz) => {
       const value = window.__world.getState().blocks.get(`${x},${y},${zz}`);
       return { id: value & 0xff, shape: (value >> 10) & 0b111, facing: (value >> 13) & 0b11 };
@@ -514,10 +466,9 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const STAIR_LANE_Z = 34;
   await page.evaluate(([y, z]) => {
     const store = window.__world.getState();
-    store.setHotbarBlock(4, 9); // stone bricks
+    store.setHotbarBlock(4, 9);
     store.setSelectedSlot(4);
 
-    // The stairs face west so their low step meets the player.
     for (let dx = 0; dx <= 10; dx += 1) {
       for (let dz = -1; dz <= 1; dz += 1) store.placeBlock(30 + dx, y, z + dz, 0, 0);
     }
@@ -535,13 +486,11 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   await page.evaluate(() => window.__r3f.camera.rotation.set(0, -Math.PI / 2, 0, "YXZ"));
   await page.keyboard.down("w");
-  // The top of the fourth stair.
   const climbed = await until((want) => window.__player?.y >= want, SLAB_PAD_Y + 4.5, 20000);
   await page.keyboard.up("w");
   const afterClimb = await page.evaluate(() => ({ x: window.__player.x, y: window.__player.y }));
   check("a staircase is walked up without jumping", climbed, JSON.stringify(afterClimb));
 
-  // ------------------------------------------------ fences, walls and trapdoors
   const shapeCycle = async (blockId) => {
     await page.evaluate((id) => {
       const store = window.__world.getState();
@@ -566,7 +515,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const stoneCycle = await shapeCycle(18);
   check("plain stone has no wall", stoneCycle === "0,1,3", stoneCycle);
 
-  // Three fences in a row, three walls with a corner, and a trapdoor on its own.
   const SHAPE_Y = 70;
   await page.evaluate((y) => {
     const store = window.__world.getState();
@@ -601,7 +549,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     10000,
   );
 
-  // Sides are north 1, east 2, south 4, west 8, and a wall's post is 16.
   const midFence = await variantAt(41, SHAPE_Y, 40, 5);
   check("a fence in a row joins both neighbours", midFence === 10, `variant ${midFence}`);
   const endFence = await variantAt(40, SHAPE_Y, 40, 5);
@@ -613,7 +560,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const lonelyTrapdoor = await variantAt(46, SHAPE_Y, 40, 7);
   check("a trapdoor is drawn as a shut trapdoor", lonelyTrapdoor === 0, `variant ${lonelyTrapdoor}`);
 
-  // A row of panes from a stone block to a glass block, and a pane on its own.
   await page.evaluate((y) => {
     const store = window.__world.getState();
     const place = (blockId, x) => {
@@ -675,9 +621,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   await page.evaluate((y) => {
     const store = window.__world.getState();
-    store.setHotbarBlock(6, 9); // stone bricks, the pad's own block
+    store.setHotbarBlock(6, 9);
     store.setSelectedSlot(6);
-    // The step assist walked the player off the pad; this needs them aiming at a slab.
     const body = window.__player;
     body.x = 30;
     body.y = y + 1;
@@ -702,23 +647,19 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   }, SLAB_PAD_Y, 5000);
   check("a second slab of the same block fills the cell", (await underfoot()) === 0, `shape ${await underfoot()}`);
 
-  // Corners come from the neighbours, not the stored value, so ask the renderer.
   const CORNER_AT = { x: 40, y: 48, z: 40 };
   await page.evaluate(({ x, y, z }) => {
     const store = window.__world.getState();
     store.setHotbarBlock(7, 9);
     store.setSelectedSlot(7);
 
-    // A run turning up its tall side makes an outer corner.
     for (let i = 0; i < 3; i += 1) store.placeBlock(x + i, y, z, 0, 3, 2);
     for (let i = 1; i <= 2; i += 1) store.placeBlock(x + 2, y, z - i, 0, 3, 3);
 
-    // The same run turning the other way makes an inner corner.
     for (let i = 0; i < 3; i += 1) store.placeBlock(x + 6 + i, y, z, 0, 3, 2);
     for (let i = 1; i <= 2; i += 1) store.placeBlock(x + 8, y, z + i, 0, 3, 3);
   }, CORNER_AT);
 
-  // Layers are rebuilt on render, not on store change, so wait before reading them.
   await rendererSettled();
 
   const corners = await page.evaluate(({ x, y, z }) => {
@@ -751,7 +692,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     `${JSON.stringify(afterStep)}, expected y ${SLAB_PAD_Y + 1.5}`,
   );
 
-  // ------------------------------------------------------------------- the brush
   const brushSize = () => page.evaluate(() => window.__world.getState().brush);
   const bigger = [];
   for (let i = 0; i < 5; i += 1) {
@@ -767,8 +707,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   }
   check("shift+` steps it back down and stops at one", smaller.join(",") === "7,5,3,1,1", smaller.join(","));
 
-  // Aimed at a wall, not the floor: a cell the player stands in is refused and
-  // would leave a hole in the square.
   const BRUSH_AT = { x: 60, y: 70, z: 60 };
   await page.evaluate(({ x, y, z }) => {
     const store = window.__world.getState();
@@ -786,7 +724,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     body.z = z;
     body.vy = 0;
   }, BRUSH_AT);
-  // No rotation at all looks due north, straight at the wall.
   await page.evaluate(() => window.__r3f.camera.rotation.set(0, 0, 0, "YXZ"));
   await frames(2);
   await page.keyboard.press("Backquote");
@@ -798,7 +735,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const placed = (await blocksNow()) - beforePlace;
   check("a brush three across places nine blocks at once", placed === 9, `${placed} blocks`);
 
-  // The camera sits an eye height above the pad, so the square is centred on y + 2.
   const square = await page.evaluate(({ x, y, z }) => {
     const { blocks } = window.__world.getState();
     let found = 0;
@@ -818,7 +754,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await page.keyboard.press("Shift+Backquote");
   check("the brush is back to one for what follows", (await brushSize()) === 1, `${await brushSize()} across`);
 
-  // The wall is blackstone, which slot 7 is holding.
   await page.evaluate(() => window.__world.getState().setSelectedSlot(5));
   await page.keyboard.press("KeyQ");
   await frames();
@@ -842,8 +777,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     JSON.stringify(pickedFresh),
   );
 
-  // ------------------------------------------------- an edit touches few layers
-  // A layer the edit did not touch must be the same object, so React skips it.
   const layersBefore = await page.evaluateHandle(() => window.__layers);
   await page.evaluate(() => {
     const store = window.__world.getState();
@@ -861,8 +794,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     JSON.stringify(layerReuse),
   );
 
-  // ------------------------------------------------------------- wandering off
-  // Height is deliberately not part of the check.
   const spawn = await page.evaluate(() => window.__world.getState().spawnPoint());
   await page.evaluate(() => {
     window.__player.x = -400;
@@ -898,14 +829,12 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("saving asks for a name", (await page.locator("#buildName").count()) > 0);
   check("the dialog previews the captured view", (await page.locator('[role=dialog] img').count()) > 0);
 
-  // W is both a letter and the key for forward.
   const cameraNow = () => page.evaluate(() => {
     const p = window.__r3f.camera.position;
     return [p.x, p.y, p.z];
   });
   const cameraBeforeTyping = await cameraNow();
   await page.keyboard.down("w");
-  // A duration on purpose: it is how long the key is held.
   await page.waitForTimeout(900);
   await page.keyboard.up("w");
   const cameraAfterTyping = await cameraNow();
@@ -918,14 +847,11 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
 
   await page.fill("#buildName", "Ridge fort");
   await page.getByRole("button", { name: "Save build" }).click();
-  // The confirmation clears itself, so wait for it to go as well.
   const savedToast = page.locator("text=/build saved/i").first();
   await savedToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
   check("the save confirmation appears", (await page.locator("text=/build saved/i").count()) > 0);
   await savedToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
 
-  // ------------------------------------------------------- work that was never saved
-  // Saving clears the unsaved copy, so this starts by making some work.
   const unsaved = await page.evaluate(() => {
     const store = window.__world.getState();
     const camera = window.__r3f.camera;
@@ -973,7 +899,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await frames(3);
   check("and it is not offered again", (await offer.count()) === 0);
 
-  // -------------------------------------------------------------------- profile
   await page.keyboard.press("Escape");
   await appears(page.getByRole("link", { name: "Leave the editor" }));
   await page.getByRole("link", { name: "Leave the editor" }).click();
@@ -993,7 +918,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await appears(page.getByRole("button", { name: /^Delete / }));
   check("a build offers a delete button to its owner", (await page.getByRole("button", { name: /^Delete / }).count()) > 0);
 
-  // ------------------------------------------------------- editing a saved build
   await page.getByRole("link", { name: "Edit Ridge fort" }).click();
   await page.waitForURL("**/editor?build=*", { timeout: 15000 });
   const reopened = await until(
@@ -1009,7 +933,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
       return new URL(location.href).searchParams.get("build") === state.source?.id;
     }),
   );
-  // The save key is listened for inside the canvas, so wait for it to draw.
   await rendererSettled();
   await appears(page.getByRole("button", { name: "Click to play" }));
   check(
@@ -1033,7 +956,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("overwriting confirms like a save", (await page.locator("text=/build saved/i").count()) > 0);
   await overwroteToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
 
-  // Saving under a second name must not fetch the first build back over the work.
   const marker = await page.evaluate(() => {
     const store = window.__world.getState();
     const camera = window.__r3f.camera;
@@ -1051,7 +973,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const keptToast = page.locator("text=/build saved/i").first();
   await keptToast.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
   await keptToast.waitFor({ state: "hidden", timeout: 10000 }).catch(() => {});
-  // Give the reload this guards against time to happen.
   await frames(4);
   const afterSecondName = await page.evaluate((key) => ({
     kept: window.__world.getState().blocks.has(key),
@@ -1081,14 +1002,12 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const copies = await page.getByText("Ridge fort", { exact: true }).count();
   check("overwriting leaves one build, not two", copies === 1, `${copies} builds named Ridge fort`);
 
-  // Nothing has been posted yet, so the posts tab is empty here.
   await page.getByRole("tab", { name: "Posts" }).click();
   await appears(page.locator("text=No posts yet"));
   check("an empty posts tab explains itself", (await page.locator("text=No posts yet").count()) > 0);
   await page.getByRole("tab", { name: "Builds" }).click();
   await appears(page.getByRole("button", { name: "New post" }));
 
-  // --------------------------------------------------------------- posting a build
   await page.getByRole("button", { name: "New post" }).click();
   await appears(page.locator('textarea[name="thoughtText"]'));
   check("post dialog opens", (await page.locator('textarea[name="thoughtText"]').count()) > 0);
@@ -1104,11 +1023,9 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await goes(page.locator('textarea[name="thoughtText"]'));
   check("posting closes the dialog", (await page.locator('textarea[name="thoughtText"]').count()) === 0);
 
-  // ------------------------------------------------------------------- the feed
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await appears(page.locator("text=End-to-end test build"));
   check("the new post appears on the feed", (await page.locator("text=End-to-end test build").count()) > 0);
-  // The timestamp check reads innerText: a post's <time datetime> carries the raw ISO string.
   await page.getByRole("button", { name: "Post actions" }).first().click();
   await page.getByRole("menuitem", { name: "Edit post" }).click();
   await page.fill('textarea[aria-label="Edit post text"]', "End-to-end test build, edited");
@@ -1123,7 +1040,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("timestamps are formatted rather than raw ISO",
     !/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(await page.locator("body").innerText()));
 
-  // Forced because the card's stretched link covers the text, which is the point.
   await page.locator("article").first().locator("p").first().click({ force: true });
   await page.waitForURL(/\/thought\//, { timeout: 15000 }).catch(() => {});
   check("clicking a post card opens the post", /\/thought\//.test(page.url()), page.url());
@@ -1133,7 +1049,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await page.getByRole("link").filter({ hasText: /the discussion/ }).first().click();
   await page.waitForURL(/\/thought\//, { timeout: 15000 }).catch(() => {});
   check("the post opens on its own page", /\/thought\//.test(page.url()), page.url());
-  // The checks below drag the viewer, so wait for it.
   await appears(page.locator("canvas"));
   await until(() => window.__viewer !== undefined, null, 20000);
 
@@ -1148,7 +1063,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("the comment box sits above the comments", commentOrder !== "list first", commentOrder);
   check("the attached build renders in a canvas", (await page.locator("canvas").count()) > 0);
 
-  // The orbit target is the only way to tell a rotate from a pan from outside the canvas.
   const orbitTarget = () => page.evaluate(() => window.__viewer?.target?.toArray() ?? null);
   const dragBy = async (shift) => {
     const box = await page.locator("canvas").first().boundingBox();
@@ -1158,7 +1072,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     if (shift) await page.keyboard.down("Shift");
     await page.mouse.move(x, y);
     await page.mouse.down();
-    // Few steps: each one re-renders the whole build.
     await page.mouse.move(x + 180, y + 50, { steps: 5 });
     await page.mouse.up();
     if (shift) await page.keyboard.up("Shift");
@@ -1173,13 +1086,11 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const panned = await dragBy(true);
   check("shift and drag pans the build", panned !== null && panned > 0.5, `${panned}`);
 
-  // ------------------------------------------------------------------ commenting
   await page.fill('textarea[aria-label="Write a comment"]', "Nice work");
   await page.getByRole("button", { name: "Comment" }).click();
   await appears(page.locator("text=Nice work"));
   check("a comment can be added", (await page.locator("text=Nice work").count()) > 0);
 
-  // The delete button can arrive a moment after the comment's text.
   const deleteButtons = page.getByRole("button", { name: "Delete comment" });
   const deleteButtonsAtOnce = await deleteButtons.count();
   await appears(deleteButtons);
@@ -1195,8 +1106,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("a comment can be deleted", (await page.locator("text=Nice work").count()) === 0);
   check("the empty comment list explains itself", (await page.locator("text=No comments yet").count()) > 0);
 
-  // ------------------------------------------------------------------- the feed
-  // Ten posts come back first; scrolling to the bottom asks for the next ten.
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await appears(page.locator("article"));
   const firstPage = await page.locator("article").count();
@@ -1211,7 +1120,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     check("scrolling to the bottom loads more posts", secondPage > firstPage, `${firstPage} then ${secondPage}`);
   }
 
-  // ----------------------------------------------------------------- following
   const otherAuthor = await page
     .locator("article a[href^='/profile/']")
     .filter({ hasNotText: user.username })
@@ -1244,9 +1152,7 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     check("they appear in your Following tab", (await page.locator(`text=${followedName}`).count()) > 0);
   }
 
-  // ------------------------------------------------------------------ settings
   await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
-  // The field exists before the query fills it, so wait for the value.
   await until(
     (want) => document.querySelector("#settingsUsername")?.value === want,
     user.username,
@@ -1290,7 +1196,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("the password change is confirmed", (await page.locator("text=/password was changed/").count()) > 0);
   user.password = newPassword;
 
-  // ---------------------------------------------------------------------- logout
   await page.getByRole("button", { name: "Account menu" }).click();
   await page.getByRole("menuitem", { name: "Log out" }).click();
   await appears(page.getByRole("link", { name: "Log in" }));
@@ -1303,7 +1208,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await page.waitForURL(`${BASE}/`, { timeout: 15000 }).catch(() => {});
   check("the changed password logs the user back in", page.url() === `${BASE}/`, page.url());
 
-  // ------------------------------------------------------------------- landing
   await page.evaluate(() => localStorage.clear());
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await appears(page.getByRole("heading", { name: /Build a world in your browser/ }));
@@ -1321,7 +1225,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     (await page.locator('a[href^="/thought/"] img').count()) > 0,
   );
 
-  // ------------------------------------------------------------ viewer settings
   const firstBuildLink = await page.locator('a[href^="/thought/"]').first().getAttribute("href");
   await page.goto(BASE + firstBuildLink, { waitUntil: "domcontentloaded" });
   await appears(page.getByRole("button", { name: "Scene settings" }));
@@ -1340,11 +1243,8 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   await until(() => /daylight/.test(localStorage.getItem("viewer-settings") ?? ""), null, 15000);
   const afterReload = await page.evaluate(() => localStorage.getItem("viewer-settings"));
   check("the scene survives a reload", /daylight/.test(afterReload ?? ""), String(afterReload));
-  // Back to the default, so nothing later in the run inherits it.
   await page.evaluate(() => localStorage.removeItem("viewer-settings"));
 
-  // ------------------------------------------------------------- the demo account
-  // These run on from the signed-out state above.
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   await appears(page.getByRole("button", { name: /Explore with a demo account/ }));
   check(
@@ -1371,7 +1271,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     (await page.getByRole("heading", { name: "Recent builds" }).count()) > 0,
   );
 
-  // Everyone shares the demo account, so it cannot change its sign-in details.
   await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
   await appears(page.locator("text=You are using the demo account"));
   check(
@@ -1399,8 +1298,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   const editorScene = await page.evaluate(() => localStorage.getItem("editor-settings"));
   check("the editor keeps its own scene preference", /studio/.test(editorScene ?? ""), String(editorScene));
 
-  // drei's controls lock on any click in the document unless told otherwise,
-  // which would take the mouse back with the pause screen still up.
   const locksWhilePaused = await page.evaluate(() => {
     const seen = window.__lockRequests.slice();
     window.__lockRequests.length = 0;
@@ -1419,11 +1316,7 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
   check("starting play asks for the mouse", locksOnPlay.includes("editor"), locksOnPlay.join(", ") || "(none)");
   check("the pause screen goes away when play starts", (await page.locator("[data-pause-card]").count()) === 0);
 
-  // ---------------------------------------------------- coming back to the tab
-  // A headless browser has no pointer lock, so this page fakes one that behaves like Chrome's.
   {
-    // A page of its own so the fake lock reaches nothing else in the run,
-    // which is why it signs in again.
     const lockPage = await page.context().browser().newPage({ viewport: { width: 1280, height: 800 } });
     await lockPage.addInitScript(() => {
       let held = null;
@@ -1469,7 +1362,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     await on(() => !!document.pointerLockElement, null, 5000);
     await lockPage.evaluate(() => window.__r3f.camera.rotation.set(-Math.PI / 2, 0, 0, "YXZ"));
 
-    // Leave, come back, and ask for play again too soon for the lock.
     await lockPage.evaluate(() => window.__dropLock());
     await playButton().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
     await lockPage.evaluate(() => {
@@ -1496,7 +1388,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     const actsAgain = await on((n) => window.__world.getState().blocks.size !== n, afterReturn, 5000);
     check("once the mouse is back, a click breaks a block again", actsAgain);
 
-    // A browser can grant the lock once and then stop (Zen does); clicks then have to act.
     await lockPage.evaluate(() => window.__dropLock());
     await playButton().waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
     await lockPage.evaluate(() => {
@@ -1523,7 +1414,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
       !(await inventoryShown()) && (await playButton().count()) > 0,
     );
 
-    // If drei locks the canvas's wrapper instead of the canvas, clicks stop reaching the world.
     await playButton().click();
     await on(() => !!document.pointerLockElement, null, 5000);
     await lockPage.keyboard.press("KeyE");
@@ -1542,8 +1432,6 @@ test("the site, from signing up to the demo account and back", async ({ page }) 
     await lockPage.close();
   }
 
-  // ------------------------------------------------------------ signing out
-  // Emptying the cache alone leaves a tab holding build ids a reset database no longer has.
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await appears(page.locator("article"));
 

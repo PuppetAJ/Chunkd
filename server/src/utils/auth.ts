@@ -4,7 +4,6 @@ import { env } from "../config/env.ts";
 import type { UserDocument } from "../models/index.ts";
 import type { Loaders } from "./loaders.ts";
 
-// What is signed into the auth token.
 export interface AuthUser {
   _id: string;
   username: string;
@@ -13,9 +12,7 @@ export interface AuthUser {
 
 export interface GraphQLContext {
   user: AuthUser | null;
-  /** Where the request came from, for the per-address attempt limits. */
   ip: string;
-  /** Built fresh per request. See utils/loaders.ts for why that matters. */
   loaders: Loaders;
 }
 
@@ -33,7 +30,6 @@ export function signToken(user: UserDocument): string {
   return jwt.sign(payload, env.JWT_SECRET, options);
 }
 
-// An invalid token is treated the same as no token at all.
 export function getUserFromAuthHeader(header: string | undefined): AuthUser | null {
   if (!header) return null;
 
@@ -41,7 +37,6 @@ export function getUserFromAuthHeader(header: string | undefined): AuthUser | nu
   if (!token) return null;
 
   try {
-    // Pinned to the one algorithm we sign with.
     return jwt.verify(token, env.JWT_SECRET, { algorithms: ["HS256"] }) as AuthUser;
   } catch {
     return null;
@@ -75,10 +70,6 @@ export function notFound(message: string): GraphQLError {
   });
 }
 
-/**
- * Turn a Mongoose validation failure into a message worth showing someone.
- * Returns null for anything else, so callers can rethrow untouched.
- */
 export function asUserInputError(error: unknown): GraphQLError | null {
   if (!error || typeof error !== "object") return null;
   if ((error as { name?: string }).name !== "ValidationError") return null;

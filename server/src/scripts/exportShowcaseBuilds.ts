@@ -1,18 +1,9 @@
-/**
- * Exports the builds listed below from one account into showcaseBuilds.json,
- * which `pnpm seed` puts on the landing page:
- *
- *   pnpm showcase:export badelin
- *
- * The seeder posts them in list order, so the last one becomes the landing page hero.
- */
 import { writeFileSync } from "node:fs";
 import { connectToDatabase, disconnectFromDatabase } from "../config/db.ts";
 import { Build, User } from "../models/index.ts";
 
 const OUT = new URL("../seeders/showcaseBuilds.json", import.meta.url);
 
-/** Build name to the post that goes with it. A build not listed here is left out. */
 const CAPTIONS: [name: string, caption: string][] = [
   ["Cabin", "A small spruce cabin with a path down the hill. First thing I built that I did not tear down again."],
   ["Dinosaur", "A dinosaur, all spruce. Started as a joke and then I could not leave the tail unfinished."],

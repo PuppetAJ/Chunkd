@@ -6,8 +6,6 @@ import { typeDefs } from "../../../server/src/schemas/typeDefs.ts";
 import * as mutations from "./mutations.ts";
 import * as queries from "./queries.ts";
 
-// Checks every document the client sends against the server's schema, so a
-// field that no longer exists fails here instead of in the browser.
 const schema = buildSchema(typeDefs);
 
 for (const [name, document] of Object.entries({ ...queries, ...mutations })) {

@@ -4,7 +4,6 @@ import type { UserSummary } from "../../lib/feedTypes.ts";
 import UserAvatar from "../UserAvatar.tsx";
 
 interface Props {
-  /** Whose list this is, for the sentence shown when it is empty. */
   username: string;
   count: number;
   people: UserSummary[];

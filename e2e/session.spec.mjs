@@ -1,10 +1,3 @@
-/**
- * What happens to a world when a session runs out underneath it. Needs a
- * server that hands out short-lived tokens:
- *
- *   JWT_EXPIRES_IN=60s pnpm dev:server
- *   pnpm test:session
- */
 import { BASE, check, helpers, newUser, signUp, test } from "./lib.mjs";
 
 test("a world outlives the session it was built in", async ({ page }) => {
@@ -34,7 +27,6 @@ test("a world outlives the session it was built in", async ({ page }) => {
 
   const holds = (marker) => page.evaluate((key) => window.__world.getState().blocks.has(key), marker);
 
-  // ------------------------------------------------- a session that keeps going
   let renewals = 0;
   page.on("request", (request) => {
     if ((request.postData() ?? "").includes("renewToken")) renewals += 1;
@@ -65,8 +57,6 @@ test("a world outlives the session it was built in", async ({ page }) => {
   check("a save long after the first token still works", (await page.locator("text=/build saved/i").count()) > 0);
   await saved.waitFor({ state: "hidden", timeout: 15000 }).catch(() => {});
 
-  // ------------------------------------------- a session that ends all the same
-  // Renewal is what stops this happening, so it has to be turned off to test it.
   await page.route("**/graphql", async (route) => {
     if ((route.request().postData() ?? "").includes("renewToken")) {
       return route.fulfill({

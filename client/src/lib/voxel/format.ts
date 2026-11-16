@@ -2,25 +2,16 @@ import { z } from "zod";
 import { generateTerrain, WORLD_SIZE, WORLD_SIZES } from "./terrain.ts";
 import { fromKey, toKey, type BlockKey } from "./coords.ts";
 
-/**
- * A save is the seed plus the blocks removed and added; the terrain is
- * regenerated on load. The version rises whenever a payload needs a reader that
- * knows something new. Each new field defaults to what older data meant.
- */
 export const BUILD_FORMAT_VERSION = 5;
 
-/** A list rather than "anything up to now", so keeping an old version readable stays a decision. */
 const READABLE_VERSIONS = [2, 3, 4, 5] as const;
 
 const positionSchema = z.tuple([z.number().int(), z.number().int(), z.number().int()]);
 
 const buildSchema = z.object({
   v: z.literal(READABLE_VERSIONS),
-  // Only the sizes the editor offers. Loading regenerates terrain at this size,
-  // so an unchecked number in a posted build would hang whoever opened it.
   size: z.number().refine((size) => WORLD_SIZES.some((offered) => offered === size)),
   seed: z.number().int().nonnegative(),
-  /** Absent before version 4, where every world was grown with trees. */
   trees: z.boolean().default(true),
   removed: z.array(positionSchema),
   added: z.array(z.tuple([z.number().int(), z.number().int(), z.number().int(), z.number().int()])),
@@ -28,7 +19,6 @@ const buildSchema = z.object({
 
 export type SavedBuild = z.infer<typeof buildSchema>;
 
-/** Reduce a live world to the differences from its generated terrain. */
 export function serializeWorld(
   seed: number,
   blocks: Map<BlockKey, number>,
@@ -66,12 +56,10 @@ export function serializeWorld(
 export interface LoadedWorld {
   seed: number;
   blocks: Map<BlockKey, number>;
-  /** Carried back out so that saving an edited build regenerates the same terrain. */
   size: number;
   trees: boolean;
 }
 
-/** Null rather than a throw for unreadable data, so a bad build shows a message. */
 export function deserializeWorld(payload: string): LoadedWorld | null {
   let parsed: unknown;
   try {
@@ -83,7 +71,6 @@ export function deserializeWorld(payload: string): LoadedWorld | null {
   const result = buildSchema.safeParse(parsed);
   if (!result.success) return null;
 
-  // size and trees are generator inputs; without them the build loads against the wrong terrain.
   const { seed, size, trees, removed, added } = result.data;
   const blocks = generateTerrain(seed, size, { trees });
 

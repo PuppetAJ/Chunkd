@@ -1,9 +1,3 @@
-/**
- * Hand-written shapes for what utils/queries.ts asks for; there is no codegen.
- * Optional fields are the ones some queries leave out.
- */
-
-/** Enough of a user to link to them and draw their avatar. */
 export interface UserSummary {
   _id: string;
   username: string;
@@ -22,7 +16,6 @@ export interface Reaction {
   reactionBody: string;
   createdAt: string;
   username: string;
-  /** The comment this replies to. Null at the top level; threads are one deep. */
   parent?: string | null;
 }
 
@@ -30,7 +23,6 @@ export interface Thought {
   _id: string;
   thoughtText: string;
   createdAt: string;
-  /** The feed asks for this; the profile page already knows whose posts these are. */
   username?: string;
   reactionCount: number;
   build?: BuildSummary | null;
@@ -52,13 +44,10 @@ export function asReaction(reaction: Reaction) {
   };
 }
 
-/** A comment that only exists optimistically, until the server gives it a real id. */
 export function isPending(reaction: Reaction): boolean {
   return reaction._id.startsWith("temp-");
 }
 
-/** Shared with the new-post dialog, which prepends to the same first page. */
 export const FEED_PAGE_SIZE = 10;
 
-/** Must match server/src/config/demo.ts. */
 export const DEMO_USERNAME = "demo";

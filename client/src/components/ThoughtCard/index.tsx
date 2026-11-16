@@ -33,13 +33,9 @@ const NO_BUILD = "";
 
 interface Props {
   thought: Thought;
-  /** The profile page already says whose posts these are. */
   showAuthor?: boolean;
-  /** The post's own page has the comments below it, so the link is pointless there. */
   showCommentsLink?: boolean;
-  /** The post's own page shows the build in 3D above this, so the still is noise there. */
   showBuild?: boolean;
-  /** Lets the post's own page navigate away once the post is gone. */
   onDeleted?: () => void;
 }
 
@@ -59,13 +55,10 @@ export default function ThoughtCard({
   const [draftBuildId, setDraftBuildId] = useState(thought.build?._id ?? NO_BUILD);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  // Only while the editor is open: a feed of cards must not each fetch this.
   const { data: mine } = useQuery(QUERY_ME, { skip: !editing });
   const myBuilds: BuildSummary[] = (mine as { me?: { builds?: BuildSummary[] } })?.me?.builds ?? [];
 
   const [updateThought, { loading: saving }] = useMutation(UPDATE_THOUGHT);
-  // Dropping the post from the cache takes it out of every list that held it,
-  // so the feed, the profile and your own post count all lose it at once.
   const [deleteThought, { loading: deleting }] = useMutation(DELETE_THOUGHT, {
     update(cache) {
       cache.evict({ id: cache.identify({ __typename: "Thought", _id: thought._id }) });
@@ -96,7 +89,6 @@ export default function ThoughtCard({
       variables: {
         thoughtId: thought._id,
         thoughtText: text,
-        // Null detaches; the server leaves the build alone when this is absent.
         buildId: draftBuildId || null,
       },
     });
@@ -185,8 +177,6 @@ export default function ThoughtCard({
                 className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <option value={NO_BUILD}>No build attached</option>
-                {/* The attached build may have been deleted, or belong to a page
-                    of builds this account no longer lists. */}
                 {thought.build && !myBuilds.some((one) => one._id === thought.build?._id) && (
                   <option value={thought.build._id}>{thought.build.name}</option>
                 )}

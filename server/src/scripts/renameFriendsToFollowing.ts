@@ -1,10 +1,3 @@
-/**
- * One-off migration: rename the `friends` array to `following`.
- *
- *   pnpm --filter server migrate:following
- *
- * Safe to run twice.
- */
 import mongoose from "mongoose";
 import { connectToDatabase, disconnectFromDatabase } from "../config/db.ts";
 

@@ -7,7 +7,6 @@ interface Props {
   thoughts: Thought[];
   loading?: boolean;
   showAuthor?: boolean;
-  /** Shown in place of the list when there is nothing to show. */
   emptyTitle?: string;
   emptyBody?: string;
 }

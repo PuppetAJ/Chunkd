@@ -2,16 +2,9 @@ import type { BuildSource } from "./worldStore.ts";
 
 const DRAFT_KEY = "chunkd-draft";
 
-/**
- * A world kept in localStorage so a closed tab cannot lose an afternoon's
- * building. Not a save: it never leaves this browser and only one is kept.
- */
 export interface Draft {
-  /** Unix milliseconds, for telling someone how old it is. */
   savedAt: number;
-  /** The build it came from, if it was opened from one. */
   source: BuildSource | null;
-  /** The encoded world, in the same form a save uses. */
   data: string;
 }
 
@@ -38,7 +31,7 @@ export function writeDraft(draft: Draft): void {
   try {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   } catch {
-    // Out of room or storage off. A draft is a safety net and must not interrupt building.
+    // Out of room or storage off.
   }
 }
 
@@ -46,6 +39,5 @@ export function clearDraft(): void {
   try {
     localStorage.removeItem(DRAFT_KEY);
   } catch {
-    // As above.
   }
 }

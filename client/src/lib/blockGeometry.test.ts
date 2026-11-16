@@ -30,7 +30,6 @@ const volume = (part: { min: [number, number, number]; max: [number, number, num
   (part.max[0] - part.min[0]) * (part.max[1] - part.min[1]) * (part.max[2] - part.min[2]);
 
 test("a stair's flat part fills the cell's footprint", () => {
-  // Face culling relies on the outer face being whole.
   for (const upsideDown of [false, true]) {
     const [flat] = stairParts(straightQuadrants(FACING_NORTH), upsideDown);
     assert.deepEqual([flat!.min[0], flat!.max[0]], [-0.5, 0.5]);
@@ -40,7 +39,6 @@ test("a stair's flat part fills the cell's footprint", () => {
 });
 
 test("a straight stair is three quarters of a block", () => {
-  // Half for the flat part, plus two quarters of the other half.
   for (const facing of [FACING_NORTH, FACING_EAST, FACING_SOUTH, FACING_WEST]) {
     const parts = stairParts(straightQuadrants(facing), false);
     assert.equal(parts.length, 3, `facing ${facing}`);
@@ -96,7 +94,6 @@ test("every part stays inside its own cell", () => {
 });
 
 test("a fence on its own is just its post", () => {
-  // Minecraft's post is six to ten sixteenths across, centred.
   assert.deepEqual(fenceParts(0), [{ min: [-0.125, -0.5, -0.125], max: [0.125, 0.5, 0.125] }]);
 });
 
@@ -132,7 +129,6 @@ test("a shut trapdoor is a thin panel across its half of the cell", () => {
 });
 
 test("an open trapdoor stands against the side it faces away from", () => {
-  // The middle value is which corner coordinate to read: 0 for x, 2 for z.
   const cases: [number, 0 | 2, number][] = [
     [FACING_NORTH, 2, 0.5],
     [FACING_SOUTH, 2, -0.5],
@@ -155,8 +151,6 @@ test("a lone glass pane is a post two sixteenths across and a block tall", () =>
 });
 
 test("a glass pane turns the edge texture on the arms that reach east and west", () => {
-  // The edge texture is a stripe down the middle of an otherwise empty image,
-  // which only lines up with a pane running north to south.
   const parts = paneParts(SIDE_NORTH | SIDE_EAST | SIDE_SOUTH | SIDE_WEST);
   const acrossX = parts.filter((part) => part.min[0] === -0.5 || part.max[0] === 0.5);
   const rest = parts.filter((part) => !acrossX.includes(part));
@@ -172,10 +166,6 @@ test("a glass pane reaches the edge of its cell on each side it joins", () => {
   assert.ok(parts.some((part) => part.min[0] === -0.5), "should reach the west edge");
 });
 
-/**
- * BlockLayer picks a face's material by its group, so every face in a group
- * must point the way that material expects.
- */
 function facesMatchTheirMaterial(geometry: {
   groups: { start: number; count: number; materialIndex?: number }[];
   index: { getX: (i: number) => number } | null;
@@ -191,7 +181,6 @@ function facesMatchTheirMaterial(geometry: {
       assert.equal(ny, expected, `material ${group.materialIndex} on a face pointing ${ny}`);
     }
   }
-  // One draw call per material, however many boxes the shape is made of.
   assert.ok(geometry.groups.length <= 3, `${geometry.groups.length} groups`);
 }
 

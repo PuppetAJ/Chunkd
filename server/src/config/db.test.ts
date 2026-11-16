@@ -13,7 +13,6 @@ test("the connection closes once requests stop, and the next request opens it ag
     await useDatabase();
     assert.equal(mongoose.connection.readyState, connected);
 
-    // A request before the countdown runs out starts it over.
     mock.timers.tick(IDLE_MS - 1);
     await useDatabase();
     mock.timers.tick(IDLE_MS - 1);

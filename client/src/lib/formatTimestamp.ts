@@ -8,7 +8,6 @@ const MINUTE = 60;
 const HOUR = MINUTE * 60;
 const DAY = HOUR * 24;
 
-/** "3 minutes ago" for anything recent, an absolute date beyond a week. */
 export function formatTimestamp(iso: string | null | undefined): string {
   if (!iso) return "";
   const then = Date.parse(iso);

@@ -1,6 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
 
-/** The keys currently held down. A ref, not state: movement reads it every frame. */
 export function useHeldKeys(): RefObject<Set<string>> {
   const held = useRef<Set<string>>(new Set());
 
@@ -23,7 +22,6 @@ export function useHeldKeys(): RefObject<Set<string>> {
   return held;
 }
 
-/** Run a handler once per press, on the way down. */
 export function useKeyPress(
   handler: (code: string, shift: boolean, event: KeyboardEvent) => void,
 ): void {
