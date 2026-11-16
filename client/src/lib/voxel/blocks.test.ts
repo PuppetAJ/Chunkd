@@ -108,3 +108,28 @@ test("the glass pane is the only pane, and it can be seen through", () => {
 test("the glass pane's edge texture is there", () => {
   assert.ok(existsSync(new URL("../../assets/textures/glass_pane_top.png", import.meta.url)));
 });
+
+test("saved builds keep meaning the same blocks: no id is renumbered or reused", () => {
+  const saved = {
+    dirt: 1, grass: 2, glass: 3, cobblestone: 4, oakLog: 5, oakPlanks: 6, oakLeaves: 7,
+    mudBricks: 8, stoneBricks: 9, sand: 10, gravel: 11, mud: 12, packedMud: 13, farmland: 14,
+    snow: 15, snowyGrass: 16, blueIce: 17, stone: 18, granite: 19, diorite: 20, andesite: 21,
+    calcite: 22, deepslate: 23, basalt: 24, obsidian: 25, amethyst: 26, tuff: 27, dripstone: 28,
+    blackstone: 29, endStone: 30, mossyCobblestone: 31, sandstone: 32, cutSandstone: 33,
+    chiseledSandstone: 34, polishedGranite: 35, polishedAndesite: 36, bricks: 37,
+    polishedDiorite: 38, deepslateTiles: 39, spruceLog: 40, sprucePlanks: 41, spruceLeaves: 42,
+    birchLog: 43, birchPlanks: 44, birchLeaves: 45, cherryLog: 46, cherryPlanks: 47,
+    cherryLeaves: 48, hayBale: 49, glassPane: 50, strippedSpruceLog: 51, strippedDarkOakLog: 52,
+    darkOakPlanks: 53, lightGrayConcrete: 54, grayConcrete: 55, redConcrete: 56, oakWood: 57,
+    strippedSpruceWood: 58, strippedDarkOakWood: 59, mossyStoneBricks: 60, quartz: 61,
+    acaciaPlanks: 62, spruceWood: 63, orangeWool: 64, limeWool: 65, deepslateBricks: 66,
+    polishedDeepslate: 67, barrel: 68, strippedBirchLog: 69, smoothSandstone: 70,
+    junglePlanks: 71, oxidizedCutCopper: 72, darkOakLog: 73, strippedOakLog: 74,
+    strippedJungleLog: 75, brownMushroomBlock: 76, mossBlock: 77,
+  };
+  for (const [name, id] of Object.entries(saved)) {
+    assert.equal(BLOCK_IDS[name as keyof typeof BLOCK_IDS], id, name);
+  }
+  const ids = Object.values(BLOCK_IDS);
+  assert.equal(new Set(ids).size, ids.length);
+});
