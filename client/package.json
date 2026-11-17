@@ -13,7 +13,7 @@
     "test": "node --test --import ./test/loader.mjs 'src/**/*.test.ts'"
   },
   "dependencies": {
-    "@apollo/client": "^4.3.7",
+    "@apollo/client": "^4.3.8",
     "@fontsource-variable/geist": "^5.3.0",
     "@react-three/drei": "^10.7.9",
     "@react-three/fiber": "^9.8.2",
@@ -22,7 +22,7 @@
     "cn": "^0.5.2",
     "graphql": "^17.1.0",
     "jwt-decode": "^4.0.0",
-    "lucide-react": "^1.70.0",
+    "lucide-react": "^1.72.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -40,10 +40,10 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/three": "^0.187.0",
-    "@vitejs/plugin-react": "^6.2.1",
+    "@vitejs/plugin-react": "^6.3.0",
     "shadcn": "^4.23.0",
     "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2",
-    "vite": "^8.3.6"
+    "vite": "^8.3.8"
   }
 }
